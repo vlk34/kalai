@@ -1,307 +1,225 @@
-import React, { useState } from "react";
+"use client";
+
+import { useState } from "react";
 import { View, Text, ScrollView, TouchableOpacity } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { IconSymbol } from "@/components/ui/IconSymbol";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { router } from "expo-router";
+import { LinearGradient } from "expo-linear-gradient";
 
 export default function DashboardScreen() {
   const colorScheme = useColorScheme();
-  const [caloriesConsumed, setCaloriesConsumed] = useState(1450);
-  const [calorieGoal] = useState(2200);
-  const [remainingCalories, setRemainingCalories] = useState(
-    calorieGoal - caloriesConsumed
-  );
+  const [selectedDay, setSelectedDay] = useState("Today");
 
-  const progressPercentage = (caloriesConsumed / calorieGoal) * 100;
+  const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+  const streak = 12;
 
-  const macros = {
-    carbs: { consumed: 145, goal: 275 },
-    protein: { consumed: 85, goal: 165 },
-    fat: { consumed: 48, goal: 73 },
+  // Sample data for selected day
+  const dailyStats = {
+    caloriesLeft: 750,
+    totalCalories: 2200,
+    proteinLeft: 45,
+    totalProtein: 165,
+    carbsLeft: 130,
+    totalCarbs: 275,
+    fatsLeft: 25,
+    totalFats: 73,
   };
 
+  const caloriesConsumed = dailyStats.totalCalories - dailyStats.caloriesLeft;
+  const progressPercentage =
+    (caloriesConsumed / dailyStats.totalCalories) * 100;
+
   const recentMeals = [
-    { name: "Breakfast Bowl", calories: 420, time: "8:30 AM" },
-    { name: "Grilled Chicken Salad", calories: 580, time: "12:45 PM" },
-    { name: "Protein Smoothie", calories: 280, time: "3:15 PM" },
-    { name: "Salmon & Quinoa", calories: 170, time: "7:20 PM" },
+    { name: "Avocado Toast", calories: 320, time: "8:30 AM", image: "🥑" },
+    { name: "Greek Salad", calories: 280, time: "12:45 PM", image: "🥗" },
+    { name: "Protein Smoothie", calories: 180, time: "3:15 PM", image: "🥤" },
   ];
 
+  const openCamera = () => {
+    router.push("/camera");
+  };
+
   return (
-    <SafeAreaView
-      className={`flex-1 ${
-        colorScheme === "dark" ? "bg-gray-900" : "bg-gray-50"
-      }`}
-    >
-      <ScrollView className="flex-1 px-4 pt-6">
-        {/* Header */}
-        <View className="mb-8">
-          <Text
-            className={`text-3xl font-bold mb-2 ${
-              colorScheme === "dark" ? "text-white" : "text-gray-900"
-            }`}
-          >
-            Hello Volkan! 👋
-          </Text>
-          <Text
-            className={`text-lg ${
-              colorScheme === "dark" ? "text-gray-300" : "text-gray-600"
-            }`}
-          >
-            Let's track your nutrition today
-          </Text>
-        </View>
+    <View className="flex-1">
+      <LinearGradient
+        colors={["#ffffff", "#f8fafc", "#f1f5f9"]}
+        className="flex-1"
+      >
+        <SafeAreaView className="flex-1">
+          {/* Top Bar */}
+          <View className="flex-row justify-between items-center px-6 py-4">
+            <View className="flex-row items-center">
+              <Text className="text-2xl mr-2">🍎</Text>
+              <Text className="text-xl font-bold text-gray-900">Kal AI</Text>
+            </View>
 
-        {/* Calorie Progress Card */}
-        <View
-          className={`rounded-3xl p-6 mb-6 ${
-            colorScheme === "dark" ? "bg-gray-800" : "bg-white"
-          } shadow-lg`}
-        >
-          <Text
-            className={`text-xl font-bold mb-4 ${
-              colorScheme === "dark" ? "text-white" : "text-gray-900"
-            }`}
-          >
-            Daily Calories
-          </Text>
+            <View className="flex-row items-center bg-white rounded-full px-4 py-2 shadow-sm">
+              <Text className="text-xl mr-2">🔥</Text>
+              <Text className="text-lg font-bold text-orange-500">
+                {streak}
+              </Text>
+            </View>
+          </View>
 
-          {/* Circular Progress */}
-          <View className="items-center mb-6">
-            <View className="relative">
-              <View
-                className={`w-40 h-40 rounded-full border-8 ${
-                  colorScheme === "dark" ? "border-gray-700" : "border-gray-200"
-                } items-center justify-center`}
-              >
-                <View
-                  className="absolute w-40 h-40 rounded-full border-8 border-primary -rotate-90"
-                  style={{
-                    borderColor:
-                      progressPercentage > 100 ? "#DC2626" : "#10B981",
-                    borderTopColor: "transparent",
-                    borderRightColor:
-                      progressPercentage < 25
-                        ? "transparent"
-                        : progressPercentage > 100
-                          ? "#DC2626"
-                          : "#10B981",
-                    borderBottomColor:
-                      progressPercentage < 50
-                        ? "transparent"
-                        : progressPercentage > 100
-                          ? "#DC2626"
-                          : "#10B981",
-                    borderLeftColor:
-                      progressPercentage < 75
-                        ? "transparent"
-                        : progressPercentage > 100
-                          ? "#DC2626"
-                          : "#10B981",
-                  }}
-                />
+          {/* Days Header */}
+          <View className="px-6 mb-6">
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              <View className="flex-row space-x-4">
+                {days.map((day) => (
+                  <TouchableOpacity
+                    key={day}
+                    onPress={() => setSelectedDay(day)}
+                    className={`px-4 py-2 rounded-full ${
+                      selectedDay === day ||
+                      (day === "Today" && selectedDay === "Today")
+                        ? "bg-green-500"
+                        : "bg-white"
+                    } shadow-sm`}
+                  >
+                    <Text
+                      className={`font-semibold ${
+                        selectedDay === day ||
+                        (day === "Today" && selectedDay === "Today")
+                          ? "text-white"
+                          : "text-gray-700"
+                      }`}
+                    >
+                      {day}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </ScrollView>
+          </View>
+
+          <ScrollView
+            className="flex-1 px-6"
+            showsVerticalScrollIndicator={false}
+          >
+            {/* Calories Section */}
+            <View className="bg-white rounded-3xl p-6 mb-6 shadow-sm">
+              <View className="flex-row justify-between items-center">
+                <View>
+                  <Text className="text-lg font-semibold text-gray-900 mb-1">
+                    Calories Left
+                  </Text>
+                  <Text className="text-3xl font-bold text-green-500">
+                    {dailyStats.caloriesLeft}
+                  </Text>
+                </View>
+
                 <View className="items-center">
-                  <Text
-                    className={`text-3xl font-bold ${
-                      colorScheme === "dark" ? "text-white" : "text-gray-900"
-                    }`}
-                  >
-                    {caloriesConsumed}
-                  </Text>
-                  <Text
-                    className={`text-sm ${
-                      colorScheme === "dark" ? "text-gray-400" : "text-gray-500"
-                    }`}
-                  >
-                    of {calorieGoal}
-                  </Text>
+                  <View className="relative w-20 h-20">
+                    <View className="absolute w-20 h-20 rounded-full border-4 border-gray-200" />
+                    <View
+                      className="absolute w-20 h-20 rounded-full border-4 border-green-500 -rotate-90"
+                      style={{
+                        borderTopColor: "transparent",
+                        borderRightColor:
+                          progressPercentage >= 25 ? "#10b981" : "transparent",
+                        borderBottomColor:
+                          progressPercentage >= 50 ? "#10b981" : "transparent",
+                        borderLeftColor:
+                          progressPercentage >= 75 ? "#10b981" : "transparent",
+                      }}
+                    />
+                    <View className="absolute inset-0 items-center justify-center">
+                      <Text className="text-xs font-bold text-gray-700">
+                        {Math.round(progressPercentage)}%
+                      </Text>
+                    </View>
+                  </View>
                 </View>
               </View>
             </View>
 
-            <View className="flex-row mt-4 space-x-8">
-              <View className="items-center">
-                <Text
-                  className={`text-lg font-semibold ${
-                    remainingCalories >= 0 ? "text-primary" : "text-red-500"
-                  }`}
-                >
-                  {Math.abs(remainingCalories)}
+            {/* Macros Section */}
+            <View className="flex-row gap-1 space-x-4 mb-6">
+              <View className="flex-1 bg-white rounded-2xl p-4 shadow-sm">
+                <Text className="text-sm font-medium text-gray-600 mb-1">
+                  Protein Left
                 </Text>
-                <Text
-                  className={`text-xs ${
-                    colorScheme === "dark" ? "text-gray-400" : "text-gray-500"
-                  }`}
-                >
-                  {remainingCalories >= 0 ? "Remaining" : "Over"}
+                <Text className="text-xl font-bold text-blue-500">
+                  {dailyStats.proteinLeft}g
+                </Text>
+                <Text className="text-xs text-gray-400">
+                  of {dailyStats.totalProtein}g
                 </Text>
               </View>
-              <View className="items-center">
-                <Text
-                  className={`text-lg font-semibold ${
-                    colorScheme === "dark" ? "text-white" : "text-gray-900"
-                  }`}
-                >
-                  {Math.round(progressPercentage)}%
+
+              <View className="flex-1 bg-white rounded-2xl p-4 shadow-sm">
+                <Text className="text-sm font-medium text-gray-600 mb-1">
+                  Carbs Left
                 </Text>
-                <Text
-                  className={`text-xs ${
-                    colorScheme === "dark" ? "text-gray-400" : "text-gray-500"
-                  }`}
-                >
-                  Progress
+                <Text className="text-xl font-bold text-orange-500">
+                  {dailyStats.carbsLeft}g
+                </Text>
+                <Text className="text-xs text-gray-400">
+                  of {dailyStats.totalCarbs}g
+                </Text>
+              </View>
+
+              <View className="flex-1 bg-white rounded-2xl p-4 shadow-sm">
+                <Text className="text-sm font-medium text-gray-600 mb-1">
+                  Fats Left
+                </Text>
+                <Text className="text-xl font-bold text-purple-500">
+                  {dailyStats.fatsLeft}g
+                </Text>
+                <Text className="text-xs text-gray-400">
+                  of {dailyStats.totalFats}g
                 </Text>
               </View>
             </View>
-          </View>
-        </View>
 
-        {/* Macros Card */}
-        <View
-          className={`rounded-3xl p-6 mb-6 ${
-            colorScheme === "dark" ? "bg-gray-800" : "bg-white"
-          } shadow-lg`}
-        >
-          <Text
-            className={`text-xl font-bold mb-4 ${
-              colorScheme === "dark" ? "text-white" : "text-gray-900"
-            }`}
-          >
-            Macronutrients
-          </Text>
+            {/* Recently Eaten */}
+            <View className="bg-white rounded-3xl p-6 mb-20 shadow-sm">
+              <Text className="text-lg font-semibold text-gray-900 mb-4">
+                Recently Eaten
+              </Text>
 
-          {Object.entries(macros).map(([key, macro]) => {
-            const percentage = (macro.consumed / macro.goal) * 100;
-            return (
-              <View key={key} className="mb-4">
-                <View className="flex-row justify-between mb-2">
-                  <Text
-                    className={`font-semibold capitalize ${
-                      colorScheme === "dark" ? "text-white" : "text-gray-900"
-                    }`}
-                  >
-                    {key}
-                  </Text>
-                  <Text
-                    className={`${
-                      colorScheme === "dark" ? "text-gray-300" : "text-gray-600"
-                    }`}
-                  >
-                    {macro.consumed}g / {macro.goal}g
-                  </Text>
-                </View>
-                <View
-                  className={`h-2 rounded-full ${
-                    colorScheme === "dark" ? "bg-gray-700" : "bg-gray-200"
-                  }`}
-                >
+              {recentMeals.length > 0 ? (
+                recentMeals.map((meal, index) => (
                   <View
-                    className={`h-2 rounded-full ${
-                      key === "carbs"
-                        ? "bg-blue-500"
-                        : key === "protein"
-                          ? "bg-green-500"
-                          : "bg-yellow-500"
-                    }`}
-                    style={{ width: `${Math.min(percentage, 100)}%` }}
-                  />
+                    key={index}
+                    className="flex-row items-center py-3 border-b border-gray-100 last:border-b-0"
+                  >
+                    <Text className="text-2xl mr-3">{meal.image}</Text>
+                    <View className="flex-1">
+                      <Text className="font-semibold text-gray-900">
+                        {meal.name}
+                      </Text>
+                      <Text className="text-sm text-gray-500">{meal.time}</Text>
+                    </View>
+                    <Text className="font-bold text-gray-900">
+                      {meal.calories} cal
+                    </Text>
+                  </View>
+                ))
+              ) : (
+                <View className="items-center py-8">
+                  <Text className="text-gray-500 text-center mb-2">
+                    You haven't uploaded any food yet
+                  </Text>
+                  <Text className="text-gray-400 text-center text-sm">
+                    Start by taking a photo of your meal!
+                  </Text>
                 </View>
-              </View>
-            );
-          })}
-        </View>
-
-        {/* Recent Meals */}
-        <View
-          className={`rounded-3xl p-6 mb-6 ${
-            colorScheme === "dark" ? "bg-gray-800" : "bg-white"
-          } shadow-lg`}
-        >
-          <Text
-            className={`text-xl font-bold mb-4 ${
-              colorScheme === "dark" ? "text-white" : "text-gray-900"
-            }`}
-          >
-            Recent Meals
-          </Text>
-
-          {recentMeals.map((meal, index) => (
-            <View
-              key={index}
-              className="flex-row items-center justify-between py-3 border-b border-gray-200 dark:border-gray-700"
-            >
-              <View className="flex-1">
-                <Text
-                  className={`font-semibold ${
-                    colorScheme === "dark" ? "text-white" : "text-gray-900"
-                  }`}
-                >
-                  {meal.name}
-                </Text>
-                <Text
-                  className={`text-sm ${
-                    colorScheme === "dark" ? "text-gray-400" : "text-gray-500"
-                  }`}
-                >
-                  {meal.time}
-                </Text>
-              </View>
-              <Text
-                className={`font-bold ${
-                  colorScheme === "dark" ? "text-white" : "text-gray-900"
-                }`}
-              >
-                {meal.calories} cal
-              </Text>
+              )}
             </View>
-          ))}
-        </View>
+          </ScrollView>
 
-        {/* Quick Actions */}
-        <View
-          className={`rounded-3xl p-6 mb-20 ${
-            colorScheme === "dark" ? "bg-gray-800" : "bg-white"
-          } shadow-lg`}
-        >
-          <Text
-            className={`text-xl font-bold mb-4 ${
-              colorScheme === "dark" ? "text-white" : "text-gray-900"
-            }`}
+          {/* Camera Button */}
+          <TouchableOpacity
+            onPress={openCamera}
+            className="absolute bottom-44 right-6 bg-black rounded-full w-14 h-14 items-center justify-center shadow-lg"
           >
-            Quick Actions
-          </Text>
-
-          <View className="flex-row space-x-4">
-            <TouchableOpacity
-              className="flex-1 bg-primary rounded-2xl p-4 items-center"
-              onPress={() => router.push("/(tabs)/camera")}
-            >
-              <IconSymbol name="camera.fill" size={24} color="white" />
-              <Text className="text-white font-semibold mt-2">Add Meal</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              className={`flex-1 rounded-2xl p-4 items-center ${
-                colorScheme === "dark" ? "bg-gray-700" : "bg-gray-100"
-              }`}
-            >
-              <IconSymbol
-                name="plus.circle.fill"
-                size={24}
-                color={colorScheme === "dark" ? "white" : "black"}
-              />
-              <Text
-                className={`font-semibold mt-2 ${
-                  colorScheme === "dark" ? "text-white" : "text-gray-900"
-                }`}
-              >
-                Manual Entry
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </ScrollView>
-    </SafeAreaView>
+            <IconSymbol name="camera.fill" size={24} color="white" />
+          </TouchableOpacity>
+        </SafeAreaView>
+      </LinearGradient>
+    </View>
   );
 }
