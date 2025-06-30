@@ -82,7 +82,7 @@ export default function AnalyticsScreen() {
 
   return (
     <LinearGradient
-      colors={["#ffffff", "#f8fafc", "#f1f5f9"]}
+      colors={["#fafafa", "#f4f6f8", "#eef2f5"]}
       className="flex-1"
     >
       <SafeAreaView className="flex-1">

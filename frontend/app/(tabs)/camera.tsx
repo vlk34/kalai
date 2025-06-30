@@ -9,6 +9,8 @@ import { IconSymbol } from "@/components/ui/IconSymbol";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { router } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
+import FontAwesome from "@expo/vector-icons/FontAwesome";
+import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 
 export default function CameraScreen() {
   const [facing, setFacing] = useState<CameraType>("back");
@@ -28,7 +30,7 @@ export default function CameraScreen() {
         <SafeAreaView className="flex-1 justify-center items-center">
           <View className="items-center px-8">
             <View className="bg-green-100 rounded-full p-6 mb-6">
-              <IconSymbol name="camera.fill" size={48} color="#10b981" />
+              <FontAwesome name="camera" size={48} color="#10b981" />
             </View>
             <Text className="text-2xl font-bold mb-4 text-center text-gray-900">
               Camera Access Needed
@@ -178,74 +180,110 @@ export default function CameraScreen() {
 
   return (
     <View className="flex-1 bg-black">
-      <CameraView ref={cameraRef} className="flex-1" facing={facing} />
+      <CameraView
+        ref={cameraRef}
+        className="flex-1"
+        facing={facing}
+        style={{ height: "100%", width: "100%" }}
+      />
 
-      <View className="absolute inset-0">
-        <SafeAreaView>
-          <View className="flex-row justify-between items-center p-6">
-            <TouchableOpacity
-              className="bg-black bg-opacity-40 rounded-full p-3"
-              onPress={() => router.back()}
-            >
-              <IconSymbol name="chevron.left" size={24} color="white" />
-            </TouchableOpacity>
+      {/* Header overlay */}
+      <SafeAreaView className="absolute top-0 left-0 right-0">
+        <View className="flex-row justify-between items-center p-4">
+          <TouchableOpacity
+            className="w-10 h-10 justify-center items-center"
+            onPress={() => router.back()}
+          >
+            <IconSymbol name="xmark" size={24} color="white" />
+          </TouchableOpacity>
 
-            <Text className="text-white text-lg font-semibold">
-              Capture Meal
-            </Text>
+          <Text className="text-white text-lg font-semibold">Photo</Text>
 
-            <TouchableOpacity
-              className="bg-black bg-opacity-40 rounded-full p-3"
-              onPress={toggleCameraFacing}
-            >
-              <IconSymbol name="camera.rotate.fill" size={24} color="white" />
-            </TouchableOpacity>
+          <TouchableOpacity
+            className="w-10 h-10 justify-center items-center"
+            onPress={toggleCameraFacing}
+          >
+            <IconSymbol
+              name="arrow.triangle.2.circlepath.camera"
+              size={24}
+              color="white"
+            />
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+
+      {/* Camera viewfinder corners */}
+      <View className="absolute inset-0 justify-center items-center pointer-events-none mb-20">
+        <View className="relative w-80 h-80">
+          {/* Top left corner */}
+          <View className="absolute top-0 left-0 w-6 h-6">
+            <View className="absolute top-0 left-0 w-6 h-1 bg-white rounded-full" />
+            <View className="absolute top-0 left-0 w-1 h-6 bg-white rounded-full" />
           </View>
-        </SafeAreaView>
 
-        <View className="flex-1 justify-center items-center px-8">
-          <View className="border-2 border-white border-dashed rounded-3xl w-72 h-72 justify-center items-center bg-black bg-opacity-10">
-            <View className="bg-white bg-opacity-20 rounded-full p-4 mb-4">
-              <IconSymbol name="camera.fill" size={32} color="white" />
-            </View>
-            <Text className="text-white text-center font-medium leading-6">
-              Position your meal within the frame for optimal analysis
-            </Text>
-            <Text className="text-white text-center text-sm mt-2 opacity-80">
-              Make sure the food is well-lit and clearly visible
-            </Text>
+          {/* Top right corner */}
+          <View className="absolute top-0 right-0 w-6 h-6">
+            <View className="absolute top-0 right-0 w-6 h-1 bg-white rounded-full" />
+            <View className="absolute top-0 right-0 w-1 h-6 bg-white rounded-full" />
+          </View>
+
+          {/* Bottom left corner */}
+          <View className="absolute bottom-0 left-0 w-6 h-6">
+            <View className="absolute bottom-0 left-0 w-6 h-1 bg-white rounded-full" />
+            <View className="absolute bottom-0 left-0 w-1 h-6 bg-white rounded-full" />
+          </View>
+
+          {/* Bottom right corner */}
+          <View className="absolute bottom-0 right-0 w-6 h-6">
+            <View className="absolute bottom-0 right-0 w-6 h-1 bg-white rounded-full" />
+            <View className="absolute bottom-0 right-0 w-1 h-6 bg-white rounded-full" />
           </View>
         </View>
+      </View>
 
-        <SafeAreaView className="absolute bottom-0 left-0 right-0">
-          <View className="flex-row justify-center items-center pb-10 px-6">
-            <View className="flex-row items-center space-x-12">
-              <TouchableOpacity
-                className="bg-white bg-opacity-20 rounded-full p-4"
-                onPress={pickImage}
-              >
-                <IconSymbol name="photo.on.rectangle" size={28} color="white" />
-              </TouchableOpacity>
+      {/* Flash toggle - top left */}
+      <View className="absolute top-20 left-6">
+        <TouchableOpacity className="w-10 h-10 justify-center items-center">
+          <IconSymbol name="bolt.slash.fill" size={24} color="white" />
+        </TouchableOpacity>
+      </View>
 
-              <TouchableOpacity
-                className="bg-white rounded-full p-2 shadow-lg"
-                onPress={takePicture}
-              >
-                <View className="bg-green-500 rounded-full w-16 h-16 justify-center items-center">
-                  <IconSymbol name="camera.fill" size={32} color="white" />
-                </View>
-              </TouchableOpacity>
+      {/* Bottom controls */}
+      <SafeAreaView className="absolute bottom-0 left-0 right-0">
+        <View className="flex-row justify-between items-center px-8 pb-8">
+          {/* Gallery button */}
+          <TouchableOpacity
+            className="w-12 h-12 rounded-lg justify-center items-center border border-white border-opacity-30"
+            onPress={pickImage}
+          >
+            <FontAwesome name="photo" size={24} color="white" />
+          </TouchableOpacity>
 
-              <TouchableOpacity className="bg-white bg-opacity-20 rounded-full p-4">
-                <IconSymbol
-                  name="flashlight.off.fill"
-                  size={28}
-                  color="white"
-                />
-              </TouchableOpacity>
+          {/* Capture button */}
+          <TouchableOpacity
+            className="w-20 h-20 justify-center items-center"
+            onPress={takePicture}
+          >
+            <View className="w-20 h-20 bg-white rounded-full justify-center items-center">
+              <View className="w-16 h-16 bg-white rounded-full border-2" />
             </View>
-          </View>
-        </SafeAreaView>
+          </TouchableOpacity>
+
+          {/* Camera flip button */}
+          <TouchableOpacity
+            className="w-12 h-12 rounded-full justify-center items-center border border-white border-opacity-30"
+            onPress={toggleCameraFacing}
+          >
+            <FontAwesome6 name="camera-rotate" size={24} color="white" />
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+
+      {/* Instructions text */}
+      <View className="absolute bottom-72 left-0 right-0 px-8 pointer-events-none">
+        <Text className="text-white text-center text-sm opacity-80">
+          Position your meal within the frame
+        </Text>
       </View>
     </View>
   );

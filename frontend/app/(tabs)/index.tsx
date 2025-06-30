@@ -7,13 +7,18 @@ import { IconSymbol } from "@/components/ui/IconSymbol";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { router } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
+import { FontAwesome5 } from "@expo/vector-icons";
+import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
+import { useStreak } from "@/contexts/StreakContext";
 
 export default function DashboardScreen() {
   const colorScheme = useColorScheme();
   const [selectedDay, setSelectedDay] = useState("Today");
 
+  // Use the streak context instead of local state
+  const { showStreakModal, setShowStreakModal, streak } = useStreak();
+
   const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-  const streak = 12;
 
   // Sample data for selected day
   const dailyStats = {
@@ -44,23 +49,31 @@ export default function DashboardScreen() {
   return (
     <View className="flex-1">
       <LinearGradient
-        colors={["#ffffff", "#f8fafc", "#f1f5f9"]}
+        colors={["#fafafa", "#f4f6f8", "#eef2f5"]}
         className="flex-1"
       >
         <SafeAreaView className="flex-1">
           {/* Top Bar */}
           <View className="flex-row justify-between items-center px-6 py-4">
-            <View className="flex-row items-center">
-              <Text className="text-2xl mr-2">🍎</Text>
+            <View className="flex-row items-center justify-center gap-2">
+              <FontAwesome5
+                name="apple-alt"
+                size={24}
+                color="black"
+                className="mb-1"
+              />
               <Text className="text-xl font-bold text-gray-900">Kal AI</Text>
             </View>
 
-            <View className="flex-row items-center bg-white rounded-full px-4 py-2 shadow-sm">
-              <Text className="text-xl mr-2">🔥</Text>
-              <Text className="text-lg font-bold text-orange-500">
-                {streak}
+            <TouchableOpacity
+              onPress={() => setShowStreakModal(true)}
+              className="flex-row items-center gap-2 bg-white rounded-full px-4 py-2 shadow-sm"
+            >
+              <FontAwesome6 name="fire" size={24} color="orange" />
+              <Text className="text-lg font-bold text-orange-600">
+                {streak} days
               </Text>
-            </View>
+            </TouchableOpacity>
           </View>
 
           {/* Days Header */}
@@ -218,6 +231,56 @@ export default function DashboardScreen() {
           >
             <IconSymbol name="camera.fill" size={24} color="white" />
           </TouchableOpacity>
+
+          {/* Streak Modal */}
+          {showStreakModal && (
+            <View className="absolute inset-0 bg-black/30 justify-center items-center z-50">
+              <View className="bg-white rounded-3xl mx-6 p-8 items-center shadow-2xl">
+                <View className="bg-orange-100 rounded-full p-6 mb-6">
+                  <FontAwesome6 name="fire" size={48} color="orange" />
+                </View>
+
+                <Text className="text-2xl font-bold text-gray-900 text-center mb-3">
+                  🔥 {streak} Day Streak!
+                </Text>
+
+                <Text className="text-lg text-gray-700 text-center mb-6 leading-6">
+                  You're on fire! Keep reaching your daily calorie goals to
+                  maintain your streak.
+                </Text>
+
+                {/* <View className="bg-gradient-to-r from-orange-50 to-red-50 rounded-2xl p-4 mb-6 w-full">
+                  <Text className="text-center text-gray-700 font-medium">
+                    💡 <Text className="font-bold">Pro Tip:</Text> Users with
+                    30+ day streaks are 5x more likely to reach their goals!
+                  </Text>
+                </View> */}
+
+                <View className="flex-row gap-2 space-x-3 w-full">
+                  <TouchableOpacity
+                    onPress={() => setShowStreakModal(false)}
+                    className="flex-1 bg-gray-100 rounded-2xl py-2"
+                  >
+                    <Text className="text-center font-semibold text-gray-700">
+                      Close
+                    </Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    onPress={() => {
+                      setShowStreakModal(false);
+                      openCamera();
+                    }}
+                    className="flex-1 bg-green-500 rounded-2xl py-2"
+                  >
+                    <Text className="text-center font-semibold text-white">
+                      Log Meal Now
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+          )}
         </SafeAreaView>
       </LinearGradient>
     </View>
