@@ -172,12 +172,12 @@ export default function SettingsScreen() {
                 )
               }
             />
-            <SettingRow
+            {/* <SettingRow
               title="Data Sync"
               onPress={() =>
                 Alert.alert("Data Sync", "Manage data synchronization settings")
               }
-            />
+            /> */}
           </View>
 
           {/* Health Integration */}
@@ -206,12 +206,6 @@ export default function SettingsScreen() {
           {/* Account */}
           <SectionHeader title="Account" />
           <View className="bg-white">
-            <SettingRow
-              title="Backup & Restore"
-              onPress={() =>
-                Alert.alert("Backup & Restore", "Manage your data backup")
-              }
-            />
             <SettingRow
               title="Delete Account"
               onPress={() =>

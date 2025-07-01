@@ -9,15 +9,14 @@ import { router } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import { FontAwesome5 } from "@expo/vector-icons";
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
-import { useStreak } from "@/contexts/StreakContext";
 
 export default function DashboardScreen() {
   const colorScheme = useColorScheme();
   const [selectedDay, setSelectedDay] = useState("Today");
 
   // Use the streak context instead of local state
-  const { showStreakModal, setShowStreakModal, streak } = useStreak();
-
+  const [showStreakModal, setShowStreakModal] = useState(false);
+  const [streak, setStreak] = useState(0);
   const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
   // Sample data for selected day
