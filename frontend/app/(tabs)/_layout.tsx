@@ -10,20 +10,21 @@ export default function TabLayout() {
 
   // Hide tabs when camera is open
   const shouldHideTabs = pathname === "/camera";
+
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: "#10b981", // Green color matching the design
-        tabBarInactiveTintColor: "#9ca3af", // Gray color matching the design
+        tabBarActiveTintColor: "#10b981",
+        tabBarInactiveTintColor: "#9ca3af",
         headerShown: false,
         tabBarStyle: shouldHideTabs
           ? { display: "none" }
           : {
               backgroundColor: "white",
               borderTopWidth: 0,
-              paddingBottom: insets.bottom + 8, // Add safe area bottom padding
+              paddingBottom: insets.bottom + 8,
               paddingTop: 8,
-              height: 70 + insets.bottom, // Add safe area bottom height
+              height: 70 + insets.bottom,
               position: "absolute",
             },
         tabBarLabelStyle: {
@@ -64,9 +65,9 @@ export default function TabLayout() {
         name="camera"
         options={{
           href: null,
-          title: "Settings",
+          title: "Camera",
           tabBarIcon: ({ color }) => (
-            <Feather name="settings" size={24} color={color} />
+            <Feather name="camera" size={24} color={color} />
           ),
         }}
       />

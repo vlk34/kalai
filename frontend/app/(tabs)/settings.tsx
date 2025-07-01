@@ -4,8 +4,10 @@ import { useState } from "react";
 import { View, Text, ScrollView, TouchableOpacity, Alert } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { IconSymbol } from "@/components/ui/IconSymbol";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function SettingsScreen() {
+  const { signOut } = useAuth();
   // Sample user data from onboarding
   const [userInfo, setUserInfo] = useState({
     age: 28,
@@ -38,6 +40,23 @@ export default function SettingsScreen() {
       "plain-text",
       currentValue.toString()
     );
+  };
+
+  const handleSignOut = async () => {
+    Alert.alert("Sign Out", "Are you sure you want to sign out?", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Sign Out",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            await signOut();
+          } catch (error) {
+            Alert.alert("Error", "Failed to sign out");
+          }
+        },
+      },
+    ]);
   };
 
   const SettingRow = ({
@@ -219,6 +238,15 @@ export default function SettingsScreen() {
                 )
               }
             />
+            <TouchableOpacity
+              onPress={handleSignOut}
+              className="flex-row items-center justify-between py-4 px-6 border-b border-gray-100"
+            >
+              <Text className="text-red-500 font-medium text-base">
+                Sign Out
+              </Text>
+              <IconSymbol name="chevron.right" size={16} color="#EF4444" />
+            </TouchableOpacity>
           </View>
 
           {/* Legal */}
