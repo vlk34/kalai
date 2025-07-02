@@ -8,6 +8,7 @@ CREATE TABLE Foods_consumed (
     carbs DECIMAL(6,2),      -- e.g., 9999.99g  
     fats DECIMAL(6,2),       -- e.g., 9999.99g
     calories DECIMAL(7,2),   -- e.g., 99999.99 kcal
+    photo_path VARCHAR(500), -- Path to photo in Supabase Storage
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
