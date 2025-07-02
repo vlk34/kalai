@@ -1,7 +1,15 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { View, Text, TouchableOpacity, ScrollView, Alert } from "react-native";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  ScrollView,
+  Alert,
+  TextInput,
+  Modal,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import { IconSymbol } from "@/components/ui/IconSymbol";
@@ -35,9 +43,18 @@ export default function OnboardingScreen() {
   const [currentStep, setCurrentStep] = useState(0);
   const [data, setData] = useState<OnboardingData>({ unit: "metric" });
   const [canProceed, setCanProceed] = useState(false);
+  const [showHeightPicker, setShowHeightPicker] = useState(false);
+  const [dateInputText, setDateInputText] = useState("");
 
   const totalSteps = 9;
   const progress = ((currentStep + 1) / totalSteps) * 100;
+
+  // Initialize date input text when date exists
+  useEffect(() => {
+    if (data.dateOfBirth && !dateInputText) {
+      setDateInputText(formatDateForDisplay(data.dateOfBirth));
+    }
+  }, [data.dateOfBirth]);
 
   // Validation for each step
   useEffect(() => {
@@ -115,6 +132,58 @@ export default function OnboardingScreen() {
     if (userData.goal === "gain") baseCalories += 300;
 
     return { calories: baseCalories, protein, carbs, fats };
+  };
+
+  const handleUnitChange = (newUnit: "metric" | "imperial") => {
+    try {
+      console.log("Changing unit from", data.unit, "to", newUnit);
+
+      let newHeight = data.height;
+      let newWeight = data.weight;
+
+      if (data.unit === "metric" && newUnit === "imperial") {
+        // Convert cm to inches, kg to lbs
+        if (data.height) newHeight = Math.round(data.height / 2.54);
+        if (data.weight) newWeight = Math.round(data.weight * 2.205);
+      } else if (data.unit === "imperial" && newUnit === "metric") {
+        // Convert inches to cm, lbs to kg
+        if (data.height) newHeight = Math.round(data.height * 2.54);
+        if (data.weight) newWeight = Math.round(data.weight / 2.205);
+      }
+
+      setData({ ...data, unit: newUnit, height: newHeight, weight: newWeight });
+      console.log("Unit change completed successfully");
+    } catch (error) {
+      console.error("Error in handleUnitChange:", error);
+    }
+  };
+
+  const parseDateString = (dateStr: string) => {
+    // Parse DD.MM.YYYY format
+    const parts = dateStr.split(".");
+    if (parts.length === 3) {
+      const day = parseInt(parts[0], 10);
+      const month = parseInt(parts[1], 10) - 1; // Month is 0-based in Date
+      const year = parseInt(parts[2], 10);
+
+      const date = new Date(year, month, day);
+      // Validate the date
+      if (
+        date.getDate() === day &&
+        date.getMonth() === month &&
+        date.getFullYear() === year
+      ) {
+        return date;
+      }
+    }
+    return null;
+  };
+
+  const formatDateForDisplay = (date: Date) => {
+    const day = date.getDate().toString().padStart(2, "0");
+    const month = (date.getMonth() + 1).toString().padStart(2, "0");
+    const year = date.getFullYear();
+    return `${day}.${month}.${year}`;
   };
 
   const OptionButton = ({
@@ -289,7 +358,7 @@ export default function OnboardingScreen() {
             {/* Unit Toggle */}
             <View className="flex-row bg-gray-100 rounded-2xl p-1 mb-6">
               <TouchableOpacity
-                onPress={() => setData({ ...data, unit: "metric" })}
+                onPress={() => handleUnitChange("metric")}
                 className={`flex-1 py-3 rounded-xl ${data.unit === "metric" ? "bg-white shadow-sm" : ""}`}
               >
                 <Text
@@ -299,7 +368,7 @@ export default function OnboardingScreen() {
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
-                onPress={() => setData({ ...data, unit: "imperial" })}
+                onPress={() => handleUnitChange("imperial")}
                 className={`flex-1 py-3 rounded-xl ${data.unit === "imperial" ? "bg-white shadow-sm" : ""}`}
               >
                 <Text
@@ -315,16 +384,34 @@ export default function OnboardingScreen() {
               <Text className="text-lg font-semibold text-gray-900 mb-3">
                 Height ({data.unit === "metric" ? "cm" : "ft/in"})
               </Text>
-              <TouchableOpacity
-                onPress={() => setData({ ...data, height: 175 })}
-                className="bg-white border border-gray-200 rounded-2xl p-4"
-              >
-                <Text className="text-lg text-gray-700">
-                  {data.height
-                    ? `${data.height} ${data.unit === "metric" ? "cm" : "ft"}`
-                    : "Select height"}
-                </Text>
-              </TouchableOpacity>
+              {data.unit === "metric" ? (
+                <TextInput
+                  className="bg-white border border-gray-200 rounded-2xl p-4 text-lg text-gray-700"
+                  placeholder="Enter height in cm (e.g. 170)"
+                  placeholderTextColor="#9CA3AF"
+                  value={data.height?.toString() || ""}
+                  onChangeText={(text) => {
+                    const height = parseFloat(text);
+                    if (!isNaN(height) && height > 0) {
+                      setData({ ...data, height });
+                    } else if (text === "") {
+                      setData({ ...data, height: undefined });
+                    }
+                  }}
+                  keyboardType="numeric"
+                />
+              ) : (
+                <TouchableOpacity
+                  onPress={() => setShowHeightPicker(true)}
+                  className="bg-white border border-gray-200 rounded-2xl p-4"
+                >
+                  <Text className="text-lg text-gray-700">
+                    {data.height
+                      ? `${Math.floor(data.height / 12)}' ${data.height % 12}"`
+                      : "Select height (e.g. 5' 7\")"}
+                  </Text>
+                </TouchableOpacity>
+              )}
             </View>
 
             {/* Weight Input */}
@@ -332,17 +419,74 @@ export default function OnboardingScreen() {
               <Text className="text-lg font-semibold text-gray-900 mb-3">
                 Weight ({data.unit === "metric" ? "kg" : "lbs"})
               </Text>
-              <TouchableOpacity
-                onPress={() => setData({ ...data, weight: 70 })}
-                className="bg-white border border-gray-200 rounded-2xl p-4"
-              >
-                <Text className="text-lg text-gray-700">
-                  {data.weight
-                    ? `${data.weight} ${data.unit === "metric" ? "kg" : "lbs"}`
-                    : "Select weight"}
-                </Text>
-              </TouchableOpacity>
+              <TextInput
+                className="bg-white border border-gray-200 rounded-2xl p-4 text-lg text-gray-700"
+                placeholder={
+                  data.unit === "metric"
+                    ? "Enter weight in kg (e.g. 70)"
+                    : "Enter weight in lbs (e.g. 154)"
+                }
+                placeholderTextColor="#9CA3AF"
+                value={data.weight?.toString() || ""}
+                onChangeText={(text) => {
+                  const weight = parseFloat(text);
+                  if (!isNaN(weight) && weight > 0) {
+                    setData({ ...data, weight });
+                  } else if (text === "") {
+                    setData({ ...data, weight: undefined });
+                  }
+                }}
+                keyboardType="numeric"
+              />
             </View>
+
+            {/* Height Picker Modal for Imperial */}
+            <Modal visible={showHeightPicker} transparent animationType="slide">
+              <View className="flex-1 justify-center items-center bg-black/50">
+                <View className="bg-white rounded-3xl p-6 w-80 max-h-96">
+                  <Text className="text-xl font-bold text-center mb-4">
+                    Select Height
+                  </Text>
+                  <ScrollView className="max-h-64">
+                    {Array.from({ length: 36 }, (_, i) => {
+                      const feet = Math.floor((i + 48) / 12);
+                      const inches = (i + 48) % 12;
+                      const totalInches = i + 48;
+                      return (
+                        <TouchableOpacity
+                          key={totalInches}
+                          onPress={() => {
+                            setData({ ...data, height: totalInches });
+                            setShowHeightPicker(false);
+                          }}
+                          className={`py-3 px-4 rounded-xl mb-2 ${
+                            data.height === totalInches
+                              ? "bg-green-500"
+                              : "bg-gray-100"
+                          }`}
+                        >
+                          <Text
+                            className={`text-center font-medium ${
+                              data.height === totalInches
+                                ? "text-white"
+                                : "text-gray-700"
+                            }`}
+                          >
+                            {feet}' {inches}"
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </ScrollView>
+                  <TouchableOpacity
+                    onPress={() => setShowHeightPicker(false)}
+                    className="bg-gray-200 rounded-xl py-3 mt-4"
+                  >
+                    <Text className="text-center font-medium">Cancel</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </Modal>
           </View>
         );
 
@@ -356,18 +500,30 @@ export default function OnboardingScreen() {
               This helps calculate your metabolic rate
             </Text>
 
-            <TouchableOpacity
-              onPress={() =>
-                setData({ ...data, dateOfBirth: new Date(1995, 0, 1) })
-              }
-              className="bg-white border border-gray-200 rounded-2xl p-4"
-            >
-              <Text className="text-lg text-gray-700">
-                {data.dateOfBirth
-                  ? data.dateOfBirth.toDateString()
-                  : "Select your birth date"}
-              </Text>
-            </TouchableOpacity>
+            <TextInput
+              className="bg-white border border-gray-200 rounded-2xl p-4 text-lg text-gray-700"
+              placeholder="Enter birth date (e.g. 13.06.2004)"
+              placeholderTextColor="#9CA3AF"
+              value={dateInputText}
+              onChangeText={(text) => {
+                setDateInputText(text);
+
+                if (text === "") {
+                  setData({ ...data, dateOfBirth: undefined });
+                } else {
+                  // Only try to parse if the text looks complete (has 2 dots)
+                  const dotCount = (text.match(/\./g) || []).length;
+                  if (dotCount === 2 && text.length >= 8) {
+                    const parsedDate = parseDateString(text);
+                    if (parsedDate) {
+                      setData({ ...data, dateOfBirth: parsedDate });
+                    }
+                  }
+                }
+              }}
+              keyboardType="default"
+              maxLength={10} // DD.MM.YYYY = 10 characters
+            />
           </View>
         );
 

@@ -1,108 +1,31 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback } from "react";
 import { View, Text, ScrollView, TouchableOpacity, Image } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { IconSymbol } from "@/components/ui/IconSymbol";
-import { useColorScheme } from "@/hooks/useColorScheme";
 import { router, useFocusEffect } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import { FontAwesome5 } from "@expo/vector-icons";
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
-import { useAuth } from "@/contexts/AuthContext";
-
-// Backend API configuration
-const API_BASE_URL = "http://192.168.1.145:5000";
-
-// Interface for the food item
-interface FoodItem {
-  id: string;
-  name: string;
-  emoji: string;
-  protein: number;
-  carbs: number;
-  fats: number;
-  calories: number;
-  created_at: string;
-  photo_url: string;
-}
+import { useRecentMeals } from "@/hooks/useRecentMeals";
+import { useMutateRecentMeals } from "@/hooks/useMutateRecentMeals";
 
 export default function DashboardScreen() {
-  const colorScheme = useColorScheme();
   const [selectedDay, setSelectedDay] = useState("Today");
-  const { session } = useAuth();
+
+  // Use TanStack Query hooks for recent meals
+  const {
+    data: recentMeals = [],
+    isLoading: isLoadingMeals,
+    error,
+  } = useRecentMeals();
+  const { invalidateRecentMeals } = useMutateRecentMeals();
 
   // Use the streak context instead of local state
   const [showStreakModal, setShowStreakModal] = useState(false);
   const [streak, setStreak] = useState(0);
-  const [recentMeals, setRecentMeals] = useState<FoodItem[]>([]);
-  const [isLoadingMeals, setIsLoadingMeals] = useState(false);
   const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-
-  // Function to fetch recently eaten meals
-  const fetchRecentMeals = async () => {
-    if (!session?.access_token) {
-      console.log("❌ No session token available");
-      return;
-    }
-
-    setIsLoadingMeals(true);
-    try {
-      const requestConfig = {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-          // "Content-Type": "application/json",
-        },
-      };
-
-      const response = await fetch(
-        `${API_BASE_URL}/recently_eaten`,
-        requestConfig
-      );
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error("❌ HTTP Error Response Body:", errorText);
-        throw new Error(
-          `HTTP error! status: ${response.status}, body: ${errorText}`
-        );
-      }
-
-      const result = await response.json();
-
-      if (result.foods && Array.isArray(result.foods)) {
-        setRecentMeals(result.foods);
-      } else {
-        setRecentMeals([]);
-      }
-    } catch (error) {
-      const errorObj = error as Error;
-      console.error("❌ Error fetching recent meals:", {
-        name: errorObj.name,
-        message: errorObj.message,
-        stack: errorObj.stack,
-      });
-
-      // Check if it's a network error
-      if (errorObj.message === "Network request failed") {
-        console.error("🌐 Network Error Details:", {
-          apiUrl: API_BASE_URL,
-          fullUrl: `${API_BASE_URL}/recently_eaten`,
-          possibleCauses: [
-            "Backend server not running",
-            "Incorrect API_BASE_URL",
-            "CORS issues",
-            "Network connectivity problems",
-          ],
-        });
-      }
-
-      setRecentMeals([]);
-    } finally {
-      setIsLoadingMeals(false);
-    }
-  };
 
   // Function to format time from ISO string to HH:MM format
   const formatTime = (isoString: string) => {
@@ -118,20 +41,11 @@ export default function DashboardScreen() {
     }
   };
 
-  // Fetch recent meals when component mounts or session changes
-  useEffect(() => {
-    if (session?.access_token) {
-      fetchRecentMeals();
-    }
-  }, [session?.access_token]);
-
   // Refresh data when screen comes into focus (e.g., returning from camera)
   useFocusEffect(
     useCallback(() => {
-      if (session?.access_token) {
-        fetchRecentMeals();
-      }
-    }, [session?.access_token])
+      invalidateRecentMeals();
+    }, [invalidateRecentMeals])
   );
 
   // Sample data for selected day
@@ -306,6 +220,18 @@ export default function DashboardScreen() {
                   <Text className="text-gray-500 text-center">
                     Loading your recent meals...
                   </Text>
+                </View>
+              ) : error ? (
+                <View className="items-center py-8">
+                  <Text className="text-red-500 text-center mb-2">
+                    Failed to load recent meals
+                  </Text>
+                  <TouchableOpacity
+                    onPress={invalidateRecentMeals}
+                    className="bg-green-500 rounded-lg px-4 py-2"
+                  >
+                    <Text className="text-white font-medium">Retry</Text>
+                  </TouchableOpacity>
                 </View>
               ) : recentMeals.length > 0 ? (
                 recentMeals.map((meal, index) => (
