@@ -67,13 +67,22 @@ class RecentlyEaten(MethodView):
             total_fats = 0
             
             for food in result.data:
-                # Get photo URL if photo_path exists
+                # Get signed URL if photo_path exists
                 photo_url = None
                 if food.get('photo_path'):
                     try:
-                        photo_url = supabase.storage.from_('food-images').get_public_url(food['photo_path'])
+                        photo_url_response = supabase.storage.from_('food-images').create_signed_url(food['photo_path'], 3600)  # 1 hour expiry
+                        
+                        # Handle different possible response structures
+                        if isinstance(photo_url_response, dict):
+                            photo_url = photo_url_response.get('signedURL') or photo_url_response.get('signedUrl')
+                        elif isinstance(photo_url_response, str):
+                            photo_url = photo_url_response
+                        else:
+                            photo_url = None
+                            
                     except Exception as e:
-                        print(f"Warning: Could not generate public URL for photo {food['photo_path']}: {str(e)}")
+                        print(f"Warning: Could not generate signed URL for photo {food['photo_path']}: {str(e)}")
                 
                 formatted_food = {
                     'id': food['id'],
@@ -157,13 +166,22 @@ class FullHistory(MethodView):
             total_fats = 0
             
             for food in result.data:
-                # Get photo URL if photo_path exists
+                # Get signed URL if photo_path exists
                 photo_url = None
                 if food.get('photo_path'):
                     try:
-                        photo_url = supabase.storage.from_('food-images').get_public_url(food['photo_path'])
+                        photo_url_response = supabase.storage.from_('food-images').create_signed_url(food['photo_path'], 3600)  # 1 hour expiry
+                        
+                        # Handle different possible response structures
+                        if isinstance(photo_url_response, dict):
+                            photo_url = photo_url_response.get('signedURL') or photo_url_response.get('signedUrl')
+                        elif isinstance(photo_url_response, str):
+                            photo_url = photo_url_response
+                        else:
+                            photo_url = None
+                            
                     except Exception as e:
-                        print(f"Warning: Could not generate public URL for photo {food['photo_path']}: {str(e)}")
+                        print(f"Warning: Could not generate signed URL for photo {food['photo_path']}: {str(e)}")
                 
                 formatted_food = {
                     'id': food['id'],

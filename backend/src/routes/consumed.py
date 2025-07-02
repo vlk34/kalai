@@ -87,14 +87,11 @@ class Consumed(MethodView):
             
             # Upload photo to Supabase Storage
             try:
-                # Reset file pointer for storage upload
-                file.seek(0)
-                
                 # Create storage path: food-photos/user_id/unique_filename
                 storage_path = f"food-photos/{g.current_user['id']}/{unique_filename}"
                 
-                # Upload to Supabase Storage
-                storage_response = supabase.storage.from_('food-images').upload(
+                # Upload to Supabase Storage - if this succeeds without exception, upload is successful
+                supabase.storage.from_('food-images').upload(
                     file=file_content,
                     path=storage_path,
                     file_options={
@@ -103,8 +100,7 @@ class Consumed(MethodView):
                     }
                 )
                 
-                if storage_response.status_code != 200:
-                    raise Exception(f"Storage upload failed: {storage_response}")
+                print(f"Successfully uploaded photo to storage path: {storage_path}")
                     
             except Exception as e:
                 return jsonify({
@@ -165,11 +161,22 @@ class Consumed(MethodView):
                     'nutritional_data': nutritional_data
                 }), 500
             
-            # Get public URL for the uploaded photo
+            # Get signed URL for the uploaded photo (expires in 1 hour)
             try:
-                photo_url = supabase.storage.from_('food-images').get_public_url(storage_path)
+                photo_url_response = supabase.storage.from_('food-images').create_signed_url(storage_path, 3600)  # 3600 seconds = 1 hour
+                
+                # Handle different possible response structures
+                if isinstance(photo_url_response, dict):
+                    photo_url = photo_url_response.get('signedURL') or photo_url_response.get('signedUrl')
+                elif isinstance(photo_url_response, str):
+                    photo_url = photo_url_response
+                else:
+                    photo_url = None
+                    
+                print(f"Generated signed URL for photo: {photo_url is not None}")
+                    
             except Exception as e:
-                print(f"Warning: Could not generate public URL for photo: {str(e)}")
+                print(f"Warning: Could not generate signed URL for photo: {str(e)}")
                 photo_url = None
             
             return jsonify({

@@ -176,6 +176,49 @@
             text-align: center;
             font-weight: bold;
         }
+        
+        .food-photo {
+            width: 120px;
+            height: 120px;
+            object-fit: cover;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            margin-right: 20px;
+            border: 3px solid rgba(255,255,255,0.3);
+        }
+        
+        .food-photo-container {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .food-photo-small {
+            width: 60px;
+            height: 60px;
+            object-fit: cover;
+            border-radius: 10px;
+            margin-right: 15px;
+            border: 2px solid rgba(255,255,255,0.3);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+        
+        .food-info-content {
+            flex: 1;
+        }
+        
+        .photo-placeholder {
+            width: 60px;
+            height: 60px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 10px;
+            margin-right: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            border: 2px solid rgba(255,255,255,0.3);
+        }
     </style>
 </head>
 <body>
@@ -215,6 +258,7 @@
                 <input type="file" id="photo-input" accept="image/*" style="margin-bottom: 10px;">
                 <button onclick="uploadPhoto()" class="secondary">Upload Photo to Consumed</button>
                 <button onclick="getRecentFoods()" style="background-color: #28a745; margin-left: 10px;">View Recent Foods</button>
+                <button onclick="getFullHistory()" style="background-color: #17a2b8; margin-left: 10px;">View Full History</button>
             </div>
             
             <div id="api-response" class="response-area"></div>
@@ -494,7 +538,7 @@
                 
                 const data = await response.json();
                 
-                if (response.ok && data.data && data.data.foods) {
+                if (response.ok && data.foods) {
                     showRecentFoodsInfo(data);
                 } else {
                     showApiResponse('Recent Foods Response:', {
@@ -509,16 +553,82 @@
             }
         }
 
+        async function getFullHistory() {
+            if (!supabase) {
+                showApiResponse('Full History Error:', {
+                    error: 'Supabase not initialized'
+                });
+                return;
+            }
+            
+            const { data: { session } } = await supabase.auth.getSession();
+            
+            if (!session) {
+                showApiResponse('Full History Error:', {
+                    error: 'No active session. Please sign in first.'
+                });
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${BACKEND_URL}/full_history?limit=10`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${session.access_token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.data && data.data.foods) {
+                    showRecentFoodsInfo(data.data);
+                } else {
+                    showApiResponse('Full History Response:', {
+                        status: response.status,
+                        data: data
+                    });
+                }
+            } catch (error) {
+                showApiResponse('Full History Error:', {
+                    error: error.message
+                });
+            }
+        }
+
         function showNutritionInfo(data) {
             const responseArea = document.getElementById('api-response');
             const nutrition = data.data.nutritional_analysis;
+            const fileInfo = data.data.file_info;
             
-            responseArea.innerHTML = `
-                <div class="success-message">
-                    ✨ Photo analyzed and saved to database! ✨
-                </div>
-                
-                <div class="nutrition-card">
+            // Create photo display HTML
+            let photoHtml = '';
+            if (fileInfo && fileInfo.photo_url) {
+                photoHtml = `
+                    <div class="food-photo-container">
+                        <img src="${fileInfo.photo_url}" 
+                             alt="${nutrition.name || 'Uploaded Food'}" 
+                             class="food-photo"
+                             onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
+                        />
+                        <div class="photo-placeholder" style="display: none;">
+                            ${nutrition.emoji || '🍽️'}
+                        </div>
+                        <div class="food-info-content">
+                            <div style="font-size: 24px; font-weight: bold; margin-bottom: 5px;">
+                                ${nutrition.name || 'Unknown Food'}
+                            </div>
+                            <div style="font-size: 14px; opacity: 0.8;">
+                                📸 Photo uploaded: ${new Date().toLocaleTimeString()}
+                            </div>
+                            <div style="font-size: 12px; opacity: 0.7; margin-top: 5px;">
+                                Size: ${Math.round(fileInfo.file_size / 1024)}KB • ${fileInfo.file_type}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } else {
+                photoHtml = `
                     <div class="nutrition-header">
                         <span class="nutrition-emoji">${nutrition.emoji || '🍽️'}</span>
                         <div>
@@ -528,6 +638,16 @@
                             </div>
                         </div>
                     </div>
+                `;
+            }
+            
+            responseArea.innerHTML = `
+                <div class="success-message">
+                    ✨ Photo analyzed and saved to database! ✨
+                </div>
+                
+                <div class="nutrition-card">
+                    ${photoHtml}
                     
                     <div class="nutrition-grid">
                         <div class="nutrition-item">
@@ -562,8 +682,8 @@
 
         function showRecentFoodsInfo(data) {
             const responseArea = document.getElementById('api-response');
-            const foods = data.data.foods;
-            const totals = data.data.daily_totals;
+            const foods = data.foods;
+            const totals = data.daily_totals;
             
             let foodsHtml = '';
             
@@ -581,15 +701,40 @@
             // Create individual food cards
             foods.forEach(food => {
                 const createdDate = new Date(food.created_at);
+                
+                // Create photo or placeholder HTML
+                let foodPhotoHtml = '';
+                if (food.photo_url) {
+                    foodPhotoHtml = `
+                        <img src="${food.photo_url}" 
+                             alt="${food.name || 'Food Photo'}" 
+                             class="food-photo-small"
+                             onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
+                        />
+                        <div class="photo-placeholder" style="display: none;">
+                            ${food.emoji || '🍽️'}
+                        </div>
+                    `;
+                } else {
+                    foodPhotoHtml = `
+                        <div class="photo-placeholder">
+                            ${food.emoji || '🍽️'}
+                        </div>
+                    `;
+                }
+                
                 foodsHtml += `
                     <div class="nutrition-card" style="margin-bottom: 15px;">
-                        <div class="nutrition-header">
-                            <span class="nutrition-emoji">${food.emoji || '🍽️'}</span>
-                            <div>
-                                <div>${food.name || 'Unknown Food'}</div>
-                                <div style="font-size: 14px; opacity: 0.8; font-weight: normal;">
-                                    ${createdDate.toLocaleDateString()} at ${createdDate.toLocaleTimeString()}
+                        <div style="display: flex; align-items: center; margin-bottom: 15px;">
+                            ${foodPhotoHtml}
+                            <div class="food-info-content">
+                                <div style="font-size: 18px; font-weight: bold; margin-bottom: 3px;">
+                                    ${food.name || 'Unknown Food'}
                                 </div>
+                                <div style="font-size: 12px; opacity: 0.8;">
+                                    📅 ${createdDate.toLocaleDateString()} at ${createdDate.toLocaleTimeString()}
+                                </div>
+                                ${food.photo_url ? '<div style="font-size: 11px; opacity: 0.6; margin-top: 2px;">📸 Photo available</div>' : ''}
                             </div>
                         </div>
                         
@@ -615,42 +760,50 @@
                 `;
             });
             
+            // Create totals section HTML if available
+            let totalsHtml = '';
+            if (totals) {
+                totalsHtml = `
+                    <!-- Daily Totals Summary -->
+                    <div class="nutrition-card" style="background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 50%, #fecfef 100%);">
+                        <div class="nutrition-header">
+                            <span class="nutrition-emoji">📈</span>
+                            <div>
+                                <div>Daily Totals</div>
+                                <div style="font-size: 14px; opacity: 0.8; font-weight: normal;">
+                                    Combined nutrition from ${foods.length} items
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="nutrition-grid">
+                            <div class="nutrition-item">
+                                <div class="nutrition-value">${totals.calories}</div>
+                                <div class="nutrition-label">Calories</div>
+                            </div>
+                            <div class="nutrition-item">
+                                <div class="nutrition-value">${totals.protein}g</div>
+                                <div class="nutrition-label">Protein</div>
+                            </div>
+                            <div class="nutrition-item">
+                                <div class="nutrition-value">${totals.carbs}g</div>
+                                <div class="nutrition-label">Carbs</div>
+                            </div>
+                            <div class="nutrition-item">
+                                <div class="nutrition-value">${totals.fats}g</div>
+                                <div class="nutrition-label">Fats</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+            
             responseArea.innerHTML = `
                 <div class="success-message">
                     📊 Found ${foods.length} recent food items!
                 </div>
                 
-                <!-- Daily Totals Summary -->
-                <div class="nutrition-card" style="background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 50%, #fecfef 100%);">
-                    <div class="nutrition-header">
-                        <span class="nutrition-emoji">📈</span>
-                        <div>
-                            <div>Daily Totals</div>
-                            <div style="font-size: 14px; opacity: 0.8; font-weight: normal;">
-                                Combined nutrition from ${foods.length} items
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="nutrition-grid">
-                        <div class="nutrition-item">
-                            <div class="nutrition-value">${totals.calories}</div>
-                            <div class="nutrition-label">Calories</div>
-                        </div>
-                        <div class="nutrition-item">
-                            <div class="nutrition-value">${totals.protein}g</div>
-                            <div class="nutrition-label">Protein</div>
-                        </div>
-                        <div class="nutrition-item">
-                            <div class="nutrition-value">${totals.carbs}g</div>
-                            <div class="nutrition-label">Carbs</div>
-                        </div>
-                        <div class="nutrition-item">
-                            <div class="nutrition-value">${totals.fats}g</div>
-                            <div class="nutrition-label">Fats</div>
-                        </div>
-                    </div>
-                </div>
+                ${totalsHtml}
                 
                 <!-- Individual Food Items -->
                 <div style="margin-top: 20px;">

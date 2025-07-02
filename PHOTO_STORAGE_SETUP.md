@@ -14,8 +14,13 @@ This guide explains how to set up photo storage functionality for your nutrition
 2. Navigate to **Storage** in the left sidebar
 3. Click **New bucket**
 4. Set bucket name as: `food-images`
-5. Set the bucket to **Public** (so photos can be accessed via URLs)
+5. **Keep the bucket PRIVATE** (this ensures RLS policies are enforced)
 6. Click **Create bucket**
+
+**⚠️ Important:** If you already created a public bucket, you need to:
+- Delete the existing `food-images` bucket
+- Create a new **private** bucket with the same name
+- Public buckets bypass RLS policies and are a security risk
 
 ### 2. Configure Bucket Policies
 
@@ -30,10 +35,13 @@ FOR INSERT WITH CHECK (
 );
 ```
 
-#### Policy 2: Allow public read access
+#### Policy 2: Allow users to view only their own photos
 ```sql
-CREATE POLICY "Anyone can view food photos" ON storage.objects
-FOR SELECT USING (bucket_id = 'food-images');
+CREATE POLICY "Users can view their own food photos" ON storage.objects
+FOR SELECT USING (
+  bucket_id = 'food-images' 
+  AND auth.uid()::text = (storage.foldername(name))[2]
+);
 ```
 
 #### Policy 3: Allow users to delete their own photos
@@ -85,12 +93,28 @@ SUPABASE_JWT_SECRET=your_jwt_secret
 2. Photo is saved to Supabase Storage at path: `food-photos/{user_id}/{unique_filename}`
 3. AI analyzes the photo for nutritional data
 4. Food record is saved to database with both nutritional data and photo path
-5. Public photo URL is returned in the response
+5. **Signed photo URL** is returned in the response (expires in 1 hour)
 
 ### Retrieving Photos
 1. History endpoints (`/recently_eaten`, `/full_history`) now include `photo_url` field
-2. Frontend can display photos using the provided URLs
-3. Photos are organized by user to maintain privacy
+2. Frontend can display photos using the provided **signed URLs**
+3. Photos are organized by user and **only accessible to the owner**
+4. **Signed URLs expire** after 1 hour for enhanced security
+
+## Security Features
+
+### Private Bucket + Signed URLs
+- **✅ Private Bucket**: All access goes through authentication and RLS policies
+- **✅ Signed URLs**: Temporary, authenticated URLs that expire after 1 hour  
+- **✅ RLS Policies**: Only the photo owner can access their photos
+- **✅ User Isolation**: Photos are stored in user-specific folders
+- **❌ Public Access**: No direct URL access - all requests are authenticated
+
+### Why This Is Secure
+1. **No Public Access**: Unlike public buckets, private buckets require authentication
+2. **Temporary URLs**: Signed URLs expire, preventing long-term unauthorized access  
+3. **RLS Enforcement**: All storage access respects Row Level Security policies
+4. **User-Specific**: Each user can only access photos in their own folder
 
 ## Storage Structure
 
@@ -119,7 +143,7 @@ food-images/
       "original_filename": "food.jpg",
       "unique_filename": "uuid.jpg",
       "storage_path": "food-photos/user_id/uuid.jpg",
-      "photo_url": "https://your-project.supabase.co/storage/v1/object/public/food-images/food-photos/user_id/uuid.jpg"
+      "photo_url": "https://your-project.supabase.co/storage/v1/object/sign/food-images/food-photos/user_id/uuid.jpg?token=signed_token&exp=1234567890"
     },
     "nutritional_analysis": { ... },
     "database_record": { ... }
@@ -139,7 +163,7 @@ food-images/
       "carbs": 30.0,
       "fats": 25.0,
       "calories": 380.0,
-      "photo_url": "https://your-project.supabase.co/storage/v1/object/public/food-images/food-photos/user_id/uuid.jpg",
+      "photo_url": "https://your-project.supabase.co/storage/v1/object/sign/food-images/food-photos/user_id/uuid.jpg?token=signed_token&exp=1234567890",
       "created_at": "2024-01-01T12:00:00Z"
     }
   ]

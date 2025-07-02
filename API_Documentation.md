@@ -75,9 +75,9 @@ Upload a food photo for nutritional analysis and save to database.
       "file_size": 1024000,
       "file_type": "image/jpeg",
       "user_id": "user_uuid",
-      "uploaded_at": "2024-01-01T12:00:00",
-      "storage_path": "food-photos/user_uuid/uuid.jpg",
-      "photo_url": "https://your-project.supabase.co/storage/v1/object/public/food-images/food-photos/user_uuid/uuid.jpg"
+              "uploaded_at": "2024-01-01T12:00:00",
+        "storage_path": "food-photos/user_uuid/uuid.jpg",
+        "photo_url": "https://your-project.supabase.co/storage/v1/object/sign/food-images/food-photos/user_uuid/uuid.jpg?token=signed_token&exp=1234567890"
     },
     "nutritional_analysis": {
       "name": "Grilled Chicken Breast",
@@ -157,10 +157,10 @@ GET /recently_eaten?limit=5&offset=0
       "emoji": "🍗",
       "protein": 31.0,
       "carbs": 0.0,
-      "fats": 3.6,
-      "calories": 165.0,
-      "photo_url": "https://your-project.supabase.co/storage/v1/object/public/food-images/food-photos/user_uuid/uuid.jpg",
-      "created_at": "2024-01-01T12:00:00"
+              "fats": 3.6,
+        "calories": 165.0,
+        "photo_url": "https://your-project.supabase.co/storage/v1/object/sign/food-images/food-photos/user_uuid/uuid.jpg?token=signed_token&exp=1234567890",
+        "created_at": "2024-01-01T12:00:00"
     },
     {
       "id": "food_uuid_2",
@@ -177,7 +177,10 @@ GET /recently_eaten?limit=5&offset=0
 }
 ```
 
-**Note:** `photo_url` will be `null` if no photo was uploaded for that food item.
+**Note:** 
+- `photo_url` will be `null` if no photo was uploaded for that food item
+- Photo URLs are **signed URLs** that expire after 1 hour for security
+- Only the photo owner can access their photos through these URLs
 ```
 
 **Empty Response (200):**
@@ -226,7 +229,7 @@ GET /full_history?limit=10&offset=20
         "carbs": 0.0,
         "fats": 3.6,
         "calories": 165.0,
-        "photo_url": "https://your-project.supabase.co/storage/v1/object/public/food-images/food-photos/user_uuid/uuid.jpg",
+        "photo_url": "https://your-project.supabase.co/storage/v1/object/sign/food-images/food-photos/user_uuid/uuid.jpg?token=signed_token&exp=1234567890",
         "created_at": "2024-01-01T12:00:00"
       }
     ],
