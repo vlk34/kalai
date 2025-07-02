@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Supabase Auth Test</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        h1, h2 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        input[type="email"], input[type="password"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+            box-sizing: border-box;
+            margin-bottom: 10px;
+        }
+        
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        
+        button:hover {
+            background-color: #45a049;
+        }
+        
+        button.secondary {
+            background-color: #008CBA;
+        }
+        
+        button.secondary:hover {
+            background-color: #007B9A;
+        }
+        
+        button.danger {
+            background-color: #f44336;
+        }
+        
+        button.danger:hover {
+            background-color: #da190b;
+        }
+        
+        .status {
+            margin-top: 15px;
+            padding: 10px;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        
+        .status.success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .status.error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .status.info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        
+        .user-info {
+            background-color: #e7f3ff;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        
+        .response-area {
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 5px;
+            padding: 15px;
+            margin-top: 15px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .nutrition-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 15px;
+            padding: 25px;
+            margin-top: 15px;
+            color: white;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+        }
+        
+        .nutrition-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+            font-size: 24px;
+            font-weight: bold;
+        }
+        
+        .nutrition-emoji {
+            font-size: 48px;
+            margin-right: 15px;
+        }
+        
+        .nutrition-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .nutrition-item {
+            background: rgba(255,255,255,0.2);
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+            backdrop-filter: blur(10px);
+        }
+        
+        .nutrition-value {
+            font-size: 28px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .nutrition-label {
+            font-size: 14px;
+            opacity: 0.9;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .success-message {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 15px;
+            text-align: center;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Supabase Auth Test</h1>
+        
+        <!-- Authentication section -->
+        <div class="auth-container">
+            <div id="login-form">
+                <input type="email" id="email" placeholder="Email">
+                <input type="password" id="password" placeholder="Password">
+                <button onclick="signUp()">Sign Up</button>
+                <button onclick="signIn()" class="secondary">Sign In</button>
+            </div>
+            
+            <div id="user-info" class="user-info" style="display: none;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <p id="user-details" style="margin: 0;"></p>
+                    </div>
+                    <button onclick="signOut()" class="danger">Sign Out</button>
+                </div>
+            </div>
+            
+            <div id="auth-status" class="status" style="display: none;"></div>
+        </div>
+        
+        <!-- API Testing section -->
+        <div style="margin-top: 30px;">
+            <h2>API Tests</h2>
+            <button onclick="testHealthCheck()">Test Health Check</button>
+            <button onclick="testProtectedRoute()" class="secondary">Test Protected Route</button>
+            
+            <!-- Photo Upload Section -->
+            <div id="photo-upload-section" style="display: none; margin-top: 20px; padding: 15px; background-color: #f8f9fa; border-radius: 5px;">
+                <h3>Upload Food Photo</h3>
+                <input type="file" id="photo-input" accept="image/*" style="margin-bottom: 10px;">
+                <button onclick="uploadPhoto()" class="secondary">Upload Photo to Consumed</button>
+                <button onclick="getRecentFoods()" style="background-color: #28a745; margin-left: 10px;">View Recent Foods</button>
+            </div>
+            
+            <div id="api-response" class="response-area"></div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize Supabase client
+        const SUPABASE_URL = 'https://hhhfrsnhmbimpqaisqot.supabase.co'
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhoaGZyc25obWJpbXBxYWlzcW90Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTExOTI3OTcsImV4cCI6MjA2Njc2ODc5N30.o-J17EFP2d8ySMnsPhagklXIkVBxzB4vGTzRcsQ-LIQ'
+        const BACKEND_URL = 'http://127.0.0.1:5000';
+        
+        let supabase;
+        
+        // Initialize Supabase if credentials are provided
+        if (SUPABASE_URL !== 'YOUR_SUPABASE_URL' && SUPABASE_ANON_KEY !== 'YOUR_SUPABASE_ANON_KEY') {
+            supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        } else {
+            showStatus('Please update SUPABASE_URL and SUPABASE_ANON_KEY in the script section', 'error');
+        }
+        
+        // Check if user is already logged in
+        if (supabase) {
+            supabase.auth.getSession().then(({ data: { session } }) => {
+                if (session) {
+                    showUserInfo(session.user, session.access_token);
+                }
+            });
+            
+            // Listen for auth changes
+            supabase.auth.onAuthStateChange((event, session) => {
+                if (event === 'SIGNED_IN') {
+                    showUserInfo(session.user, session.access_token);
+                } else if (event === 'SIGNED_OUT') {
+                    hideUserInfo();
+                }
+            });
+        }
+        
+        async function signUp() {
+            if (!supabase) return;
+            
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            if (!email || !password) {
+                showStatus('Please enter both email and password', 'error');
+                return;
+            }
+            
+            const { data, error } = await supabase.auth.signUp({
+                email: email,
+                password: password
+            });
+            
+            if (error) {
+                showStatus(`Sign up error: ${error.message}`, 'error');
+            } else {
+                showStatus('Sign up successful! Check your email for verification.', 'success');
+            }
+        }
+        
+        async function signIn() {
+            if (!supabase) return;
+            
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            if (!email || !password) {
+                showStatus('Please enter both email and password', 'error');
+                return;
+            }
+            
+            const { data, error } = await supabase.auth.signInWithPassword({
+                email: email,
+                password: password
+            });
+            
+            if (error) {
+                showStatus(`Sign in error: ${error.message}`, 'error');
+            } else {
+                showStatus('Sign in successful!', 'success');
+            }
+        }
+        
+        async function signOut() {
+            if (!supabase) return;
+            
+            const { error } = await supabase.auth.signOut();
+            
+            if (error) {
+                showStatus(`Sign out error: ${error.message}`, 'error');
+            } else {
+                showStatus('Signed out successfully', 'info');
+            }
+        }
+        
+        async function testHealthCheck() {
+            try {
+                const response = await fetch(`${BACKEND_URL}/health`);
+                const data = await response.json();
+                
+                showApiResponse('Health Check Response:', {
+                    status: response.status,
+                    data: data
+                });
+            } catch (error) {
+                showApiResponse('Health Check Error:', {
+                    error: error.message
+                });
+            }
+        }
+        
+        async function testProtectedRoute() {
+            if (!supabase) {
+                showApiResponse('Protected Route Error:', {
+                    error: 'Supabase not initialized'
+                });
+                return;
+            }
+            
+            const { data: { session } } = await supabase.auth.getSession();
+            
+            if (!session) {
+                showApiResponse('Protected Route Error:', {
+                    error: 'No active session. Please sign in first.'
+                });
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${BACKEND_URL}/protected`, {
+                    headers: {
+                        'Authorization': `Bearer ${session.access_token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const data = await response.json();
+                
+                showApiResponse('Protected Route Response:', {
+                    status: response.status,
+                    data: data
+                });
+            } catch (error) {
+                showApiResponse('Protected Route Error:', {
+                    error: error.message
+                });
+            }
+        }
+
+        async function uploadPhoto() {
+            if (!supabase) {
+                showApiResponse('Photo Upload Error:', {
+                    error: 'Supabase not initialized'
+                });
+                return;
+            }
+            
+            const { data: { session } } = await supabase.auth.getSession();
+            
+            if (!session) {
+                showApiResponse('Photo Upload Error:', {
+                    error: 'No active session. Please sign in first.'
+                });
+                return;
+            }
+            
+            const photoInput = document.getElementById('photo-input');
+            const file = photoInput.files[0];
+            
+            if (!file) {
+                showApiResponse('Photo Upload Error:', {
+                    error: 'Please select a photo first.'
+                });
+                return;
+            }
+            
+            // Check file type
+            if (!file.type.startsWith('image/')) {
+                showApiResponse('Photo Upload Error:', {
+                    error: 'Please select a valid image file.'
+                });
+                return;
+            }
+            
+            try {
+                const formData = new FormData();
+                formData.append('photo', file);
+                
+                const response = await fetch(`${BACKEND_URL}/consumed`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${session.access_token}`
+                    },
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                // Check if we have nutritional analysis data
+                if (response.ok && data.data && data.data.nutritional_analysis) {
+                    showNutritionInfo(data);
+                } else {
+                    showApiResponse('Photo Upload Response:', {
+                        status: response.status,
+                        data: data
+                    });
+                }
+                
+                // Clear the file input on successful upload
+                if (response.ok) {
+                    photoInput.value = '';
+                }
+            } catch (error) {
+                showApiResponse('Photo Upload Error:', {
+                    error: error.message
+                });
+            }
+        }
+
+        function showUserInfo(user, token) {
+            document.getElementById('login-form').style.display = 'none';
+            document.getElementById('user-info').style.display = 'block';
+            document.getElementById('photo-upload-section').style.display = 'block';
+            
+            document.getElementById('user-details').innerHTML = `
+                <strong>Email:</strong> ${user.email} | <strong>ID:</strong> ${user.id.substring(0, 8)}...
+            `;
+            
+            showStatus('Successfully authenticated!', 'success');
+        }
+        
+        function hideUserInfo() {
+            document.getElementById('login-form').style.display = 'block';
+            document.getElementById('user-info').style.display = 'none';
+            document.getElementById('photo-upload-section').style.display = 'none';
+        }
+        
+        function showStatus(message, type) {
+            const statusDiv = document.getElementById('auth-status');
+            statusDiv.textContent = message;
+            statusDiv.className = `status ${type}`;
+            statusDiv.style.display = 'block';
+            
+            // Hide after 5 seconds
+            setTimeout(() => {
+                statusDiv.style.display = 'none';
+            }, 5000);
+        }
+        
+        async function getRecentFoods() {
+            if (!supabase) {
+                showApiResponse('Recent Foods Error:', {
+                    error: 'Supabase not initialized'
+                });
+                return;
+            }
+            
+            const { data: { session } } = await supabase.auth.getSession();
+            
+            if (!session) {
+                showApiResponse('Recent Foods Error:', {
+                    error: 'No active session. Please sign in first.'
+                });
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${BACKEND_URL}/recently_eaten`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${session.access_token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.data && data.data.foods) {
+                    showRecentFoodsInfo(data);
+                } else {
+                    showApiResponse('Recent Foods Response:', {
+                        status: response.status,
+                        data: data
+                    });
+                }
+            } catch (error) {
+                showApiResponse('Recent Foods Error:', {
+                    error: error.message
+                });
+            }
+        }
+
+        function showNutritionInfo(data) {
+            const responseArea = document.getElementById('api-response');
+            const nutrition = data.data.nutritional_analysis;
+            
+            responseArea.innerHTML = `
+                <div class="success-message">
+                    ✨ Photo analyzed and saved to database! ✨
+                </div>
+                
+                <div class="nutrition-card">
+                    <div class="nutrition-header">
+                        <span class="nutrition-emoji">${nutrition.emoji || '🍽️'}</span>
+                        <div>
+                            <div>${nutrition.name || 'Unknown Food'}</div>
+                            <div style="font-size: 14px; opacity: 0.8; font-weight: normal;">
+                                Uploaded: ${new Date().toLocaleTimeString()}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="nutrition-grid">
+                        <div class="nutrition-item">
+                            <div class="nutrition-value">${nutrition.calories || 0}</div>
+                            <div class="nutrition-label">Calories</div>
+                        </div>
+                        <div class="nutrition-item">
+                            <div class="nutrition-value">${nutrition.protein || 0}g</div>
+                            <div class="nutrition-label">Protein</div>
+                        </div>
+                        <div class="nutrition-item">
+                            <div class="nutrition-value">${nutrition.carbs || 0}g</div>
+                            <div class="nutrition-label">Carbs</div>
+                        </div>
+                        <div class="nutrition-item">
+                            <div class="nutrition-value">${nutrition.fats || 0}g</div>
+                            <div class="nutrition-label">Fats</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <details style="margin-top: 15px;">
+                    <summary style="cursor: pointer; padding: 10px; background-color: #e9ecef; border-radius: 5px;">
+                        📋 View Raw Response Data
+                    </summary>
+                    <div class="response-area" style="margin-top: 10px;">
+                        ${JSON.stringify(data, null, 2)}
+                    </div>
+                </details>
+            `;
+        }
+
+        function showRecentFoodsInfo(data) {
+            const responseArea = document.getElementById('api-response');
+            const foods = data.data.foods;
+            const totals = data.data.daily_totals;
+            
+            let foodsHtml = '';
+            
+            if (foods.length === 0) {
+                responseArea.innerHTML = `
+                    <div style="text-align: center; padding: 40px; color: #666;">
+                        <div style="font-size: 48px; margin-bottom: 10px;">🍽️</div>
+                        <div style="font-size: 18px; margin-bottom: 5px;">No food records found</div>
+                        <div style="font-size: 14px;">Upload your first food photo to get started!</div>
+                    </div>
+                `;
+                return;
+            }
+            
+            // Create individual food cards
+            foods.forEach(food => {
+                const createdDate = new Date(food.created_at);
+                foodsHtml += `
+                    <div class="nutrition-card" style="margin-bottom: 15px;">
+                        <div class="nutrition-header">
+                            <span class="nutrition-emoji">${food.emoji || '🍽️'}</span>
+                            <div>
+                                <div>${food.name || 'Unknown Food'}</div>
+                                <div style="font-size: 14px; opacity: 0.8; font-weight: normal;">
+                                    ${createdDate.toLocaleDateString()} at ${createdDate.toLocaleTimeString()}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="nutrition-grid">
+                            <div class="nutrition-item">
+                                <div class="nutrition-value">${food.calories || 0}</div>
+                                <div class="nutrition-label">Calories</div>
+                            </div>
+                            <div class="nutrition-item">
+                                <div class="nutrition-value">${food.protein || 0}g</div>
+                                <div class="nutrition-label">Protein</div>
+                            </div>
+                            <div class="nutrition-item">
+                                <div class="nutrition-value">${food.carbs || 0}g</div>
+                                <div class="nutrition-label">Carbs</div>
+                            </div>
+                            <div class="nutrition-item">
+                                <div class="nutrition-value">${food.fats || 0}g</div>
+                                <div class="nutrition-label">Fats</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            responseArea.innerHTML = `
+                <div class="success-message">
+                    📊 Found ${foods.length} recent food items!
+                </div>
+                
+                <!-- Daily Totals Summary -->
+                <div class="nutrition-card" style="background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 50%, #fecfef 100%);">
+                    <div class="nutrition-header">
+                        <span class="nutrition-emoji">📈</span>
+                        <div>
+                            <div>Daily Totals</div>
+                            <div style="font-size: 14px; opacity: 0.8; font-weight: normal;">
+                                Combined nutrition from ${foods.length} items
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="nutrition-grid">
+                        <div class="nutrition-item">
+                            <div class="nutrition-value">${totals.calories}</div>
+                            <div class="nutrition-label">Calories</div>
+                        </div>
+                        <div class="nutrition-item">
+                            <div class="nutrition-value">${totals.protein}g</div>
+                            <div class="nutrition-label">Protein</div>
+                        </div>
+                        <div class="nutrition-item">
+                            <div class="nutrition-value">${totals.carbs}g</div>
+                            <div class="nutrition-label">Carbs</div>
+                        </div>
+                        <div class="nutrition-item">
+                            <div class="nutrition-value">${totals.fats}g</div>
+                            <div class="nutrition-label">Fats</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Individual Food Items -->
+                <div style="margin-top: 20px;">
+                    <h3 style="color: #333; margin-bottom: 15px;">📋 Recent Food History</h3>
+                    ${foodsHtml}
+                </div>
+                
+                <details style="margin-top: 15px;">
+                    <summary style="cursor: pointer; padding: 10px; background-color: #e9ecef; border-radius: 5px;">
+                        📋 View Raw Response Data
+                    </summary>
+                    <div class="response-area" style="margin-top: 10px;">
+                        ${JSON.stringify(data, null, 2)}
+                    </div>
+                </details>
+            `;
+        }
+        
+        function showApiResponse(title, response) {
+            const responseArea = document.getElementById('api-response');
+            responseArea.innerHTML = `
+                <div style="font-weight: bold; margin-bottom: 10px;">${title}</div>
+                <div class="response-area">${JSON.stringify(response, null, 2)}</div>
+            `;
+        }
+    </script>
+</body>
+</html> 
