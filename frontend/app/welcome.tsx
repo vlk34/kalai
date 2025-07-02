@@ -67,22 +67,22 @@ export default function WelcomeScreen() {
           </Text>
 
           {/* Features */}
-          <View className="space-y-6 gap-4 mb-12 items-center">
+          <View className="mb-12 w-full max-w-sm">
             <Animated.View
               style={{
                 opacity: fadeAnim,
                 transform: [{ translateX: slideAnim }],
               }}
-              className="flex-row items-center"
+              className="flex-row items-center mb-6"
             >
-              <View className="bg-black rounded-full p-3 mr-4">
-                <FontAwesome5 name="camera" size={20} color="white" />
+              <View className="bg-black rounded-full p-4 mr-5">
+                <FontAwesome5 name="camera" size={22} color="white" />
               </View>
               <View className="flex-1">
-                <Text className="text-black text-base font-semibold">
+                <Text className="text-black text-lg font-semibold">
                   Photo Recognition
                 </Text>
-                <Text className="text-gray-600 text-sm">
+                <Text className="text-gray-600 text-base">
                   Instant nutrition analysis
                 </Text>
               </View>
@@ -93,16 +93,16 @@ export default function WelcomeScreen() {
                 opacity: fadeAnim,
                 transform: [{ translateX: slideAnim }],
               }}
-              className="flex-row items-center"
+              className="flex-row items-center mb-6"
             >
-              <View className="bg-black rounded-full p-3 mr-4">
-                <FontAwesome5 name="brain" size={20} color="white" />
+              <View className="bg-black rounded-full p-4 mr-5">
+                <FontAwesome5 name="brain" size={22} color="white" />
               </View>
               <View className="flex-1">
-                <Text className="text-black text-base font-semibold">
+                <Text className="text-black text-lg font-semibold">
                   AI-Powered
                 </Text>
-                <Text className="text-gray-600 text-sm">
+                <Text className="text-gray-600 text-base">
                   Accurate calorie counting
                 </Text>
               </View>
@@ -115,14 +115,14 @@ export default function WelcomeScreen() {
               }}
               className="flex-row items-center"
             >
-              <View className="bg-black rounded-full p-3 mr-4">
-                <FontAwesome5 name="chart-line" size={20} color="white" />
+              <View className="bg-black rounded-full p-4 mr-5">
+                <FontAwesome5 name="chart-line" size={22} color="white" />
               </View>
               <View className="flex-1">
-                <Text className="text-black text-base font-semibold">
+                <Text className="text-black text-lg font-semibold">
                   Smart Tracking
                 </Text>
-                <Text className="text-gray-600 text-sm">
+                <Text className="text-gray-600 text-base">
                   Personalized insights
                 </Text>
               </View>

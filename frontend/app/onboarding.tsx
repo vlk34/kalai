@@ -7,6 +7,16 @@ import { LinearGradient } from "expo-linear-gradient";
 import { IconSymbol } from "@/components/ui/IconSymbol";
 import { router } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import {
+  AntDesign,
+  Entypo,
+  Feather,
+  FontAwesome,
+  Ionicons,
+  FontAwesome6,
+  MaterialCommunityIcons,
+} from "@expo/vector-icons";
+import React from "react";
 
 interface OnboardingData {
   gender?: string;
@@ -113,7 +123,7 @@ export default function OnboardingScreen() {
     selected,
     onPress,
   }: {
-    icon: string;
+    icon: string | React.ReactNode;
     title: string;
     selected: boolean;
     onPress: () => void;
@@ -151,20 +161,20 @@ export default function OnboardingScreen() {
             </Text>
 
             <OptionButton
-              icon="👨"
+              icon={<FontAwesome name="male" size={24} color="black" />}
               title="Male"
               selected={data.gender === "male"}
               onPress={() => setData({ ...data, gender: "male" })}
             />
             <OptionButton
-              icon="👩"
+              icon={<FontAwesome name="female" size={24} color="black" />}
               title="Female"
               selected={data.gender === "female"}
               onPress={() => setData({ ...data, gender: "female" })}
             />
             <OptionButton
-              icon="⚧️"
-              title="Other"
+              icon={<FontAwesome name="question" size={24} color="black" />}
+              title="I prefer not to say"
               selected={data.gender === "other"}
               onPress={() => setData({ ...data, gender: "other" })}
             />
@@ -182,19 +192,19 @@ export default function OnboardingScreen() {
             </Text>
 
             <OptionButton
-              icon="🛋️"
+              icon={<FontAwesome name="battery-1" size={24} color="black" />}
               title="Sedentary (Little to no exercise)"
               selected={data.activityLevel === "low"}
               onPress={() => setData({ ...data, activityLevel: "low" })}
             />
             <OptionButton
-              icon="🚶"
+              icon={<FontAwesome name="battery-2" size={24} color="black" />}
               title="Lightly Active (Light exercise 1-3 days/week)"
               selected={data.activityLevel === "moderate"}
               onPress={() => setData({ ...data, activityLevel: "moderate" })}
             />
             <OptionButton
-              icon="🏃"
+              icon={<FontAwesome name="battery-full" size={24} color="black" />}
               title="Very Active (Hard exercise 6-7 days/week)"
               selected={data.activityLevel === "high"}
               onPress={() => setData({ ...data, activityLevel: "high" })}
@@ -213,13 +223,13 @@ export default function OnboardingScreen() {
             </Text>
 
             <OptionButton
-              icon="😅"
+              icon={<Entypo name="emoji-sad" size={24} color="black" />}
               title="Yes, it's been challenging"
               selected={data.trackingDifficulty === "yes"}
               onPress={() => setData({ ...data, trackingDifficulty: "yes" })}
             />
             <OptionButton
-              icon="😐"
+              icon={<Entypo name="emoji-neutral" size={24} color="black" />}
               title="Sometimes, but manageable"
               selected={data.trackingDifficulty === "sometimes"}
               onPress={() =>
@@ -227,7 +237,7 @@ export default function OnboardingScreen() {
               }
             />
             <OptionButton
-              icon="😊"
+              icon={<Entypo name="emoji-flirt" size={24} color="black" />}
               title="No, I find it easy"
               selected={data.trackingDifficulty === "no"}
               onPress={() => setData({ ...data, trackingDifficulty: "no" })}
@@ -246,19 +256,19 @@ export default function OnboardingScreen() {
             </Text>
 
             <OptionButton
-              icon="🌱"
+              icon={<Ionicons name="leaf-outline" size={24} color="black" />}
               title="Complete beginner"
               selected={data.experience === "beginner"}
               onPress={() => setData({ ...data, experience: "beginner" })}
             />
             <OptionButton
-              icon="📚"
+              icon={<Feather name="book-open" size={24} color="black" />}
               title="Some experience"
               selected={data.experience === "intermediate"}
               onPress={() => setData({ ...data, experience: "intermediate" })}
             />
             <OptionButton
-              icon="🏆"
+              icon={<Feather name="award" size={24} color="black" />}
               title="Very experienced"
               selected={data.experience === "expert"}
               onPress={() => setData({ ...data, experience: "expert" })}
@@ -372,25 +382,27 @@ export default function OnboardingScreen() {
             </Text>
 
             <OptionButton
-              icon="⬇️"
+              icon={<AntDesign name="arrowdown" size={24} color="black" />}
               title="Lose weight"
               selected={data.goal === "lose"}
               onPress={() => setData({ ...data, goal: "lose" })}
             />
             <OptionButton
-              icon="⚖️"
+              icon={
+                <FontAwesome name="balance-scale" size={24} color="black" />
+              }
               title="Maintain weight"
               selected={data.goal === "maintain"}
               onPress={() => setData({ ...data, goal: "maintain" })}
             />
             <OptionButton
-              icon="⬆️"
+              icon={<AntDesign name="arrowup" size={24} color="black" />}
               title="Gain weight"
               selected={data.goal === "gain"}
               onPress={() => setData({ ...data, goal: "gain" })}
             />
             <OptionButton
-              icon="💪"
+              icon={<FontAwesome6 name="dumbbell" size={24} color="black" />}
               title="Build muscle"
               selected={data.goal === "muscle"}
               onPress={() => setData({ ...data, goal: "muscle" })}
@@ -409,25 +421,37 @@ export default function OnboardingScreen() {
             </Text>
 
             <OptionButton
-              icon="🍖"
+              icon={<FontAwesome6 name="burger" size={24} color="black" />}
               title="No restrictions"
               selected={data.diet === "none"}
               onPress={() => setData({ ...data, diet: "none" })}
             />
             <OptionButton
-              icon="🥗"
+              icon={
+                <MaterialCommunityIcons
+                  name="food-drumstick-off"
+                  size={24}
+                  color="black"
+                />
+              }
               title="Vegetarian"
               selected={data.diet === "vegetarian"}
               onPress={() => setData({ ...data, diet: "vegetarian" })}
             />
             <OptionButton
-              icon="🌱"
+              icon={<FontAwesome6 name="leaf" size={24} color="black" />}
               title="Vegan"
               selected={data.diet === "vegan"}
               onPress={() => setData({ ...data, diet: "vegan" })}
             />
             <OptionButton
-              icon="🥩"
+              icon={
+                <MaterialCommunityIcons
+                  name="food-drumstick"
+                  size={24}
+                  color="black"
+                />
+              }
               title="Keto"
               selected={data.diet === "keto"}
               onPress={() => setData({ ...data, diet: "keto" })}
@@ -438,48 +462,74 @@ export default function OnboardingScreen() {
       case 8: // Final Summary
         const recommendations = calculateRecommendations(data);
         return (
-          <View className="flex-1 px-6 justify-center">
-            <View className="bg-green-50 rounded-3xl p-8 mb-8">
-              <Text className="text-2xl font-bold text-green-800 text-center mb-4">
-                🎉 Your Plan is Ready!
+          <View className="flex-1 px-6 justify-center mt-24">
+            {/* Header */}
+            <View className="mb-8">
+              <Text className="text-3xl font-bold text-black text-center mb-3">
+                You're All Set
               </Text>
-
-              <Text className="text-lg font-semibold text-gray-900 mb-4 text-center">
-                Daily Recommendations
+              <Text className="text-gray-600 text-center text-base leading-6">
+                Based on your profile, here are your personalized daily targets
               </Text>
+            </View>
 
-              <View className="space-y-3">
-                <View className="flex-row justify-between items-center">
-                  <Text className="text-gray-700">Calories</Text>
-                  <Text className="font-bold text-green-600">
-                    {recommendations.calories}
-                  </Text>
+            {/* Nutrition Cards */}
+            <View className="mb-8">
+              {/* Calories Card */}
+              <View className="bg-white rounded-2xl p-6 mb-4 shadow-sm border border-gray-100">
+                <View className="flex-row items-center justify-between">
+                  <View>
+                    <Text className="text-gray-600 text-sm font-medium">
+                      Daily Calories
+                    </Text>
+                    <Text className="text-2xl font-bold text-green-600 mt-1">
+                      {recommendations.calories}
+                    </Text>
+                  </View>
+                  <View className="w-12 h-12 bg-gray-100 rounded-full items-center justify-center">
+                    <FontAwesome6 name="fire" size={24} color="orange" />
+                  </View>
                 </View>
-                <View className="flex-row justify-between items-center">
-                  <Text className="text-gray-700">Protein</Text>
-                  <Text className="font-bold text-blue-600">
+              </View>
+
+              {/* Macros Grid */}
+              <View className="flex-row gap-2">
+                <View className="flex-1 bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+                  <Text className="text-gray-600 text-xs font-medium mb-1">
+                    PROTEIN
+                  </Text>
+                  <Text className="text-xl font-bold text-blue-500">
                     {recommendations.protein}g
                   </Text>
                 </View>
-                <View className="flex-row justify-between items-center">
-                  <Text className="text-gray-700">Carbs</Text>
-                  <Text className="font-bold text-orange-600">
+
+                <View className="flex-1 bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+                  <Text className="text-gray-600 text-xs font-medium mb-1">
+                    CARBS
+                  </Text>
+                  <Text className="text-xl font-bold text-orange-500">
                     {recommendations.carbs}g
                   </Text>
                 </View>
-                <View className="flex-row justify-between items-center">
-                  <Text className="text-gray-700">Fats</Text>
-                  <Text className="font-bold text-purple-600">
+
+                <View className="flex-1 bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+                  <Text className="text-gray-600 text-xs font-medium mb-1">
+                    FATS
+                  </Text>
+                  <Text className="text-xl font-bold text-purple-500">
                     {recommendations.fats}g
                   </Text>
                 </View>
               </View>
             </View>
 
-            <Text className="text-center text-gray-600 mb-8">
-              Your personalized nutrition plan is ready! Start tracking your
-              meals and reach your goals.
-            </Text>
+            {/* Bottom Text */}
+            <View className="bg-gray-50 rounded-2xl p-6">
+              <Text className="text-center text-gray-700 text-base leading-6">
+                These targets are personalized for your goals. You can always
+                adjust them later in your profile settings.
+              </Text>
+            </View>
           </View>
         );
 

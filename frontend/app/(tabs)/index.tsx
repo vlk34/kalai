@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { View, Text, ScrollView, TouchableOpacity } from "react-native";
+import { View, Text, ScrollView, TouchableOpacity, Image } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { IconSymbol } from "@/components/ui/IconSymbol";
 import { useColorScheme } from "@/hooks/useColorScheme";
@@ -24,6 +24,7 @@ interface FoodItem {
   fats: number;
   calories: number;
   created_at: string;
+  photo_url: string;
 }
 
 export default function DashboardScreen() {
@@ -225,7 +226,7 @@ export default function DashboardScreen() {
                   <Text className="text-lg font-semibold text-gray-900 mb-1">
                     Calories Left
                   </Text>
-                  <Text className="text-3xl font-bold text-green-500">
+                  <Text className="text-3xl font-bold text-green-600">
                     {dailyStats.caloriesLeft}
                   </Text>
                 </View>
@@ -312,7 +313,10 @@ export default function DashboardScreen() {
                     key={meal.id}
                     className="flex-row items-center py-3 border-b border-gray-100 last:border-b-0"
                   >
-                    <Text className="text-2xl mr-3">{meal.emoji || "🍽️"}</Text>
+                    <Image
+                      source={{ uri: meal.photo_url }}
+                      className="w-12 h-12 rounded-lg mr-3"
+                    />
                     <View className="flex-1">
                       <Text className="font-semibold text-gray-900">
                         {meal.name}
