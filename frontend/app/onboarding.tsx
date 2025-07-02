@@ -104,6 +104,7 @@ export default function OnboardingScreen() {
 
   const handleComplete = async () => {
     try {
+      console.log(AsyncStorage.getItem("hasCompletedOnboarding"));
       // Save onboarding data to AsyncStorage
       await AsyncStorage.setItem("onboardingData", JSON.stringify(data));
       await AsyncStorage.setItem("hasCompletedOnboarding", "true");

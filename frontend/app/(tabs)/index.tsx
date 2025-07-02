@@ -134,7 +134,7 @@ export default function DashboardScreen() {
             showsVerticalScrollIndicator={false}
           >
             {/* Calories Section */}
-            <View className="bg-white rounded-3xl p-6 mb-6 shadow-sm">
+            <View className="bg-white rounded-3xl p-6 mb-4 shadow-sm">
               <View className="flex-row justify-between items-center">
                 <View>
                   <Text className="text-lg font-semibold text-gray-900 mb-1">
@@ -171,7 +171,7 @@ export default function DashboardScreen() {
             </View>
 
             {/* Macros Section */}
-            <View className="flex-row gap-1 space-x-4 mb-6">
+            <View className="flex-row gap-2 space-x-4  mb-4">
               <View className="flex-1 bg-white rounded-2xl p-4 shadow-sm">
                 <Text className="text-sm font-medium text-gray-600 mb-1">
                   Protein Left
@@ -270,12 +270,12 @@ export default function DashboardScreen() {
           </ScrollView>
 
           {/* Camera Button */}
-          <TouchableOpacity
+          {/* <TouchableOpacity
             onPress={openCamera}
             className="absolute bottom-40 right-6 bg-black rounded-full w-14 h-14 items-center justify-center shadow-lg"
           >
             <IconSymbol name="camera.fill" size={24} color="white" />
-          </TouchableOpacity>
+          </TouchableOpacity> */}
 
           {/* Streak Modal */}
           {showStreakModal && (
