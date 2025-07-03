@@ -139,6 +139,7 @@ class UserProfilesView(MethodView):
                 }
             }), 201
             
+            
         except Exception as e:
             return jsonify({
                 'error': f'Failed to create profile: {str(e)}'
@@ -186,65 +187,6 @@ class UserProfilesView(MethodView):
             return jsonify({
                 'error': f'Failed to get profile: {str(e)}'
             }), 500
-
-
-@blp.route("/calculate-targets")
-class CalculateTargetsView(MethodView):
-    
-    def post(self):
-        """Calculate daily targets without saving (for preview during onboarding)"""
-        try:
-            data = request.get_json()
-            
-            # Validate required fields for calculation
-            required_fields = [
-                'gender', 'activity_level', 'height_unit', 'height_value',
-                'weight_unit', 'weight_value', 'date_of_birth', 'main_goal',
-                'dietary_preference'
-            ]
-            
-            missing_fields = [field for field in required_fields if field not in data]
-            if missing_fields:
-                return jsonify({
-                    'error': f'Missing required fields: {", ".join(missing_fields)}'
-                }), 400
-            
-            # Convert date string to date object
-            try:
-                dob = datetime.strptime(data['date_of_birth'], '%Y-%m-%d').date()
-            except ValueError:
-                return jsonify({
-                    'error': 'Invalid date format. Use YYYY-MM-DD'
-                }), 400
-            
-            # Calculate daily targets
-            targets = NutritionCalculator.calculate_daily_targets(
-                gender=data['gender'],
-                activity_level=data['activity_level'],
-                height_unit=data['height_unit'],
-                height_value=float(data['height_value']),
-                height_inches=data.get('height_inches'),
-                weight_unit=data['weight_unit'],
-                weight_value=float(data['weight_value']),
-                date_of_birth=dob,
-                main_goal=data['main_goal'],
-                dietary_preference=data['dietary_preference']
-            )
-            
-            return jsonify({
-                'daily_targets': {
-                    'calories': targets.calories,
-                    'protein_g': targets.protein_g,
-                    'carbs_g': targets.carbs_g,
-                    'fats_g': targets.fats_g
-                }
-            }), 200
-            
-        except Exception as e:
-            return jsonify({
-                'error': f'Failed to calculate targets: {str(e)}'
-            }), 400
-
 
 @blp.route("/recalculate")
 class RecalculateTargetsView(MethodView):
