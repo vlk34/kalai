@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import { View, Text, ScrollView, TouchableOpacity, Image } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { IconSymbol } from "@/components/ui/IconSymbol";
@@ -10,17 +10,24 @@ import { FontAwesome5 } from "@expo/vector-icons";
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 import { useRecentMeals } from "@/hooks/useRecentMeals";
 import { useMutateRecentMeals } from "@/hooks/useMutateRecentMeals";
+import { useUserProfile } from "@/hooks/useUserProfile";
 
 export default function DashboardScreen() {
   const [selectedDay, setSelectedDay] = useState("Today");
 
-  // Use TanStack Query hooks for recent meals
+  // Use TanStack Query hooks for recent meals and user profile
   const {
     data: recentMeals = [],
     isLoading: isLoadingMeals,
     error,
   } = useRecentMeals();
   const { invalidateRecentMeals } = useMutateRecentMeals();
+
+  const {
+    data: userProfile,
+    isLoading: isLoadingProfile,
+    error: profileError,
+  } = useUserProfile();
 
   // Use the streak context instead of local state
   const [showStreakModal, setShowStreakModal] = useState(false);
@@ -48,17 +55,63 @@ export default function DashboardScreen() {
     }, [invalidateRecentMeals])
   );
 
-  // Sample data for selected day
-  const dailyStats = {
-    caloriesLeft: 750,
-    totalCalories: 2200,
-    proteinLeft: 45,
-    totalProtein: 165,
-    carbsLeft: 130,
-    totalCarbs: 275,
-    fatsLeft: 25,
-    totalFats: 73,
+  // Redirect to onboarding if no profile exists
+  useEffect(() => {
+    if (!isLoadingProfile && !userProfile && !profileError) {
+      // No profile found, redirect to onboarding
+      router.push("/onboarding");
+    }
+  }, [isLoadingProfile, userProfile, profileError]);
+
+  // Calculate daily stats from user profile and consumed meals
+  const getDailyStats = () => {
+    // Default values if profile not loaded yet
+    const defaultStats = {
+      caloriesLeft: 750,
+      totalCalories: 2200,
+      proteinLeft: 45,
+      totalProtein: 165,
+      carbsLeft: 130,
+      totalCarbs: 275,
+      fatsLeft: 25,
+      totalFats: 73,
+    };
+
+    if (!userProfile) return defaultStats;
+
+    // Calculate consumed totals from recent meals (today's meals)
+    const today = new Date().toDateString();
+    const todaysMeals = recentMeals.filter(
+      (meal) => new Date(meal.created_at).toDateString() === today
+    );
+
+    const consumedCalories = todaysMeals.reduce(
+      (sum, meal) => sum + meal.calories,
+      0
+    );
+    const consumedProtein = todaysMeals.reduce(
+      (sum, meal) => sum + meal.protein,
+      0
+    );
+    const consumedCarbs = todaysMeals.reduce(
+      (sum, meal) => sum + meal.carbs,
+      0
+    );
+    const consumedFats = todaysMeals.reduce((sum, meal) => sum + meal.fats, 0);
+
+    return {
+      caloriesLeft: Math.max(0, userProfile.daily_calories - consumedCalories),
+      totalCalories: userProfile.daily_calories,
+      proteinLeft: Math.max(0, userProfile.daily_protein_g - consumedProtein),
+      totalProtein: userProfile.daily_protein_g,
+      carbsLeft: Math.max(0, userProfile.daily_carbs_g - consumedCarbs),
+      totalCarbs: userProfile.daily_carbs_g,
+      fatsLeft: Math.max(0, userProfile.daily_fats_g - consumedFats),
+      totalFats: userProfile.daily_fats_g,
+    };
   };
+
+  const dailyStats = getDailyStats();
 
   const caloriesConsumed = dailyStats.totalCalories - dailyStats.caloriesLeft;
   const progressPercentage =
@@ -140,9 +193,15 @@ export default function DashboardScreen() {
                   <Text className="text-lg font-semibold text-gray-900 mb-1">
                     Calories Left
                   </Text>
-                  <Text className="text-3xl font-bold text-green-600">
-                    {dailyStats.caloriesLeft}
-                  </Text>
+                  {isLoadingProfile ? (
+                    <Text className="text-3xl font-bold text-gray-400">
+                      Loading...
+                    </Text>
+                  ) : (
+                    <Text className="text-3xl font-bold text-green-600">
+                      {Math.round(dailyStats.caloriesLeft)}
+                    </Text>
+                  )}
                 </View>
 
                 <View className="items-center">
@@ -177,10 +236,10 @@ export default function DashboardScreen() {
                   Protein Left
                 </Text>
                 <Text className="text-xl font-bold text-blue-500">
-                  {dailyStats.proteinLeft}g
+                  {Math.round(dailyStats.proteinLeft)}g
                 </Text>
                 <Text className="text-xs text-gray-400">
-                  of {dailyStats.totalProtein}g
+                  of {Math.round(dailyStats.totalProtein)}g
                 </Text>
               </View>
 
@@ -189,10 +248,10 @@ export default function DashboardScreen() {
                   Carbs Left
                 </Text>
                 <Text className="text-xl font-bold text-orange-500">
-                  {dailyStats.carbsLeft}g
+                  {Math.round(dailyStats.carbsLeft)}g
                 </Text>
                 <Text className="text-xs text-gray-400">
-                  of {dailyStats.totalCarbs}g
+                  of {Math.round(dailyStats.totalCarbs)}g
                 </Text>
               </View>
 
@@ -201,10 +260,10 @@ export default function DashboardScreen() {
                   Fats Left
                 </Text>
                 <Text className="text-xl font-bold text-purple-500">
-                  {dailyStats.fatsLeft}g
+                  {Math.round(dailyStats.fatsLeft)}g
                 </Text>
                 <Text className="text-xs text-gray-400">
-                  of {dailyStats.totalFats}g
+                  of {Math.round(dailyStats.totalFats)}g
                 </Text>
               </View>
             </View>

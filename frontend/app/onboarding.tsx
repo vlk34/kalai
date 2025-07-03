@@ -25,6 +25,11 @@ import {
   MaterialCommunityIcons,
 } from "@expo/vector-icons";
 import React from "react";
+import {
+  useCreateProfile,
+  useCalculateTargets,
+  type OnboardingData as OnboardingDataType,
+} from "@/hooks/useUserProfile";
 
 interface OnboardingData {
   gender?: string;
@@ -45,6 +50,11 @@ export default function OnboardingScreen() {
   const [canProceed, setCanProceed] = useState(false);
   const [showHeightPicker, setShowHeightPicker] = useState(false);
   const [dateInputText, setDateInputText] = useState("");
+  const [realTimeTargets, setRealTimeTargets] = useState<any>(null);
+
+  // API hooks
+  const createProfileMutation = useCreateProfile();
+  const calculateTargetsMutation = useCalculateTargets();
 
   const totalSteps = 9;
   const progress = ((currentStep + 1) / totalSteps) * 100;
@@ -104,23 +114,117 @@ export default function OnboardingScreen() {
 
   const handleComplete = async () => {
     try {
-      console.log(AsyncStorage.getItem("hasCompletedOnboarding"));
-      // Save onboarding data to AsyncStorage
+      // Validate that we have all required data
+      if (
+        !data.gender ||
+        !data.activityLevel ||
+        !data.trackingDifficulty ||
+        !data.experience ||
+        !data.height ||
+        !data.weight ||
+        !data.dateOfBirth ||
+        !data.goal ||
+        !data.diet
+      ) {
+        Alert.alert("Error", "Please complete all steps before finishing.");
+        return;
+      }
+
+      // Convert local onboarding data to the format expected by the API
+      const profileData: OnboardingDataType = {
+        gender: data.gender,
+        activityLevel: data.activityLevel,
+        trackingDifficulty: data.trackingDifficulty,
+        experience: data.experience,
+        unit: data.unit || "metric",
+        height: data.height,
+        weight: data.weight,
+        dateOfBirth: data.dateOfBirth,
+        goal: data.goal,
+        diet: data.diet,
+      };
+
+      console.log("Attempting to create profile with data:", profileData);
+
+      // Create profile via API
+      await createProfileMutation.mutateAsync(profileData);
+
+      // Save onboarding completion to AsyncStorage
       await AsyncStorage.setItem("onboardingData", JSON.stringify(data));
       await AsyncStorage.setItem("hasCompletedOnboarding", "true");
 
-      // Here you would also send data to your backend
-      console.log("Onboarding data:", data);
+      console.log("Profile created successfully");
 
       // Navigate to main app
       router.replace("/(tabs)");
     } catch (error) {
-      console.error("Error saving onboarding data:", error);
-      Alert.alert("Error", "Something went wrong. Please try again.");
+      console.error("Error creating profile:", error);
+
+      // Show more detailed error message
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error occurred";
+
+      Alert.alert(
+        "Profile Creation Failed",
+        `Failed to create your profile. Details: ${errorMessage}\n\nYou can continue to the app and try again later from Settings.`,
+        [
+          { text: "Retry", style: "default", onPress: () => handleComplete() },
+          {
+            text: "Continue Anyway",
+            style: "cancel",
+            onPress: async () => {
+              // Save as fallback and continue
+              await AsyncStorage.setItem(
+                "onboardingData",
+                JSON.stringify(data)
+              );
+              await AsyncStorage.setItem("hasCompletedOnboarding", "true");
+              router.replace("/(tabs)");
+            },
+          },
+        ]
+      );
     }
   };
 
-  const calculateRecommendations = (userData: OnboardingData) => {
+  // Calculate real-time targets when we reach the final step
+  const calculateRealtimeTargets = async () => {
+    if (
+      !data.gender ||
+      !data.activityLevel ||
+      !data.height ||
+      !data.weight ||
+      !data.dateOfBirth ||
+      !data.goal ||
+      !data.diet
+    ) {
+      return;
+    }
+
+    try {
+      const profileData: OnboardingDataType = {
+        gender: data.gender,
+        activityLevel: data.activityLevel,
+        trackingDifficulty: data.trackingDifficulty || "sometimes",
+        experience: data.experience || "beginner",
+        unit: data.unit || "metric",
+        height: data.height,
+        weight: data.weight,
+        dateOfBirth: data.dateOfBirth,
+        goal: data.goal,
+        diet: data.diet,
+      };
+
+      const targets = await calculateTargetsMutation.mutateAsync(profileData);
+      setRealTimeTargets(targets);
+    } catch (error) {
+      console.error("Error calculating targets:", error);
+      // Fall back to simple calculation
+      setRealTimeTargets(calculateFallbackRecommendations(data));
+    }
+  };
+
+  const calculateFallbackRecommendations = (userData: OnboardingData) => {
     let baseCalories = 2000;
     const protein = 150;
     const carbs = 250;
@@ -132,7 +236,12 @@ export default function OnboardingScreen() {
     if (userData.goal === "lose") baseCalories -= 300;
     if (userData.goal === "gain") baseCalories += 300;
 
-    return { calories: baseCalories, protein, carbs, fats };
+    return {
+      calories: baseCalories,
+      protein_g: protein,
+      carbs_g: carbs,
+      fats_g: fats,
+    };
   };
 
   const handleUnitChange = (newUnit: "metric" | "imperial") => {
@@ -617,7 +726,17 @@ export default function OnboardingScreen() {
         );
 
       case 8: // Final Summary
-        const recommendations = calculateRecommendations(data);
+        // Calculate targets when we reach the final step
+        if (
+          currentStep === 8 &&
+          !realTimeTargets &&
+          !calculateTargetsMutation.isPending
+        ) {
+          calculateRealtimeTargets();
+        }
+
+        const recommendations =
+          realTimeTargets || calculateFallbackRecommendations(data);
         return (
           <View className="flex-1 px-6 justify-center mt-24">
             {/* Header */}
@@ -639,9 +758,15 @@ export default function OnboardingScreen() {
                     <Text className="text-gray-600 text-sm font-medium">
                       Daily Calories
                     </Text>
-                    <Text className="text-2xl font-bold text-green-600 mt-1">
-                      {recommendations.calories}
-                    </Text>
+                    {calculateTargetsMutation.isPending ? (
+                      <Text className="text-2xl font-bold text-green-600 mt-1">
+                        Calculating...
+                      </Text>
+                    ) : (
+                      <Text className="text-2xl font-bold text-green-600 mt-1">
+                        {recommendations.calories}
+                      </Text>
+                    )}
                   </View>
                   <View className="w-12 h-12 bg-gray-100 rounded-full items-center justify-center">
                     <FontAwesome6 name="fire" size={24} color="orange" />
@@ -656,7 +781,10 @@ export default function OnboardingScreen() {
                     PROTEIN
                   </Text>
                   <Text className="text-xl font-bold text-blue-500">
-                    {recommendations.protein}g
+                    {Math.round(
+                      recommendations.protein_g || recommendations.protein || 0
+                    )}
+                    g
                   </Text>
                 </View>
 
@@ -665,7 +793,10 @@ export default function OnboardingScreen() {
                     CARBS
                   </Text>
                   <Text className="text-xl font-bold text-orange-500">
-                    {recommendations.carbs}g
+                    {Math.round(
+                      recommendations.carbs_g || recommendations.carbs || 0
+                    )}
+                    g
                   </Text>
                 </View>
 
@@ -674,7 +805,10 @@ export default function OnboardingScreen() {
                     FATS
                   </Text>
                   <Text className="text-xl font-bold text-purple-500">
-                    {recommendations.fats}g
+                    {Math.round(
+                      recommendations.fats_g || recommendations.fats || 0
+                    )}
+                    g
                   </Text>
                 </View>
               </View>

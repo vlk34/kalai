@@ -24,7 +24,7 @@ import { useFocusEffect } from "@react-navigation/native";
 import { useCallback } from "react";
 
 // Backend API configuration
-const API_BASE_URL = "http://192.168.1.145:5000";
+const API_BASE_URL = process.env.EXPO_PUBLIC_PRODUCTION_API_URL;
 
 interface NutritionAnalysis {
   name?: string;

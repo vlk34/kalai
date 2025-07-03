@@ -1,15 +1,19 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState } from "react";
 import { View, Text, ScrollView, TouchableOpacity, Alert } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { IconSymbol } from "@/components/ui/IconSymbol";
 import { useAuth } from "@/contexts/AuthContext";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useUserProfile, useRecalculateTargets } from "@/hooks/useUserProfile";
 
 export default function SettingsScreen() {
   const { signOut } = useAuth();
-  // Sample user data from onboarding
+  const { data: userProfile, isLoading: isLoadingProfile } = useUserProfile();
+  const recalculateTargetsMutation = useRecalculateTargets();
+
+  // Sample user data from onboarding (fallback)
   const [userInfo, setUserInfo] = useState({
     age: 28,
     height: 175, // cm
@@ -86,6 +90,33 @@ export default function SettingsScreen() {
     );
   };
 
+  const handleRecalculateTargets = async () => {
+    Alert.alert(
+      "Recalculate Daily Targets",
+      "This will update your daily nutrition targets based on your current profile. Continue?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Recalculate",
+          onPress: async () => {
+            try {
+              await recalculateTargetsMutation.mutateAsync();
+              Alert.alert(
+                "Success",
+                "Your daily targets have been recalculated!"
+              );
+            } catch (error) {
+              Alert.alert(
+                "Error",
+                "Failed to recalculate targets. Please try again."
+              );
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const SettingRow = ({
     title,
     value,
@@ -135,32 +166,81 @@ export default function SettingsScreen() {
             <Text className="text-2xl font-bold text-gray-900">Settings</Text>
           </View>
 
-          {/* Basic Information */}
-          <View className="mt-6">
-            <SettingRow
-              title="Age"
-              value={userInfo.age}
-              unit="years"
-              onPress={() => handleEditValue("age", userInfo.age, "years")}
-              isEditable
-            />
-            <SettingRow
-              title="Height"
-              value={userInfo.height}
-              unit="cm"
-              onPress={() => handleEditValue("height", userInfo.height, "cm")}
-              isEditable
-            />
-            <SettingRow
-              title="Current Weight"
-              value={userInfo.currentWeight}
-              unit="kg"
-              onPress={() =>
-                handleEditValue("currentWeight", userInfo.currentWeight, "kg")
-              }
-              isEditable
-            />
+          {/* Profile Information */}
+          <SectionHeader title="Profile Information" />
+          <View className="bg-white">
+            {isLoadingProfile ? (
+              <View className="px-6 py-4">
+                <Text className="text-gray-500">Loading profile...</Text>
+              </View>
+            ) : userProfile ? (
+              <>
+                <SettingRow
+                  title="Height"
+                  value={userProfile.height_value}
+                  unit={userProfile.height_unit === "metric" ? "cm" : "ft"}
+                  showArrow={false}
+                />
+                <SettingRow
+                  title="Weight"
+                  value={userProfile.weight_value}
+                  unit={userProfile.weight_unit === "metric" ? "kg" : "lbs"}
+                  showArrow={false}
+                />
+                <SettingRow
+                  title="Goal"
+                  value={userProfile.main_goal.replace("_", " ")}
+                  showArrow={false}
+                />
+                <SettingRow
+                  title="Activity Level"
+                  value={userProfile.activity_level.replace("_", " ")}
+                  showArrow={false}
+                />
+              </>
+            ) : (
+              <View className="px-6 py-4">
+                <Text className="text-gray-500">No profile found</Text>
+              </View>
+            )}
           </View>
+
+          {/* Daily Targets */}
+          {userProfile && (
+            <>
+              <SectionHeader title="Daily Targets" />
+              <View className="bg-white">
+                <SettingRow
+                  title="Calories"
+                  value={userProfile.daily_calories}
+                  unit="cal"
+                  showArrow={false}
+                />
+                <SettingRow
+                  title="Protein"
+                  value={Math.round(userProfile.daily_protein_g)}
+                  unit="g"
+                  showArrow={false}
+                />
+                <SettingRow
+                  title="Carbs"
+                  value={Math.round(userProfile.daily_carbs_g)}
+                  unit="g"
+                  showArrow={false}
+                />
+                <SettingRow
+                  title="Fats"
+                  value={Math.round(userProfile.daily_fats_g)}
+                  unit="g"
+                  showArrow={false}
+                />
+                <SettingRow
+                  title="Recalculate Targets"
+                  onPress={handleRecalculateTargets}
+                />
+              </View>
+            </>
+          )}
 
           {/* Customizations */}
           <SectionHeader title="Customizations" />

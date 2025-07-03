@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
 
-const API_BASE_URL = "http://192.168.1.145:5000";
+const API_BASE_URL = process.env.EXPO_PUBLIC_PRODUCTION_API_URL;
 
 interface FoodItem {
   id: string;
