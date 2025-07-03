@@ -11,6 +11,7 @@ import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 import { useRecentMeals } from "@/hooks/useRecentMeals";
 import { useMutateRecentMeals } from "@/hooks/useMutateRecentMeals";
 import { useUserProfile } from "@/hooks/useUserProfile";
+import { CircularProgress } from "@/components/ui/CircularProgress";
 
 export default function DashboardScreen() {
   const [selectedDay, setSelectedDay] = useState("Today");
@@ -56,12 +57,12 @@ export default function DashboardScreen() {
   );
 
   // Redirect to onboarding if no profile exists
-  useEffect(() => {
-    if (!isLoadingProfile && !userProfile && !profileError) {
-      // No profile found, redirect to onboarding
-      router.push("/onboarding");
-    }
-  }, [isLoadingProfile, userProfile, profileError]);
+  // useEffect(() => {
+  //   if (!isLoadingProfile && !userProfile && !profileError) {
+  //     // No profile found, redirect to onboarding
+  //     router.push("/onboarding");
+  //   }
+  // }, [isLoadingProfile, userProfile, profileError]);
 
   // Calculate daily stats from user profile and consumed meals
   const getDailyStats = () => {
@@ -190,42 +191,21 @@ export default function DashboardScreen() {
             <View className="bg-white rounded-3xl p-6 mb-4 shadow-sm">
               <View className="flex-row justify-between items-center">
                 <View>
-                  <Text className="text-lg font-semibold text-gray-900 mb-1">
-                    Calories Left
-                  </Text>
                   {isLoadingProfile ? (
-                    <Text className="text-3xl font-bold text-gray-400">
+                    <Text className="text-xl font-bold text-gray-400">
                       Loading...
                     </Text>
                   ) : (
-                    <Text className="text-3xl font-bold text-green-600">
+                    <Text className="text-5xl font-bold text-black-600 p-2">
                       {Math.round(dailyStats.caloriesLeft)}
                     </Text>
                   )}
+                  <Text className="text-sm text-gray-800 mb-1 pl-2">
+                    Calories Left
+                  </Text>
                 </View>
 
-                <View className="items-center">
-                  <View className="relative w-20 h-20">
-                    <View className="absolute w-20 h-20 rounded-full border-4 border-gray-200" />
-                    <View
-                      className="absolute w-20 h-20 rounded-full border-4 border-green-500 -rotate-90"
-                      style={{
-                        borderTopColor: "transparent",
-                        borderRightColor:
-                          progressPercentage >= 25 ? "#10b981" : "transparent",
-                        borderBottomColor:
-                          progressPercentage >= 50 ? "#10b981" : "transparent",
-                        borderLeftColor:
-                          progressPercentage >= 75 ? "#10b981" : "transparent",
-                      }}
-                    />
-                    <View className="absolute inset-0 items-center justify-center">
-                      <Text className="text-xs font-bold text-gray-700">
-                        {Math.round(progressPercentage)}%
-                      </Text>
-                    </View>
-                  </View>
-                </View>
+                <CircularProgress percentage={progressPercentage} />
               </View>
             </View>
 
@@ -235,7 +215,7 @@ export default function DashboardScreen() {
                 <Text className="text-sm font-medium text-gray-600 mb-1">
                   Protein Left
                 </Text>
-                <Text className="text-xl font-bold text-blue-500">
+                <Text className="text-xl font-bold text-rose-600">
                   {Math.round(dailyStats.proteinLeft)}g
                 </Text>
                 <Text className="text-xs text-gray-400">
@@ -247,7 +227,7 @@ export default function DashboardScreen() {
                 <Text className="text-sm font-medium text-gray-600 mb-1">
                   Carbs Left
                 </Text>
-                <Text className="text-xl font-bold text-orange-500">
+                <Text className="text-xl font-bold text-orange-600">
                   {Math.round(dailyStats.carbsLeft)}g
                 </Text>
                 <Text className="text-xs text-gray-400">
@@ -259,7 +239,7 @@ export default function DashboardScreen() {
                 <Text className="text-sm font-medium text-gray-600 mb-1">
                   Fats Left
                 </Text>
-                <Text className="text-xl font-bold text-purple-500">
+                <Text className="text-xl font-bold text-sky-600">
                   {Math.round(dailyStats.fatsLeft)}g
                 </Text>
                 <Text className="text-xs text-gray-400">
@@ -268,20 +248,20 @@ export default function DashboardScreen() {
               </View>
             </View>
 
-            {/* Recently Eaten */}
-            <View className="bg-white rounded-3xl p-6 mb-20 shadow-sm">
-              <Text className="text-lg font-semibold text-gray-900 mb-4">
-                Recently Eaten
+            {/* Recently Section */}
+            <View className="mb-20">
+              <Text className="text-lg font-semibold text-gray-900 mb-4 px-2">
+                Recently
               </Text>
 
               {isLoadingMeals ? (
-                <View className="items-center py-8">
+                <View className="bg-white rounded-2xl p-6 shadow-sm">
                   <Text className="text-gray-500 text-center">
                     Loading your recent meals...
                   </Text>
                 </View>
               ) : error ? (
-                <View className="items-center py-8">
+                <View className="bg-white rounded-2xl p-6 shadow-sm">
                   <Text className="text-red-500 text-center mb-2">
                     Failed to load recent meals
                   </Text>
@@ -289,34 +269,72 @@ export default function DashboardScreen() {
                     onPress={invalidateRecentMeals}
                     className="bg-green-500 rounded-lg px-4 py-2"
                   >
-                    <Text className="text-white font-medium">Retry</Text>
+                    <Text className="text-white font-medium text-center">
+                      Retry
+                    </Text>
                   </TouchableOpacity>
                 </View>
               ) : recentMeals.length > 0 ? (
-                recentMeals.map((meal, index) => (
-                  <View
-                    key={meal.id}
-                    className="flex-row items-center py-3 border-b border-gray-100 last:border-b-0"
-                  >
-                    <Image
-                      source={{ uri: meal.photo_url }}
-                      className="w-12 h-12 rounded-lg mr-3"
-                    />
-                    <View className="flex-1">
-                      <Text className="font-semibold text-gray-900">
-                        {meal.name}
-                      </Text>
-                      <Text className="text-sm text-gray-500">
-                        {formatTime(meal.created_at)}
-                      </Text>
+                <View className="space-y-3 gap-3">
+                  {recentMeals.map((meal) => (
+                    <View
+                      key={meal.id}
+                      className="bg-white rounded-2xl px-3 py-2 shadow-sm"
+                    >
+                      <View className="flex-row items-center">
+                        <Image
+                          source={{ uri: meal.photo_url }}
+                          className="w-20 h-20 rounded-xl mr-4"
+                        />
+                        <View className="flex-1">
+                          <Text className="font-semibold text-gray-900 text-base mb-1">
+                            {meal.name}
+                          </Text>
+                          <Text className="text-sm text-gray-500 mb-2">
+                            {formatTime(meal.created_at)}
+                          </Text>
+                          <View className="flex-row items-center">
+                            <View className="rounded-full flex-row items-center gap-1 pr-3 py-1">
+                              <View className="bg-rose-100 rounded-full flex-row items-center gap-1 px-2 py-1">
+                                <Text className="text-xs font-medium text-rose-600">
+                                  P
+                                </Text>
+                              </View>
+                              <Text className="text-xs font-medium">
+                                {Math.round(meal.protein)}g
+                              </Text>
+                            </View>
+                            <View className="rounded-full flex-row items-center gap-1 pr-3 py-1">
+                              <View className="bg-orange-100 rounded-full flex-row items-center gap-1 px-2 py-1">
+                                <Text className="text-xs font-medium text-orange-600">
+                                  F
+                                </Text>
+                              </View>
+                              <Text className="text-xs font-medium">
+                                {Math.round(meal.protein)}g
+                              </Text>
+                            </View>
+                            <View className="rounded-full flex-row items-center gap-1 pr-3 py-1">
+                              <View className="bg-sky-100 rounded-full flex-row items-center gap-1 px-2 py-1">
+                                <Text className="text-xs font-medium text-sky-600">
+                                  C
+                                </Text>
+                              </View>
+                              <Text className="text-xs font-medium">
+                                {Math.round(meal.carbs)}g
+                              </Text>
+                            </View>
+                          </View>
+                        </View>
+                        <Text className="font-bold text-gray-900 text-lg">
+                          {Math.round(meal.calories)} cal
+                        </Text>
+                      </View>
                     </View>
-                    <Text className="font-bold text-gray-900">
-                      {Math.round(meal.calories)} cal
-                    </Text>
-                  </View>
-                ))
+                  ))}
+                </View>
               ) : (
-                <View className="items-center py-8">
+                <View className="bg-white rounded-2xl p-8 shadow-sm">
                   <Text className="text-gray-500 text-center mb-2">
                     You haven't uploaded any food yet
                   </Text>
@@ -327,14 +345,6 @@ export default function DashboardScreen() {
               )}
             </View>
           </ScrollView>
-
-          {/* Camera Button */}
-          {/* <TouchableOpacity
-            onPress={openCamera}
-            className="absolute bottom-40 right-6 bg-black rounded-full w-14 h-14 items-center justify-center shadow-lg"
-          >
-            <IconSymbol name="camera.fill" size={24} color="white" />
-          </TouchableOpacity> */}
 
           {/* Streak Modal */}
           {showStreakModal && (

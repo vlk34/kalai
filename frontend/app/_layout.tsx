@@ -1,19 +1,16 @@
-import {
-  DarkTheme,
-  DefaultTheme,
-  ThemeProvider,
-} from "@react-navigation/native";
+"use client";
+
+import { DarkTheme, ThemeProvider } from "@react-navigation/native";
 import { useFonts } from "expo-font";
 import { Redirect, Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import "react-native-reanimated";
-import "../global.css";
-import { useColorScheme } from "@/hooks/useColorScheme";
 import { View, ActivityIndicator } from "react-native";
+import { SafeAreaProvider } from "react-native-safe-area-context";
+import { useState, useEffect } from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { QueryProvider } from "@/contexts/QueryProvider";
-import { useEffect, useState } from "react";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import "../global.css";
 
 function LoadingScreen() {
   return (
@@ -25,7 +22,6 @@ function LoadingScreen() {
 
 function RootLayoutNav() {
   const { session, isLoading } = useAuth();
-  const colorScheme = useColorScheme();
   const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState<
     boolean | null
   >(null);
@@ -62,7 +58,6 @@ function RootLayoutNav() {
     return <Redirect href="/welcome" />;
   }
 
-  // Navigate to tabs instead of showing Stack with index
   return <Redirect href="/(tabs)" />;
 }
 
@@ -76,20 +71,23 @@ export default function RootLayout() {
   }
 
   return (
-    <QueryProvider>
-      <AuthProvider>
-        <ThemeProvider value={DarkTheme}>
-          <Stack screenOptions={{ headerShown: false }}>
-            <Stack.Screen name="(auth)" />
-            <Stack.Screen name="(tabs)" />
-            <Stack.Screen name="welcome" />
-            <Stack.Screen name="onboarding" />
-            <Stack.Screen name="+not-found" />
-          </Stack>
-          <StatusBar style="auto" />
-          <RootLayoutNav />
-        </ThemeProvider>
-      </AuthProvider>
-    </QueryProvider>
+    <SafeAreaProvider>
+      <QueryProvider>
+        <AuthProvider>
+          <ThemeProvider value={DarkTheme}>
+            <Stack screenOptions={{ headerShown: false }}>
+              <Stack.Screen name="(auth)" />
+              <Stack.Screen name="(tabs)" />
+              <Stack.Screen name="welcome" />
+              <Stack.Screen name="onboarding" />
+              <Stack.Screen name="camera" />
+              <Stack.Screen name="+not-found" />
+            </Stack>
+            <StatusBar style="auto" />
+            <RootLayoutNav />
+          </ThemeProvider>
+        </AuthProvider>
+      </QueryProvider>
+    </SafeAreaProvider>
   );
 }
