@@ -7,11 +7,45 @@ import { IconSymbol } from "@/components/ui/IconSymbol";
 import { useAuth } from "@/contexts/AuthContext";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useUserProfile, useRecalculateTargets } from "@/hooks/useUserProfile";
+import { useRouter } from "expo-router";
 
-export default function SettingsScreen() {
-  const { signOut } = useAuth();
+const SettingsScreen = () => {
+  const router = useRouter();
+  const { signOut, session } = useAuth();
   const { data: userProfile, isLoading: isLoadingProfile } = useUserProfile();
   const recalculateTargetsMutation = useRecalculateTargets();
+  const [isEditModalVisible, setIsEditModalVisible] = useState(false);
+
+  // Formatting functions
+  const formatGender = (gender: string) => {
+    return gender.charAt(0).toUpperCase() + gender.slice(1).toLowerCase();
+  };
+
+  const formatActivityLevel = (level: string) => {
+    return level
+      .split("_")
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(" ");
+  };
+
+  const formatGoal = (goal: string) => {
+    const formattedGoal = goal
+      .split("_")
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(" ");
+
+    // Special case formatting for specific goals
+    switch (formattedGoal.toLowerCase()) {
+      case "lose weight":
+        return "Weight Loss";
+      case "gain weight":
+        return "Weight Gain";
+      case "maintain weight":
+        return "Weight Maintenance";
+      default:
+        return formattedGoal;
+    }
+  };
 
   // Sample user data from onboarding (fallback)
   const [userInfo, setUserInfo] = useState({
@@ -117,6 +151,35 @@ export default function SettingsScreen() {
     );
   };
 
+  const handleEditProfile = async (updatedProfile: any) => {
+    try {
+      // First update the profile in the database
+      const response = await fetch(
+        `${process.env.EXPO_PUBLIC_PRODUCTION_API_URL}/user_profiles`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${session?.access_token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(updatedProfile),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to update profile");
+      }
+
+      // Then recalculate the targets
+      await recalculateTargetsMutation.mutateAsync();
+
+      setIsEditModalVisible(false);
+      Alert.alert("Success", "Profile updated successfully!");
+    } catch (error) {
+      Alert.alert("Error", "Failed to update profile. Please try again.");
+    }
+  };
+
   const SettingRow = ({
     title,
     value,
@@ -176,6 +239,18 @@ export default function SettingsScreen() {
             ) : userProfile ? (
               <>
                 <SettingRow
+                  title="Gender"
+                  value={formatGender(userProfile.gender)}
+                  showArrow={false}
+                />
+                <SettingRow
+                  title="Date of Birth"
+                  value={new Date(
+                    userProfile.date_of_birth
+                  ).toLocaleDateString()}
+                  showArrow={false}
+                />
+                <SettingRow
                   title="Height"
                   value={userProfile.height_value}
                   unit={userProfile.height_unit === "metric" ? "cm" : "ft"}
@@ -189,13 +264,17 @@ export default function SettingsScreen() {
                 />
                 <SettingRow
                   title="Goal"
-                  value={userProfile.main_goal.replace("_", " ")}
+                  value={formatGoal(userProfile.main_goal)}
                   showArrow={false}
                 />
                 <SettingRow
                   title="Activity Level"
-                  value={userProfile.activity_level.replace("_", " ")}
+                  value={formatActivityLevel(userProfile.activity_level)}
                   showArrow={false}
+                />
+                <SettingRow
+                  title="Edit Profile Information"
+                  onPress={() => router.push("/")}
                 />
               </>
             ) : (
@@ -241,29 +320,6 @@ export default function SettingsScreen() {
               </View>
             </>
           )}
-
-          {/* Customizations */}
-          <SectionHeader title="Customizations" />
-          <View className="bg-white">
-            <SettingRow
-              title="Personal Details"
-              onPress={() =>
-                Alert.alert(
-                  "Personal Details",
-                  "Edit your personal information"
-                )
-              }
-            />
-            <SettingRow
-              title="Adjust Goals"
-              onPress={() =>
-                Alert.alert(
-                  "Adjust Goals",
-                  "Modify your fitness and nutrition goals"
-                )
-              }
-            />
-          </View>
 
           {/* Preferences */}
           <SectionHeader title="Preferences" />
@@ -415,4 +471,6 @@ export default function SettingsScreen() {
       </SafeAreaView>
     </View>
   );
-}
+};
+
+export default SettingsScreen;

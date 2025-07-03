@@ -71,6 +71,18 @@ const mapOnboardingToBackend = (data: OnboardingData) => {
     keto: "keto",
   };
 
+  const trackingDifficultyMap: Record<string, string> = {
+    yes: "challenging",
+    sometimes: "manageable",
+    no: "easy",
+  };
+
+  const experienceMap: Record<string, string> = {
+    beginner: "beginner",
+    intermediate: "some_experience",
+    expert: "very_experienced",
+  };
+
   // Fix imperial height calculation
   let heightValue = data.height;
   let heightInches = undefined;
@@ -84,8 +96,9 @@ const mapOnboardingToBackend = (data: OnboardingData) => {
   return {
     gender: data.gender,
     activity_level: activityLevelMap[data.activityLevel] || data.activityLevel,
-    tracking_difficulty: data.trackingDifficulty,
-    experience_level: data.experience,
+    tracking_difficulty:
+      trackingDifficultyMap[data.trackingDifficulty] || data.trackingDifficulty,
+    experience_level: experienceMap[data.experience] || data.experience,
     height_unit: data.unit,
     height_value: heightValue,
     height_inches: heightInches,
@@ -151,31 +164,11 @@ const createUserProfile = async (
     );
   }
 
-  return response.json();
-};
-
-const calculateTargets = async (
-  profileData: OnboardingData
-): Promise<DailyTargets> => {
-  const backendData = mapOnboardingToBackend(profileData);
-
-  const response = await fetch(`${API_BASE_URL}/calculate-targets`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(backendData),
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(
-      `HTTP error! status: ${response.status}, body: ${errorText}`
-    );
-  }
-
   const result = await response.json();
-  return result.daily_targets;
+  return {
+    profile: result.profile,
+    daily_targets: result.daily_targets,
+  };
 };
 
 const recalculateTargets = async (accessToken: string) => {
@@ -228,12 +221,6 @@ export const useCreateProfile = () => {
       // Invalidate and refetch user profile
       queryClient.invalidateQueries({ queryKey: ["user-profile"] });
     },
-  });
-};
-
-export const useCalculateTargets = () => {
-  return useMutation({
-    mutationFn: calculateTargets,
   });
 };
 

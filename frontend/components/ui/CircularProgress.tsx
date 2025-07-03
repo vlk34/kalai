@@ -1,6 +1,7 @@
 import type React from "react";
 import { View, Text } from "react-native";
 import { Flame } from "lucide-react-native";
+import Svg, { Circle } from "react-native-svg";
 
 interface CircularProgressProps {
   percentage: number;
@@ -22,42 +23,30 @@ export const CircularProgress: React.FC<CircularProgressProps> = ({
       className="items-center justify-center"
       style={{ width: size, height: size }}
     >
-      {/* Grey background circle */}
-      <View
-        className="absolute rounded-full bg-gray-100"
-        style={{
-          width: size,
-          height: size,
-        }}
-      />
-
-      {/* Background progress track */}
-      <View
-        className="absolute rounded-full border-gray-200"
-        style={{
-          width: size,
-          height: size,
-          borderWidth: strokeWidth,
-          borderRadius: size / 2,
-        }}
-      />
-
-      {/* Progress indicator */}
-      <View
-        className="absolute rounded-full"
-        style={{
-          width: size,
-          height: size,
-          borderWidth: strokeWidth,
-          borderColor: "transparent",
-          borderTopColor: "#f97316", // orange-500
-          borderRadius: size / 2,
-          transform: [
-            { rotate: "-90deg" },
-            { rotate: `${(percentage / 100) * 360 - 90}deg` },
-          ],
-        }}
-      />
+      <Svg width={size} height={size}>
+        {/* Background Circle */}
+        <Circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          stroke="#f1f5f9"
+          strokeWidth={strokeWidth}
+          fill="none"
+        />
+        {/* Progress Circle */}
+        <Circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          stroke="#f97316"
+          strokeWidth={strokeWidth}
+          fill="none"
+          strokeDasharray={circumference}
+          strokeDashoffset={strokeDashoffset}
+          strokeLinecap="round"
+          transform={`rotate(-90 ${size / 2} ${size / 2})`}
+        />
+      </Svg>
 
       {/* Center content with flame icon */}
       <View className="absolute items-center justify-center">

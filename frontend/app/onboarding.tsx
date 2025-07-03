@@ -27,7 +27,6 @@ import {
 import React from "react";
 import {
   useCreateProfile,
-  useCalculateTargets,
   type OnboardingData as OnboardingDataType,
 } from "@/hooks/useUserProfile";
 
@@ -54,7 +53,6 @@ export default function OnboardingScreen() {
 
   // API hooks
   const createProfileMutation = useCreateProfile();
-  const calculateTargetsMutation = useCalculateTargets();
 
   const totalSteps = 9;
   const progress = ((currentStep + 1) / totalSteps) * 100;
@@ -146,8 +144,9 @@ export default function OnboardingScreen() {
 
       console.log("Attempting to create profile with data:", profileData);
 
-      // Create profile via API
-      await createProfileMutation.mutateAsync(profileData);
+      // Create profile via API and get targets
+      const result = await createProfileMutation.mutateAsync(profileData);
+      setRealTimeTargets(result.daily_targets);
 
       // Save onboarding completion to AsyncStorage
       await AsyncStorage.setItem("onboardingData", JSON.stringify(data));
@@ -215,8 +214,8 @@ export default function OnboardingScreen() {
         diet: data.diet,
       };
 
-      const targets = await calculateTargetsMutation.mutateAsync(profileData);
-      setRealTimeTargets(targets);
+      const result = await createProfileMutation.mutateAsync(profileData);
+      setRealTimeTargets(result.daily_targets);
     } catch (error) {
       console.error("Error calculating targets:", error);
       // Fall back to simple calculation
@@ -730,7 +729,7 @@ export default function OnboardingScreen() {
         if (
           currentStep === 8 &&
           !realTimeTargets &&
-          !calculateTargetsMutation.isPending
+          !createProfileMutation.isPending
         ) {
           calculateRealtimeTargets();
         }
@@ -758,7 +757,7 @@ export default function OnboardingScreen() {
                     <Text className="text-gray-600 text-sm font-medium">
                       Daily Calories
                     </Text>
-                    {calculateTargetsMutation.isPending ? (
+                    {createProfileMutation.isPending ? (
                       <Text className="text-2xl font-bold text-green-600 mt-1">
                         Calculating...
                       </Text>

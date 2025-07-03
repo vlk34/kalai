@@ -90,6 +90,7 @@ export default function TabLayout() {
     <View style={{ flex: 1 }}>
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="index" />
+        {/* <Stack.Screen name="edit-profile" /> */}
       </Stack>
 
       {/* Floating Plus Button */}

@@ -209,7 +209,7 @@ export default function DashboardScreen() {
                       Loading...
                     </Text>
                   ) : (
-                    <Text className="text-5xl font-bold text-black-600 p-2">
+                    <Text className="text-5xl font-bold text-black-600 py-2">
                       {Math.round(dailyStats.caloriesLeft)}
                     </Text>
                   )}
