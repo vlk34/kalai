@@ -27,7 +27,7 @@ def create_app():
          supports_credentials=True,
          resources={
              r"/*": {
-                 "origins": ["http://localhost:5173", "http://127.0.0.1:5500", "http://localhost:5500"],
+                 "origins": ["http://localhost:5173", "http://127.0.0.1:5500", "http://localhost:5500", '*'],
                  "methods": ["GET", "POST", "OPTIONS", "PATCH", "DELETE"],
                  "allow_headers": ["Content-Type", "Authorization"]
              }
@@ -55,12 +55,15 @@ def create_app():
     # Register your blueprints here
     from src.routes.consumed import blp as consumed_blp
     from src.routes.user_operations import blp as user_operations_blp
+    from src.routes.user_profiles import blp as user_profiles_blp
     api.register_blueprint(consumed_blp)
     api.register_blueprint(user_operations_blp)
+    api.register_blueprint(user_profiles_blp)
 
     return app
 
 
 if __name__ == '__main__':
     app = create_app()
-    app.run(debug=True)
+    app.run(port=5000, debug=True, host='0.0.0.0')
+    
