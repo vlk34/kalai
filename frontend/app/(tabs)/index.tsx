@@ -6,7 +6,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { IconSymbol } from "@/components/ui/IconSymbol";
 import { router, useFocusEffect } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
-import { FontAwesome5 } from "@expo/vector-icons";
+import { Feather, FontAwesome5, MaterialIcons } from "@expo/vector-icons";
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 import { useRecentMeals } from "@/hooks/useRecentMeals";
 import { useMutateRecentMeals } from "@/hooks/useMutateRecentMeals";
@@ -122,6 +122,10 @@ export default function DashboardScreen() {
     router.push("/camera");
   };
 
+  const navigateToSettings = () => {
+    router.push("/settings");
+  };
+
   return (
     <View className="flex-1">
       <LinearGradient
@@ -141,15 +145,24 @@ export default function DashboardScreen() {
               <Text className="text-xl font-bold text-gray-900">Kal AI</Text>
             </View>
 
-            <TouchableOpacity
-              onPress={() => setShowStreakModal(true)}
-              className="flex-row items-center gap-2 bg-white rounded-full px-4 py-2 shadow-sm"
-            >
-              <FontAwesome6 name="fire" size={24} color="orange" />
-              <Text className="text-lg font-bold text-orange-600">
-                {streak} days
-              </Text>
-            </TouchableOpacity>
+            <View className="flex-row items-center gap-3">
+              <TouchableOpacity
+                onPress={() => setShowStreakModal(true)}
+                className="flex-row items-center gap-2 bg-white rounded-full px-4 py-2 shadow-sm"
+              >
+                <FontAwesome6 name="fire" size={24} color="orange" />
+                <Text className="text-lg font-bold text-orange-600">
+                  {streak} days
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={navigateToSettings}
+                className="bg-white rounded-full p-2 shadow-sm"
+              >
+                <MaterialIcons name="settings" size={24} color="black" />
+              </TouchableOpacity>
+            </View>
           </View>
 
           {/* Days Header */}
@@ -287,14 +300,23 @@ export default function DashboardScreen() {
                           className="w-20 h-20 rounded-xl mr-4"
                         />
                         <View className="flex-1">
-                          <Text className="font-semibold text-gray-900 text-base mb-1">
-                            {meal.name}
-                          </Text>
-                          <Text className="text-sm text-gray-500 mb-2">
-                            {formatTime(meal.created_at)}
+                          <View className="flex-row justify-between items-start">
+                            <Text
+                              className="font-semibold text-gray-900 text-base w-[70%]"
+                              numberOfLines={1}
+                              ellipsizeMode="tail"
+                            >
+                              {meal.name}
+                            </Text>
+                            <Text className="text-sm text-gray-500">
+                              {formatTime(meal.created_at)}
+                            </Text>
+                          </View>
+                          <Text className="text-gray-600 text-md mb-2">
+                            {Math.round(meal.calories)} calories
                           </Text>
                           <View className="flex-row items-center">
-                            <View className="rounded-full flex-row items-center gap-1 pr-3 py-1">
+                            <View className="rounded-full flex-row items-center gap-1 pr-2 py-1 mr-2">
                               <View className="bg-rose-100 rounded-full flex-row items-center gap-1 px-2 py-1">
                                 <Text className="text-xs font-medium text-rose-600">
                                   P
@@ -304,7 +326,7 @@ export default function DashboardScreen() {
                                 {Math.round(meal.protein)}g
                               </Text>
                             </View>
-                            <View className="rounded-full flex-row items-center gap-1 pr-3 py-1">
+                            <View className="rounded-full flex-row items-center gap-1 pr-2 py-1 mr-2">
                               <View className="bg-orange-100 rounded-full flex-row items-center gap-1 px-2 py-1">
                                 <Text className="text-xs font-medium text-orange-600">
                                   F
@@ -314,7 +336,7 @@ export default function DashboardScreen() {
                                 {Math.round(meal.protein)}g
                               </Text>
                             </View>
-                            <View className="rounded-full flex-row items-center gap-1 pr-3 py-1">
+                            <View className="rounded-full flex-row items-center gap-1 pr-2 py-1 mr-2">
                               <View className="bg-sky-100 rounded-full flex-row items-center gap-1 px-2 py-1">
                                 <Text className="text-xs font-medium text-sky-600">
                                   C
@@ -326,9 +348,6 @@ export default function DashboardScreen() {
                             </View>
                           </View>
                         </View>
-                        <Text className="font-bold text-gray-900 text-lg">
-                          {Math.round(meal.calories)} cal
-                        </Text>
                       </View>
                     </View>
                   ))}
