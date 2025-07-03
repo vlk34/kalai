@@ -205,7 +205,7 @@ export default function DashboardScreen() {
               <View className="flex-row justify-between items-center">
                 <View>
                   {isLoadingProfile ? (
-                    <Text className="text-xl font-bold text-gray-400">
+                    <Text className="text-xl pl-2 text-gray-400">
                       Loading...
                     </Text>
                   ) : (
