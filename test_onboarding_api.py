@@ -71,15 +71,6 @@ def test_protected_route(token):
     print_result("Protected Route", response)
     return response.status_code == 200
 
-def test_preview_targets():
-    """Test target calculation preview (no auth required)"""
-    response = requests.post(
-        f"{BASE_URL}/calculate-targets",
-        json=PREVIEW_DATA,
-        headers={"Content-Type": "application/json"}
-    )
-    print_result("Preview Daily Targets", response)
-    return response.status_code == 200
 
 def test_create_profile(token):
     """Test profile creation"""
@@ -119,13 +110,7 @@ def main():
         print("❌ Health check failed! Make sure Flask app is running on port 5000")
         return
     
-    # Test 2: Preview targets (no auth)
-    print_header("Step 2: Target Calculation Preview")
-    if not test_preview_targets():
-        print("❌ Target preview failed!")
-        return
-    
-    print_header("Step 3: Authentication Required Tests")
+    print_header("Step 2: Authentication Required Tests")
     print("⚠️  For the next tests, you need a valid JWT token.")
     print("📋 To get a token:")
     print("   1. Open backend/test_auth.html in your browser")
