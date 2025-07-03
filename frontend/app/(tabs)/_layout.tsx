@@ -9,19 +9,40 @@ import {
   Text,
   Animated,
   Easing,
+  Alert,
+  ActivityIndicator,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { FontAwesome, Feather, MaterialIcons } from "@expo/vector-icons";
 import { useRouter, usePathname } from "expo-router";
+import * as ImagePicker from "expo-image-picker";
+import { useAnalyzeFood } from "@/hooks/useAnalyzeFood";
 
 export default function TabLayout() {
   const [showActionModal, setShowActionModal] = useState(false);
+  const [showResults, setShowResults] = useState(false);
+  const [capturedPhoto, setCapturedPhoto] = useState<string | null>(null);
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const pathname = usePathname();
   const buttonAnim = useRef(new Animated.Value(1)).current;
   const modalAnim = useRef(new Animated.Value(0)).current;
   const bgOpacityAnim = useRef(new Animated.Value(0)).current;
+  const { isAnalyzing, analysisResult, analyzeFood } = useAnalyzeFood();
+
+  // Request permissions when component mounts
+  useEffect(() => {
+    (async () => {
+      const { status } =
+        await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== "granted") {
+        Alert.alert(
+          "Permission Required",
+          "Sorry, we need camera roll permissions to make this work!"
+        );
+      }
+    })();
+  }, []);
 
   // Simple animation for modal
   const showModal = () => {
@@ -74,16 +95,37 @@ export default function TabLayout() {
     router.push("/camera");
   };
 
-  const handleGalleryPress = () => {
+  const handleGalleryPress = async () => {
     hideModal();
-    // Add your gallery navigation logic here
-    console.log("Gallery pressed");
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ["images"],
+        aspect: [9, 16],
+        quality: 1,
+      });
+
+      if (!result.canceled) {
+        setCapturedPhoto(result.assets[0].uri);
+        await analyzeFood(result.assets[0].uri);
+        setShowResults(true);
+      }
+    } catch (error) {
+      Alert.alert(
+        "Error",
+        "Failed to pick an image from gallery. Please try again."
+      );
+    }
   };
 
-  const handleDescribeFoodPress = () => {
-    hideModal();
-    // Add your describe food navigation logic here
-    console.log("Describe food pressed");
+  const handleAddToLog = () => {
+    setShowResults(false);
+    setCapturedPhoto(null);
+    router.push("/(tabs)");
+  };
+
+  const handleTakeAnother = () => {
+    setShowResults(false);
+    setCapturedPhoto(null);
   };
 
   return (
@@ -249,10 +291,7 @@ export default function TabLayout() {
                     <View className="h-px bg-gray-200 mx-2" />
 
                     {/* Describe Food Button */}
-                    <TouchableOpacity
-                      onPress={handleDescribeFoodPress}
-                      className="flex-row items-center py-4 px-2"
-                    >
+                    <TouchableOpacity className="flex-row items-center py-4 px-2">
                       <View className="w-12 h-12 bg-gray-100 rounded-full items-center justify-center mr-4">
                         <Feather name="edit-3" size={20} color="#374151" />
                       </View>
@@ -273,6 +312,104 @@ export default function TabLayout() {
           </View>
         </TouchableOpacity>
       </Modal>
+
+      {/* Results Modal */}
+      <Modal visible={showResults} transparent animationType="slide">
+        <View className="flex-1 bg-black/30 bg-opacity-50 justify-end">
+          <View className="bg-white rounded-t-3xl p-6 max-h-96">
+            {/* Header */}
+            <View className="items-center mb-6">
+              <View className="w-12 h-1 bg-gray-300 rounded-full mb-4" />
+              <Text className="text-2xl font-bold text-black mb-2">
+                Meal Analyzed
+              </Text>
+              <Text className="text-gray-600 text-center">
+                Here's what we found in your photo
+              </Text>
+            </View>
+
+            {/* Food Info */}
+            {analysisResult && (
+              <View className="mb-6">
+                <View className="flex-row items-center justify-center mb-4">
+                  <Text className="text-3xl mr-3">
+                    {analysisResult.emoji || "🍽️"}
+                  </Text>
+                  <Text className="text-xl font-semibold text-black">
+                    {analysisResult.name || "Unknown Food"}
+                  </Text>
+                </View>
+
+                {/* Nutrition Grid */}
+                <View className="bg-gray-50 rounded-2xl p-4">
+                  <Text className="text-sm font-medium text-gray-600 mb-3 text-center">
+                    NUTRITION BREAKDOWN
+                  </Text>
+                  <View className="flex-row justify-between">
+                    <View className="items-center flex-1">
+                      <Text className="text-lg font-bold text-black">
+                        {Math.round(analysisResult.calories || 0)}
+                      </Text>
+                      <Text className="text-xs text-gray-600">Calories</Text>
+                    </View>
+                    <View className="items-center flex-1">
+                      <Text className="text-lg font-bold text-black">
+                        {Math.round(analysisResult.protein || 0)}g
+                      </Text>
+                      <Text className="text-xs text-gray-600">Protein</Text>
+                    </View>
+                    <View className="items-center flex-1">
+                      <Text className="text-lg font-bold text-black">
+                        {Math.round(analysisResult.carbs || 0)}g
+                      </Text>
+                      <Text className="text-xs text-gray-600">Carbs</Text>
+                    </View>
+                    <View className="items-center flex-1">
+                      <Text className="text-lg font-bold text-black">
+                        {Math.round(analysisResult.fats || 0)}g
+                      </Text>
+                      <Text className="text-xs text-gray-600">Fat</Text>
+                    </View>
+                  </View>
+                </View>
+              </View>
+            )}
+
+            {/* Action Buttons */}
+            <View className="flex-row space-x-3">
+              <TouchableOpacity
+                onPress={handleTakeAnother}
+                className="flex-1 bg-gray-100 rounded-2xl py-4 items-center"
+              >
+                <Text className="text-black font-semibold">Take Another</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={handleAddToLog}
+                className="flex-1 bg-black rounded-2xl py-4 items-center"
+              >
+                <Text className="text-white font-semibold">Add to Log</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Loading overlay */}
+      {isAnalyzing && (
+        <View className="absolute inset-0 bg-black/30 bg-opacity-80 justify-center items-center">
+          <View className="bg-white rounded-3xl p-8 mx-8 items-center max-w-sm">
+            <View className="mb-6">
+              <ActivityIndicator size="large" color="#000" />
+            </View>
+            <Text className="text-xl font-bold text-center mb-3 text-black">
+              Analyzing Meal
+            </Text>
+            <Text className="text-center text-gray-600 text-base leading-6">
+              Processing nutrition information...
+            </Text>
+          </View>
+        </View>
+      )}
     </View>
   );
 }

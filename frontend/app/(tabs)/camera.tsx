@@ -11,17 +11,15 @@ import {
   ActivityIndicator,
   Image,
 } from "react-native";
-import { CameraView, type CameraType, useCameraPermissions } from "expo-camera";
+import { CameraView, useCameraPermissions } from "expo-camera";
 import { SafeAreaView } from "react-native-safe-area-context";
-import * as ImagePicker from "expo-image-picker";
 import { IconSymbol } from "@/components/ui/IconSymbol";
 import { router } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
-import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
-import { useAuth } from "@/contexts/AuthContext";
 import { useFocusEffect } from "@react-navigation/native";
 import { useCallback } from "react";
+import { useAnalyzeFood } from "@/hooks/useAnalyzeFood";
 
 // Backend API configuration
 const API_BASE_URL = process.env.EXPO_PUBLIC_PRODUCTION_API_URL;
@@ -36,24 +34,18 @@ interface NutritionAnalysis {
 }
 
 export default function CameraScreen() {
-  const [facing, setFacing] = useState<CameraType>("back");
   const [permission, requestPermission] = useCameraPermissions();
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [showResults, setShowResults] = useState(false);
-  const [analysisResult, setAnalysisResult] =
-    useState<NutritionAnalysis | null>(null);
   const [capturedPhoto, setCapturedPhoto] = useState<string | null>(null);
   const [isCameraReady, setIsCameraReady] = useState(false);
   const cameraRef = useRef<CameraView>(null);
-  const { session } = useAuth();
+  const { isAnalyzing, analysisResult, analyzeFood } = useAnalyzeFood();
 
   // Reset states when screen comes into focus
   useFocusEffect(
     useCallback(() => {
       setShowResults(false);
       setCapturedPhoto(null);
-      setAnalysisResult(null);
-      setIsAnalyzing(false);
       setIsCameraReady(false);
 
       // Small delay to ensure camera initializes properly
@@ -98,116 +90,30 @@ export default function CameraScreen() {
     );
   }
 
-  function toggleCameraFacing() {
-    setFacing((current) => (current === "back" ? "front" : "back"));
-  }
-
   const takePicture = async () => {
     if (cameraRef.current && isCameraReady) {
       try {
         const photo = await cameraRef.current.takePictureAsync();
         if (photo?.uri) {
           setCapturedPhoto(photo.uri);
-          analyzeFood(photo.uri);
+          await analyzeFood(photo.uri);
+          setShowResults(true);
         }
       } catch (error) {
         console.error("Camera error:", error);
-        Alert.alert("Error", "Failed to capture photo. Please try again.");
       }
-    }
-  };
-
-  const pickImage = async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ["images"],
-      allowsEditing: true,
-      aspect: [4, 3],
-      quality: 0.8,
-    });
-
-    if (!result.canceled && result.assets[0]) {
-      setCapturedPhoto(result.assets[0].uri);
-      analyzeFood(result.assets[0].uri);
-    }
-  };
-
-  const uploadPhotoToAPI = async (imageUri: string) => {
-    if (!session?.access_token) {
-      Alert.alert("Error", "You must be logged in to analyze food.");
-      return null;
-    }
-
-    try {
-      const formData = new FormData();
-      const uriParts = imageUri.split(".");
-      const fileType = uriParts[uriParts.length - 1];
-
-      formData.append("photo", {
-        uri: imageUri,
-        type: `image/${fileType}`,
-        name: `photo.${fileType}`,
-      } as any);
-
-      const response = await fetch(`${API_BASE_URL}/consumed`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-        },
-        body: formData,
-      });
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(
-          result.message || result.error || "Failed to analyze food"
-        );
-      }
-
-      return result;
-    } catch (error) {
-      console.error("API Error:", error);
-      throw error;
-    }
-  };
-
-  const analyzeFood = async (imageUri: string) => {
-    setIsAnalyzing(true);
-    try {
-      const result = await uploadPhotoToAPI(imageUri);
-      if (result && result.data && result.data.nutritional_analysis) {
-        const analysis = result.data.nutritional_analysis;
-        setAnalysisResult(analysis);
-        setIsAnalyzing(false);
-        setShowResults(true);
-      } else {
-        throw new Error("Invalid response format from server");
-      }
-    } catch (error) {
-      setIsAnalyzing(false);
-      setCapturedPhoto(null); // Reset photo on error
-      console.error("Food analysis error:", error);
-      Alert.alert(
-        "Analysis Failed",
-        error instanceof Error
-          ? error.message
-          : "Failed to analyze food. Please try again."
-      );
     }
   };
 
   const handleAddToLog = () => {
     setShowResults(false);
     setCapturedPhoto(null);
-    setAnalysisResult(null);
-    setIsAnalyzing(false);
     router.back();
   };
 
   const handleTakeAnother = () => {
     setShowResults(false);
     setCapturedPhoto(null);
-    setAnalysisResult(null);
   };
 
   // Show loading while camera initializes
@@ -234,7 +140,6 @@ export default function CameraScreen() {
       ) : (
         <CameraView
           style={styles.camera}
-          facing={facing}
           ref={cameraRef}
           onCameraReady={() => setIsCameraReady(true)}
         >
@@ -283,20 +188,7 @@ export default function CameraScreen() {
             <IconSymbol name="xmark" size={24} color="white" />
           </TouchableOpacity>
           <Text className="text-white text-lg font-semibold">Photo</Text>
-          {/* Only show camera flip button when camera is active */}
-          {!capturedPhoto && (
-            <TouchableOpacity
-              className="w-10 h-10 justify-center items-center"
-              onPress={toggleCameraFacing}
-            >
-              <IconSymbol
-                name="arrow.triangle.2.circlepath.camera"
-                size={24}
-                color="white"
-              />
-            </TouchableOpacity>
-          )}
-          {capturedPhoto && <View className="w-10 h-10" />}
+          <View className="w-10 h-10" />
         </View>
       </SafeAreaView>
 
@@ -320,15 +212,7 @@ export default function CameraScreen() {
       {/* Bottom controls - only show when camera is active */}
       {!capturedPhoto && isCameraReady && (
         <SafeAreaView className="absolute bottom-0 left-0 right-0">
-          <View className="flex-row justify-between items-center px-8 pb-8">
-            {/* Gallery button */}
-            <TouchableOpacity
-              className="w-12 h-12 rounded-lg justify-center items-center border border-white border-opacity-30"
-              onPress={pickImage}
-            >
-              <FontAwesome name="photo" size={24} color="white" />
-            </TouchableOpacity>
-
+          <View className="flex-row justify-center items-center px-8 pb-8">
             {/* Capture button */}
             <TouchableOpacity
               className="w-20 h-20 justify-center items-center"
@@ -338,14 +222,6 @@ export default function CameraScreen() {
               <View className="w-20 h-20 bg-white rounded-full justify-center items-center">
                 <View className="w-16 h-16 bg-white rounded-full border-2" />
               </View>
-            </TouchableOpacity>
-
-            {/* Camera flip button */}
-            <TouchableOpacity
-              className="w-12 h-12 rounded-full justify-center items-center border border-white border-opacity-30"
-              onPress={toggleCameraFacing}
-            >
-              <FontAwesome6 name="camera-rotate" size={24} color="white" />
             </TouchableOpacity>
           </View>
         </SafeAreaView>
