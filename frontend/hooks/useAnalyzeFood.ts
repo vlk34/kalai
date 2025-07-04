@@ -11,10 +11,39 @@ interface NutritionAnalysis {
   fats?: number;
 }
 
+interface ServerResponse {
+  success: boolean;
+  message: string;
+  data: {
+    file_info: {
+      original_filename: string;
+      unique_filename: string;
+      file_size: number;
+      file_type: string;
+      user_id: string;
+      uploaded_at: string;
+      storage_path: string;
+      photo_url: string;
+    };
+    nutritional_analysis: NutritionAnalysis;
+    database_record: {
+      id: string;
+      name: string;
+      emoji: string;
+      protein: number;
+      carbs: number;
+      fats: number;
+      calories: number;
+      created_at: string;
+      photo_path: string;
+    };
+  };
+}
+
 interface AnalyzeFoodResult {
   isAnalyzing: boolean;
   analysisResult: NutritionAnalysis | null;
-  analyzeFood: (imageUri: string) => Promise<void>;
+  analyzeFood: (imageUri: string) => Promise<ServerResponse>;
 }
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_PRODUCTION_API_URL;
@@ -65,14 +94,14 @@ export function useAnalyzeFood(): AnalyzeFoodResult {
     }
   };
 
-  const analyzeFood = async (imageUri: string) => {
+  const analyzeFood = async (imageUri: string): Promise<ServerResponse> => {
     setIsAnalyzing(true);
     try {
       const result = await uploadPhotoToAPI(imageUri);
       if (result && result.data && result.data.nutritional_analysis) {
         const analysis = result.data.nutritional_analysis;
         setAnalysisResult(analysis);
-        return analysis;
+        return result;
       } else {
         throw new Error("Invalid response format from server");
       }

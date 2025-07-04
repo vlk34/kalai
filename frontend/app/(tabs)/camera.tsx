@@ -20,6 +20,10 @@ import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { useFocusEffect } from "@react-navigation/native";
 import { useCallback } from "react";
 import { useAnalyzeFood } from "@/hooks/useAnalyzeFood";
+import { useMutateRecentMeals } from "@/hooks/useMutateRecentMeals";
+import { useAuth } from "@/contexts/AuthContext";
+import { formatDateForAPI } from "@/hooks/useUserProfile";
+import { useQueryClient } from "@tanstack/react-query";
 
 // Backend API configuration
 const API_BASE_URL = process.env.EXPO_PUBLIC_PRODUCTION_API_URL;
@@ -40,6 +44,9 @@ export default function CameraScreen() {
   const [isCameraReady, setIsCameraReady] = useState(false);
   const cameraRef = useRef<CameraView>(null);
   const { isAnalyzing, analysisResult, analyzeFood } = useAnalyzeFood();
+  const { addOptimisticMeal, updateOptimisticMeal } = useMutateRecentMeals();
+  const { session } = useAuth();
+  const queryClient = useQueryClient();
 
   // Reset states when screen comes into focus
   useFocusEffect(
@@ -96,8 +103,79 @@ export default function CameraScreen() {
         const photo = await cameraRef.current.takePictureAsync();
         if (photo?.uri) {
           setCapturedPhoto(photo.uri);
-          await analyzeFood(photo.uri);
-          setShowResults(true);
+
+          // Create optimistic meal entry
+          const optimisticMeal = {
+            id: `temp-${Date.now()}`,
+            name: "Analyzing...",
+            emoji: "🍽️",
+            protein: 0,
+            carbs: 0,
+            fats: 0,
+            calories: 0,
+            created_at: new Date().toISOString(),
+            photo_url: photo.uri,
+            isAnalyzing: true,
+          };
+
+          // Add to recent meals optimistically
+          const today = formatDateForAPI(new Date());
+          addOptimisticMeal(optimisticMeal, today);
+
+          // Navigate back to main screen immediately
+          router.back();
+
+          // Start analysis in background
+          try {
+            const result = await analyzeFood(photo.uri);
+
+            // Extract the real data from server response
+            const serverData = result.data;
+            const databaseRecord = serverData.database_record;
+            const photoUrl = serverData.file_info?.photo_url;
+
+            // Replace the optimistic meal with real server data
+            updateOptimisticMeal(
+              optimisticMeal.id,
+              {
+                id: databaseRecord.id, // Replace temp ID with real ID
+                name: databaseRecord.name,
+                emoji: databaseRecord.emoji,
+                protein: databaseRecord.protein,
+                carbs: databaseRecord.carbs,
+                fats: databaseRecord.fats,
+                calories: databaseRecord.calories,
+                photo_url: photoUrl || optimisticMeal.photo_url, // Use server photo URL
+                created_at: databaseRecord.created_at,
+                isAnalyzing: false,
+              },
+              today
+            );
+
+            // Invalidate both recent meals and nutrition summary to ensure fresh data
+            queryClient.invalidateQueries({
+              queryKey: ["recent-meals", session?.user?.id, today],
+            });
+            queryClient.invalidateQueries({
+              queryKey: ["daily-nutrition-summary", session?.user?.id, today],
+            });
+          } catch (error) {
+            console.error("Analysis failed:", error);
+            // Update with error state
+            updateOptimisticMeal(
+              optimisticMeal.id,
+              {
+                name: "Analysis Failed",
+                emoji: "❌",
+                protein: 0,
+                carbs: 0,
+                fats: 0,
+                calories: 0,
+                isAnalyzing: false,
+              },
+              today
+            );
+          }
         }
       } catch (error) {
         console.error("Camera error:", error);

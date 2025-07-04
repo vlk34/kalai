@@ -13,14 +13,29 @@ interface FoodItem {
   calories: number;
   created_at: string;
   photo_url: string;
+  isAnalyzing?: boolean;
 }
 
 interface RecentMealsResponse {
-  foods: FoodItem[];
+  success: boolean;
+  message: string;
+  data: {
+    date: string;
+    foods: FoodItem[];
+    count: number;
+  };
 }
 
-const fetchRecentMeals = async (accessToken: string): Promise<FoodItem[]> => {
-  const response = await fetch(`${API_BASE_URL}/recently_eaten`, {
+const fetchRecentMeals = async (
+  accessToken: string,
+  date?: string
+): Promise<FoodItem[]> => {
+  const url = new URL(`${API_BASE_URL}/recently_eaten`);
+  if (date) {
+    url.searchParams.append("date", date);
+  }
+
+  const response = await fetch(url.toString(), {
     method: "GET",
     headers: {
       Authorization: `Bearer ${accessToken}`,
@@ -35,15 +50,15 @@ const fetchRecentMeals = async (accessToken: string): Promise<FoodItem[]> => {
   }
 
   const result: RecentMealsResponse = await response.json();
-  return result.foods || [];
+  return result.data.foods || [];
 };
 
-export const useRecentMeals = () => {
+export const useRecentMeals = (date?: string) => {
   const { session } = useAuth();
 
   return useQuery({
-    queryKey: ["recent-meals", session?.user?.id],
-    queryFn: () => fetchRecentMeals(session!.access_token),
+    queryKey: ["recent-meals", session?.user?.id, date],
+    queryFn: () => fetchRecentMeals(session!.access_token, date),
     enabled: !!session?.access_token,
     staleTime: 2 * 60 * 1000, // 2 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes

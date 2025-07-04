@@ -16,6 +16,8 @@ import { useRouter, useLocalSearchParams } from "expo-router";
 import { Feather, MaterialIcons, FontAwesome5 } from "@expo/vector-icons";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQueryClient } from "@tanstack/react-query";
+import { useMutateRecentMeals } from "@/hooks/useMutateRecentMeals";
+import { formatDateForAPI } from "@/hooks/useUserProfile";
 
 // API call function for saving edited meal data
 const editConsumedFood = async (
@@ -82,20 +84,11 @@ export default function EditMealScreen() {
   const router = useRouter();
   const { session } = useAuth();
   const queryClient = useQueryClient();
+  const { invalidateRecentMeals, updateOptimisticMeal, removeOptimisticMeal } =
+    useMutateRecentMeals();
   const { id, name, photo_url, calories, protein, carbs, fats, portions } =
     useLocalSearchParams();
 
-  // Store original values for revert functionality
-  const originalValues = {
-    name: name as string,
-    calories: calories as string,
-    portions: (portions as string) || "1",
-    carbs: carbs as string,
-    protein: protein as string,
-    fats: fats as string,
-  };
-
-  const [showDropdown, setShowDropdown] = useState(false);
   const [editedName, setEditedName] = useState(name as string);
   const [editedCalories, setEditedCalories] = useState(calories as string);
   const [editedPortions, setEditedPortions] = useState(
@@ -116,7 +109,6 @@ export default function EditMealScreen() {
   });
 
   // Animation refs
-  const dropdownAnim = useRef(new Animated.Value(0)).current;
   const menuPositionAnim = useRef(new Animated.Value(0)).current; // 0 = normal position
 
   useEffect(() => {
@@ -155,37 +147,6 @@ export default function EditMealScreen() {
     router.back();
   };
 
-  const toggleDropdown = () => {
-    setShowDropdown(!showDropdown);
-    Animated.timing(dropdownAnim, {
-      toValue: showDropdown ? 0 : 1,
-      duration: 200,
-      useNativeDriver: true,
-    }).start();
-  };
-
-  const handleRevert = () => {
-    Alert.alert(
-      "Revert Changes",
-      "Are you sure you want to revert all changes?",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Revert",
-          onPress: () => {
-            setEditedName(originalValues.name);
-            setEditedCalories(originalValues.calories);
-            setEditedPortions(originalValues.portions);
-            setEditedCarbs(originalValues.carbs);
-            setEditedProtein(originalValues.protein);
-            setEditedFats(originalValues.fats);
-            setShowDropdown(false);
-          },
-        },
-      ]
-    );
-  };
-
   const handleDelete = () => {
     Alert.alert(
       "Delete Meal",
@@ -201,24 +162,34 @@ export default function EditMealScreen() {
             }
 
             try {
+              // Get current date for optimistic update
+              const today = formatDateForAPI(new Date());
+
+              // Optimistically remove the meal from the UI
+              removeOptimisticMeal(id as string, today);
+
               const result = await deleteConsumedFood(
                 session.access_token,
                 id as string
               );
 
               if (result.success) {
-                // Invalidate relevant queries to refresh data
-                queryClient.invalidateQueries({
-                  queryKey: ["recently-eaten"],
-                });
+                // Refetch recent meals in the background to ensure data consistency
+                invalidateRecentMeals(today);
                 queryClient.invalidateQueries({
                   queryKey: ["daily-nutrition-summary"],
                 });
 
                 router.back();
+              } else {
+                // If API call failed, invalidate to revert optimistic update
+                invalidateRecentMeals(today);
               }
             } catch (error: any) {
               console.error("Delete error:", error);
+              // If there was an error, invalidate to revert optimistic update
+              const today = formatDateForAPI(new Date());
+              invalidateRecentMeals(today);
               Alert.alert(
                 "Error",
                 "Failed to delete meal. Please try again later."
@@ -263,56 +234,46 @@ export default function EditMealScreen() {
         fats: false,
       };
 
-      // Prepare data for API call - only include changed values
+      // Prepare data for API call
       const saveData: any = {};
 
       // Validate name
-      if (editedName !== originalValues.name) {
-        if (!editedName || editedName.trim().length === 0) {
-          validationErrors.name = true;
-        } else {
-          saveData.name = editedName.trim();
-        }
+      if (!editedName || editedName.trim().length === 0) {
+        validationErrors.name = true;
+      } else {
+        saveData.name = editedName.trim();
       }
 
       // Validate calories
-      if (editedCalories !== originalValues.calories) {
-        const caloriesValue = parseFloat(editedCalories);
-        if (isNaN(caloriesValue) || caloriesValue < 0) {
-          validationErrors.calories = true;
-        } else {
-          saveData.calories = caloriesValue;
-        }
+      const caloriesValue = parseFloat(editedCalories);
+      if (isNaN(caloriesValue) || caloriesValue < 0) {
+        validationErrors.calories = true;
+      } else {
+        saveData.calories = caloriesValue;
       }
 
       // Validate protein
-      if (editedProtein !== originalValues.protein) {
-        const proteinValue = parseFloat(editedProtein);
-        if (isNaN(proteinValue) || proteinValue < 0) {
-          validationErrors.protein = true;
-        } else {
-          saveData.protein = proteinValue;
-        }
+      const proteinValue = parseFloat(editedProtein);
+      if (isNaN(proteinValue) || proteinValue < 0) {
+        validationErrors.protein = true;
+      } else {
+        saveData.protein = proteinValue;
       }
 
       // Validate carbs
-      if (editedCarbs !== originalValues.carbs) {
-        const carbsValue = parseFloat(editedCarbs);
-        if (isNaN(carbsValue) || carbsValue < 0) {
-          validationErrors.carbs = true;
-        } else {
-          saveData.carbs = carbsValue;
-        }
+      const carbsValue = parseFloat(editedCarbs);
+      if (isNaN(carbsValue) || carbsValue < 0) {
+        validationErrors.carbs = true;
+      } else {
+        saveData.carbs = carbsValue;
       }
 
       // Validate fats
-      if (editedFats !== originalValues.fats) {
-        const fatsValue = parseFloat(editedFats);
-        if (isNaN(fatsValue) || fatsValue < 0) {
-          validationErrors.fats = true;
-        } else {
-          saveData.fats = fatsValue;
-        }
+      const fatsValue = parseFloat(editedFats);
+      if (isNaN(fatsValue) || fatsValue < 0) {
+        validationErrors.fats = true;
+      } else {
+        saveData.fats = fatsValue;
       }
 
       // Check if there are any validation errors
@@ -329,6 +290,12 @@ export default function EditMealScreen() {
         return;
       }
 
+      // Get current date for optimistic update
+      const today = formatDateForAPI(new Date());
+
+      // Optimistically update the meal in the UI
+      updateOptimisticMeal(id as string, saveData, today);
+
       // Call the API
       const result = await editConsumedFood(
         session.access_token,
@@ -337,18 +304,24 @@ export default function EditMealScreen() {
       );
 
       if (result.success) {
-        // Invalidate relevant queries to refresh data
-        queryClient.invalidateQueries({
-          queryKey: ["recently-eaten"],
-        });
+        // Refetch recent meals in the background to ensure data consistency
+        invalidateRecentMeals(today);
+
+        // Also invalidate nutrition summary
         queryClient.invalidateQueries({
           queryKey: ["daily-nutrition-summary"],
         });
 
         router.back();
+      } else {
+        // If API call failed, invalidate to revert optimistic update
+        invalidateRecentMeals(today);
       }
     } catch (error: any) {
       console.error("Save error:", error);
+      // If there was an error, invalidate to revert optimistic update
+      const today = formatDateForAPI(new Date());
+      invalidateRecentMeals(today);
     } finally {
       setIsSaving(false);
     }
@@ -377,59 +350,14 @@ export default function EditMealScreen() {
                 <Feather name="arrow-left" size={24} color="black" />
               </TouchableOpacity>
 
-              {/* Triple Dot Menu */}
-              <View className="relative">
-                <TouchableOpacity
-                  onPress={toggleDropdown}
-                  className="bg-white/20 backdrop-blur-sm rounded-full p-2"
-                  style={{ backgroundColor: "rgba(255, 255, 255, 0.8)" }}
-                >
-                  <Feather name="more-vertical" size={24} color="black" />
-                </TouchableOpacity>
-
-                {/* Dropdown Menu */}
-                {showDropdown && (
-                  <Animated.View
-                    style={{
-                      position: "absolute",
-                      top: 45,
-                      right: 0,
-                      opacity: dropdownAnim,
-                      transform: [
-                        {
-                          translateY: dropdownAnim.interpolate({
-                            inputRange: [0, 1],
-                            outputRange: [-10, 0],
-                          }),
-                        },
-                      ],
-                    }}
-                    className="bg-white rounded-2xl shadow-lg py-2 min-w-[140px]"
-                  >
-                    <TouchableOpacity
-                      onPress={handleRevert}
-                      className="flex-row items-center px-4 py-3"
-                    >
-                      <MaterialIcons name="restore" size={20} color="#374151" />
-                      <Text className="ml-3 text-gray-700 font-medium">
-                        Revert
-                      </Text>
-                    </TouchableOpacity>
-
-                    <View className="h-px bg-gray-200 mx-2" />
-
-                    <TouchableOpacity
-                      onPress={handleDelete}
-                      className="flex-row items-center px-4 py-3"
-                    >
-                      <MaterialIcons name="delete" size={20} color="#ef4444" />
-                      <Text className="ml-3 text-red-500 font-medium">
-                        Delete
-                      </Text>
-                    </TouchableOpacity>
-                  </Animated.View>
-                )}
-              </View>
+              {/* Delete Button */}
+              <TouchableOpacity
+                onPress={handleDelete}
+                className="bg-white/20 backdrop-blur-sm rounded-full p-2"
+                style={{ backgroundColor: "rgba(255, 255, 255, 0.8)" }}
+              >
+                <MaterialIcons name="delete" size={24} color="#ef4444" />
+              </TouchableOpacity>
             </View>
           </SafeAreaView>
         </View>
@@ -669,22 +597,6 @@ export default function EditMealScreen() {
           </View>
         </View>
       </Animated.View>
-
-      {/* Overlay to close dropdown when tapping outside */}
-      {showDropdown && (
-        <TouchableOpacity
-          style={{
-            position: "absolute",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            zIndex: 5,
-          }}
-          onPress={() => setShowDropdown(false)}
-          activeOpacity={1}
-        />
-      )}
     </View>
   );
 }

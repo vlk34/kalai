@@ -1,6 +1,13 @@
 "use client";
 import { useState, useCallback } from "react";
-import { View, Text, ScrollView, TouchableOpacity, Image } from "react-native";
+import {
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  Image,
+  ActivityIndicator,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router, useFocusEffect } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
@@ -31,7 +38,7 @@ export default function DashboardScreen() {
     data: recentMeals = [],
     isLoading: isLoadingMeals,
     error,
-  } = useRecentMeals();
+  } = useRecentMeals(selectedDate);
   const { invalidateRecentMeals } = useMutateRecentMeals();
 
   // Use the new daily nutrition summary hook
@@ -88,12 +95,11 @@ export default function DashboardScreen() {
   // Refresh data when screen comes into focus (e.g., returning from camera)
   useFocusEffect(
     useCallback(() => {
-      invalidateRecentMeals();
-      // Invalidate nutrition data for the current selected date
+      // Only invalidate nutrition data for the current selected date
       queryClient.invalidateQueries({
         queryKey: ["daily-nutrition-summary", undefined, selectedDate],
       });
-    }, [invalidateRecentMeals, queryClient, selectedDate])
+    }, [queryClient, selectedDate])
   );
 
   // Calculate daily stats from daily nutrition summary or fallback to defaults
@@ -187,7 +193,7 @@ export default function DashboardScreen() {
                     key={day}
                     onPress={() => handleDaySelect(index)}
                     className={`px-4 py-2 rounded-full ${
-                      selectedDayIndex === index ? "bg-green-500" : "bg-white"
+                      selectedDayIndex === index ? "bg-black" : "bg-white"
                     } shadow-sm`}
                   >
                     <Text
@@ -313,7 +319,7 @@ export default function DashboardScreen() {
                     Failed to load recent meals
                   </Text>
                   <TouchableOpacity
-                    onPress={invalidateRecentMeals}
+                    onPress={() => invalidateRecentMeals()}
                     className="bg-green-500 rounded-lg px-4 py-2"
                   >
                     <Text className="text-white font-medium text-center">
@@ -331,14 +337,28 @@ export default function DashboardScreen() {
                       activeOpacity={0.7}
                     >
                       <View className="flex-row items-center">
-                        <Image
-                          source={{ uri: meal.photo_url }}
-                          className="w-20 h-20 rounded-xl mr-4"
-                        />
+                        <View className="relative">
+                          <Image
+                            source={{ uri: meal.photo_url }}
+                            className="w-20 h-20 rounded-xl mr-4"
+                          />
+                          {/* Loading overlay for meals being analyzed */}
+                          {meal.isAnalyzing && (
+                            <View className="absolute inset-0 bg-black/50 rounded-xl mr-4 justify-center items-center">
+                              <ActivityIndicator size="small" color="white" />
+                            </View>
+                          )}
+                        </View>
                         <View className="flex-1">
                           <View className="flex-row justify-between items-start">
                             <Text
-                              className="font-semibold text-gray-900 text-base w-[70%]"
+                              className={`font-semibold text-base w-[70%] ${
+                                meal.name === "Analyzing..."
+                                  ? "text-gray-400 italic"
+                                  : meal.name === "Analysis Failed"
+                                    ? "text-red-500"
+                                    : "text-gray-900"
+                              }`}
                               numberOfLines={1}
                               ellipsizeMode="tail"
                             >
@@ -348,8 +368,20 @@ export default function DashboardScreen() {
                               {formatTime(meal.created_at)}
                             </Text>
                           </View>
-                          <Text className="text-gray-600 text-md mb-2">
-                            {Math.round(meal.calories)} calories
+                          <Text
+                            className={`text-md mb-2 ${
+                              meal.name === "Analyzing..."
+                                ? "text-gray-400 italic"
+                                : meal.name === "Analysis Failed"
+                                  ? "text-red-500"
+                                  : "text-gray-600"
+                            }`}
+                          >
+                            {meal.name === "Analyzing..."
+                              ? "Analyzing..."
+                              : meal.name === "Analysis Failed"
+                                ? "Analysis failed"
+                                : `${Math.round(meal.calories)} calories`}
                           </Text>
                           <View className="flex-row items-center">
                             <View className="rounded-full flex-row items-center gap-1 pr-2 py-1 mr-2">
@@ -358,8 +390,16 @@ export default function DashboardScreen() {
                                   P
                                 </Text>
                               </View>
-                              <Text className="text-xs font-medium">
-                                {Math.round(meal.protein)}g
+                              <Text
+                                className={`text-xs font-medium ${
+                                  meal.name === "Analyzing..."
+                                    ? "text-gray-400"
+                                    : ""
+                                }`}
+                              >
+                                {meal.name === "Analyzing..."
+                                  ? "--"
+                                  : `${Math.round(meal.protein)}g`}
                               </Text>
                             </View>
                             <View className="rounded-full flex-row items-center gap-1 pr-2 py-1 mr-2">
@@ -368,8 +408,16 @@ export default function DashboardScreen() {
                                   F
                                 </Text>
                               </View>
-                              <Text className="text-xs font-medium">
-                                {Math.round(meal.fats)}g
+                              <Text
+                                className={`text-xs font-medium ${
+                                  meal.name === "Analyzing..."
+                                    ? "text-gray-400"
+                                    : ""
+                                }`}
+                              >
+                                {meal.name === "Analyzing..."
+                                  ? "--"
+                                  : `${Math.round(meal.fats)}g`}
                               </Text>
                             </View>
                             <View className="rounded-full flex-row items-center gap-1 pr-2 py-1 mr-2">
@@ -378,8 +426,16 @@ export default function DashboardScreen() {
                                   C
                                 </Text>
                               </View>
-                              <Text className="text-xs font-medium">
-                                {Math.round(meal.carbs)}g
+                              <Text
+                                className={`text-xs font-medium ${
+                                  meal.name === "Analyzing..."
+                                    ? "text-gray-400"
+                                    : ""
+                                }`}
+                              >
+                                {meal.name === "Analyzing..."
+                                  ? "--"
+                                  : `${Math.round(meal.carbs)}g`}
                               </Text>
                             </View>
                           </View>

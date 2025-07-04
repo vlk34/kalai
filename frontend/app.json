@@ -11,8 +11,10 @@
     "ios": {
       "supportsTablet": true,
       "infoPlist": {
-        "NSCameraUsageDescription": "This app uses the camera to take photos of your meals for calorie tracking and nutritional analysis."
-      }
+        "NSCameraUsageDescription": "This app uses the camera to take photos of your meals for calorie tracking and nutritional analysis.",
+        "ITSAppUsesNonExemptEncryption": false
+      },
+      "bundleIdentifier": "com.vlk34.kalai"
     },
     "android": {
       "adaptiveIcon": {
@@ -24,7 +26,8 @@
       "permissions": [
         "android.permission.CAMERA",
         "android.permission.READ_EXTERNAL_STORAGE",
-        "android.permission.WRITE_EXTERNAL_STORAGE"
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.RECORD_AUDIO"
       ]
     },
     "web": {
