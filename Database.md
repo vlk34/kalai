@@ -31,3 +31,4 @@
 | user_profiles  | onboarding_completed | boolean                  | YES         | false             | null                     | null            |
 | user_profiles  | created_at           | timestamp with time zone | YES         | now()             | null                     | null            |
 | user_profiles  | updated_at           | timestamp with time zone | YES         | now()             | null                     | null            |
+| user_profiles  | streak               | numeric                  | NO          | '0'::numeric      | null                     | null            |

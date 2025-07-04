@@ -530,6 +530,99 @@ Delete a consumed food record and optionally remove the associated photo from st
 - If photo deletion fails, the operation continues (record is still deleted from database)
 - The `photo_deleted` field indicates whether the photo was successfully removed from storage
 
+---
+
+### 11. Update User Streak
+**POST** `/update_streak`
+
+Update user's streak based on whether they hit their daily calorie goal for a specific date.
+
+**Authentication:** Required
+
+**Content-Type:** `application/json`
+
+**Request Body (optional):**
+```json
+{
+  "date": "2024-01-15"  // YYYY-MM-DD format, defaults to today if not provided
+}
+```
+
+**Success Response (200):**
+```json
+{
+  "success": true,
+  "message": "Congratulations! You hit your calorie goal for 2024-01-15. Streak increased to 5!",
+  "data": {
+    "date": "2024-01-15",
+    "goal_hit": true,
+    "previous_streak": 4,
+    "new_streak": 5,
+    "streak_change": 1,
+    "calorie_summary": {
+      "consumed_calories": 2180.50,
+      "daily_goal": 2200.00,
+      "difference": -19.50,
+      "progress_percentage": 99.1,
+      "foods_consumed_count": 6
+    }
+  }
+}
+```
+
+**Error Responses:**
+
+*404 - User profile not found:*
+```json
+{
+  "error": "User profile not found",
+  "message": "Please complete your profile setup first"
+}
+```
+
+*400 - No calorie goal set:*
+```json
+{
+  "error": "No calorie goal set",
+  "message": "Please set your daily calorie goal in your profile first"
+}
+```
+
+---
+
+### 12. Get User Streak
+**GET** `/get_streak`
+
+Retrieve the user's current streak information.
+
+**Authentication:** Required
+
+**Success Response (200):**
+```json
+{
+  "success": true,
+  "message": "Streak information retrieved successfully",
+  "data": {
+    "current_streak": 5,
+    "daily_calorie_goal": 2200.00,
+    "last_updated": "2024-01-15T18:30:00.000Z",
+    "user_id": "user-uuid"
+  }
+}
+```
+
+**Error Responses:**
+
+*404 - User profile not found:*
+```json
+{
+  "error": "User profile not found",
+  "message": "Please complete your profile setup first"
+}
+```
+
+---
+
 ## Frontend Integration Examples
 
 ### JavaScript/Fetch Example
@@ -598,6 +691,33 @@ const deleteConsumedFood = async (token, foodId) => {
     body: JSON.stringify({
       food_id: foodId
     })
+  });
+  
+  return await response.json();
+};
+
+// 6. Update user streak
+const updateStreak = async (token, date = null) => {
+  const body = date ? { date } : {};
+  
+  const response = await fetch('http://localhost:5000/update_streak', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(body)
+  });
+  
+  return await response.json();
+};
+
+// 7. Get user streak
+const getStreak = async (token) => {
+  const response = await fetch('http://localhost:5000/get_streak', {
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
   });
   
   return await response.json();

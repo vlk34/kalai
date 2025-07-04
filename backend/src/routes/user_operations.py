@@ -391,3 +391,102 @@ class DailyNutritionSummary(MethodView):
                 'message': str(e)
             }), 500
 
+@blp.route('/update_streak')
+class UpdateStreak(MethodView):
+    @verify_supabase_token  
+    def post(self):
+        """Update user's streak based on whether they hit their daily calorie goal"""
+        try:
+            # Initialize Supabase client
+            supabase_url = current_app.config['SUPABASE_URL']
+            supabase_key = os.getenv('SUPABASE_SERVICE_ROLE_KEY') or os.getenv('SUPABASE_ANON_KEY')
+            supabase: Client = create_client(supabase_url, supabase_key)
+            
+            # Get user's profile including current streak and daily calorie goal
+            profile_result = supabase.table('user_profiles') \
+                .select('daily_calories, streak') \
+                .eq('user_id', g.current_user['id']) \
+                .execute()
+            
+            if not profile_result.data:
+                return jsonify({
+                    'error': 'User profile not found',
+                    'message': 'Please complete your profile setup first'
+                }), 404
+            
+            user_profile = profile_result.data[0]
+            daily_calorie_goal = float(user_profile['daily_calories']) if user_profile['daily_calories'] else 0
+            current_streak = int(user_profile['streak'])
+            
+            # Update the streak in the database
+            update_result = supabase.table('user_profiles') \
+                .update({
+                    'streak': current_streak + 1,
+                    'updated_at': datetime.now().isoformat()
+                }) \
+                .eq('user_id', g.current_user['id']) \
+                .execute()
+            
+            if not update_result.data:
+                raise Exception("Failed to update streak in database")
+            
+            updated_profile = update_result.data[0]
+            
+            return jsonify({
+                'success': True,
+                'streak': updated_profile['streak']
+            }), 200
+            
+        except Exception as e:
+            print(f"Error updating streak: {e}")
+            return jsonify({
+                'error': 'Failed to update streak',
+                'message': str(e)
+            }), 500
+
+@blp.route('/get_streak')
+class GetStreak(MethodView):
+    @verify_supabase_token
+    def get(self):
+        """Get user's current streak information"""
+        try:
+            # Initialize Supabase client
+            supabase_url = current_app.config['SUPABASE_URL']
+            supabase_key = os.getenv('SUPABASE_SERVICE_ROLE_KEY') or os.getenv('SUPABASE_ANON_KEY')
+            supabase: Client = create_client(supabase_url, supabase_key)
+            
+            # Get user's current streak from profile
+            profile_result = supabase.table('user_profiles') \
+                .select('streak, daily_calories, updated_at') \
+                .eq('user_id', g.current_user['id']) \
+                .execute()
+            
+            if not profile_result.data:
+                return jsonify({
+                    'error': 'User profile not found',
+                    'message': 'Please complete your profile setup first'
+                }), 404
+            
+            user_profile = profile_result.data[0]
+            current_streak = int(user_profile['streak']) if user_profile['streak'] else 0
+            daily_calorie_goal = float(user_profile['daily_calories']) if user_profile['daily_calories'] else 0
+            last_updated = user_profile.get('updated_at')
+            
+            return jsonify({
+                'success': True,
+                'message': 'Streak information retrieved successfully',
+                'data': {
+                    'current_streak': current_streak,
+                    'daily_calorie_goal': round(daily_calorie_goal, 2),
+                    'last_updated': last_updated,
+                    'user_id': g.current_user['id']
+                }
+            }), 200
+            
+        except Exception as e:
+            print(f"Error fetching streak: {e}")
+            return jsonify({
+                'error': 'Failed to fetch streak',
+                'message': str(e)
+            }), 500
+
