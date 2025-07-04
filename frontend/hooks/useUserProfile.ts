@@ -35,6 +35,29 @@ export interface DailyTargets {
   fats_g: number;
 }
 
+// Types for daily nutrition summary
+export interface NutritionData {
+  calories: number;
+  protein: number;
+  carbs: number;
+  fats: number;
+}
+
+export interface DailyNutritionSummary {
+  date: string;
+  consumed_today: NutritionData;
+  daily_goals: NutritionData;
+  remaining_to_goal: NutritionData;
+  progress_percentage: NutritionData;
+  foods_consumed_count: number;
+  goals_status: {
+    calories_exceeded: boolean;
+    protein_exceeded: boolean;
+    carbs_exceeded: boolean;
+    fats_exceeded: boolean;
+  };
+}
+
 export interface OnboardingData {
   gender: string;
   activityLevel: string;
@@ -190,6 +213,37 @@ const recalculateTargets = async (accessToken: string) => {
   return response.json();
 };
 
+// API function for daily nutrition summary
+const fetchDailyNutritionSummary = async (
+  accessToken: string,
+  date?: string
+): Promise<DailyNutritionSummary> => {
+  const params = new URLSearchParams();
+  if (date) {
+    params.append("date", date);
+  }
+
+  const url = `${API_BASE_URL}/daily_nutrition_summary${params.toString() ? `?${params.toString()}` : ""}`;
+
+  const response = await fetch(url, {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
+    },
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(
+      `HTTP error! status: ${response.status}, body: ${errorText}`
+    );
+  }
+
+  const result = await response.json();
+  return result.data;
+};
+
 // Custom hooks
 export const useUserProfile = () => {
   const { session } = useAuth();
@@ -235,4 +289,44 @@ export const useRecalculateTargets = () => {
       queryClient.invalidateQueries({ queryKey: ["user-profile"] });
     },
   });
+};
+
+// Hook for daily nutrition summary
+export const useDailyNutritionSummary = (date?: string) => {
+  const { session } = useAuth();
+
+  return useQuery({
+    queryKey: ["daily-nutrition-summary", session?.user?.id, date],
+    queryFn: () => fetchDailyNutritionSummary(session!.access_token, date),
+    enabled: !!session?.access_token,
+    staleTime: 2 * 60 * 1000, // 2 minutes (nutrition data changes more frequently)
+    gcTime: 5 * 60 * 1000, // 5 minutes
+    retry: (failureCount, error) => {
+      // Don't retry on auth errors
+      if (error.message.includes("401") || error.message.includes("403")) {
+        return false;
+      }
+      return failureCount < 3;
+    },
+  });
+};
+
+// Helper function to format date for API (YYYY-MM-DD)
+export const formatDateForAPI = (date: Date): string => {
+  return date.toISOString().split("T")[0];
+};
+
+// Helper function to get date for specific day of week
+export const getDateForDayOfWeek = (dayOffset: number): string => {
+  const today = new Date();
+  const currentDay = today.getDay(); // 0 = Sunday, 1 = Monday, etc.
+
+  // Calculate the difference to get to the target day
+  // dayOffset: 0 = Sunday, 1 = Monday, etc.
+  const diff = dayOffset - currentDay;
+
+  const targetDate = new Date(today);
+  targetDate.setDate(today.getDate() + diff);
+
+  return formatDateForAPI(targetDate);
 };

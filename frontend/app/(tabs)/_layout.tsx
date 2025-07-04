@@ -82,13 +82,35 @@ export default function TabLayout() {
 
   // Handle button visibility animation
   useEffect(() => {
+    // Debug: log pathname to see actual values
+    console.log("Current pathname:", pathname);
+
+    // Show button only on index page, hide on all other pages
+    const isOnIndexPage =
+      pathname === "/(tabs)" ||
+      pathname === "/(tabs)/" ||
+      pathname === "/(tabs)/index" ||
+      pathname?.endsWith("/index") ||
+      !pathname || // fallback for initial load
+      pathname === "/";
+
+    console.log("Is on index page:", isOnIndexPage);
+
     Animated.spring(buttonAnim, {
-      toValue: pathname?.includes("camera") ? 0 : 1,
+      toValue: isOnIndexPage ? 1 : 0,
       useNativeDriver: true,
       tension: 65,
       friction: 8,
     }).start();
   }, [pathname]);
+
+  const isOnIndexPage =
+    pathname === "/(tabs)" ||
+    pathname === "/(tabs)/" ||
+    pathname === "/(tabs)/index" ||
+    pathname?.endsWith("/index") ||
+    !pathname ||
+    pathname === "/";
 
   const handleCameraPress = () => {
     hideModal();
@@ -151,8 +173,8 @@ export default function TabLayout() {
               }),
             },
           ],
-          zIndex: pathname?.includes("camera") ? -1 : 1000,
-          pointerEvents: pathname?.includes("camera") ? "none" : "auto",
+          zIndex: isOnIndexPage ? 1000 : -1,
+          pointerEvents: isOnIndexPage ? "auto" : "none",
         }}
       >
         <TouchableOpacity
