@@ -402,29 +402,6 @@ class UpdateStreak(MethodView):
             supabase_key = os.getenv('SUPABASE_SERVICE_ROLE_KEY') or os.getenv('SUPABASE_ANON_KEY')
             supabase: Client = create_client(supabase_url, supabase_key)
             
-            # Get date parameter from request body or query string, default to today if not provided
-            data = request.get_json() or {}
-            date_param = data.get('date') or request.args.get('date')
-            
-            if date_param:
-                try:
-                    # Validate and parse the provided date
-                    target_date = datetime.strptime(date_param, '%Y-%m-%d').date()
-                except ValueError:
-                    return jsonify({
-                        'error': 'Invalid date format',
-                        'message': 'Date must be in YYYY-MM-DD format'
-                    }), 400
-            else:
-                # Default to today if no date provided
-                target_date = datetime.now().date()
-            
-            # Get the target date and next day in ISO format for filtering
-            today = target_date.isoformat()
-            tomorrow = (target_date + timedelta(days=1)).isoformat()
-            
-            print(f"Updating streak for user: {g.current_user['id']} for date: {today}")
-            
             # Get user's profile including current streak and daily calorie goal
             profile_result = supabase.table('user_profiles') \
                 .select('daily_calories, streak') \
@@ -439,42 +416,12 @@ class UpdateStreak(MethodView):
             
             user_profile = profile_result.data[0]
             daily_calorie_goal = float(user_profile['daily_calories']) if user_profile['daily_calories'] else 0
-            current_streak = int(user_profile['streak']) if user_profile['streak'] else 0
-            
-            if daily_calorie_goal <= 0:
-                return jsonify({
-                    'error': 'No calorie goal set',
-                    'message': 'Please set your daily calorie goal in your profile first'
-                }), 400
-            
-            # Get consumed calories for the target date
-            foods_result = supabase.table('foods_consumed') \
-                .select('calories') \
-                .eq('user_id', g.current_user['id']) \
-                .gte('created_at', today) \
-                .lt('created_at', tomorrow) \
-                .execute()
-            
-            # Calculate total consumed calories for the day
-            consumed_calories = 0
-            for food in foods_result.data:
-                consumed_calories += float(food['calories']) if food['calories'] else 0
-            
-            # Check if user hit their calorie goal (within 5% tolerance or exceeded)
-            goal_hit = consumed_calories >= (daily_calorie_goal * 0.95)  # 95% of goal counts as hitting it
-            
-            # Calculate new streak
-            if goal_hit:
-                new_streak = current_streak + 1
-                streak_message = f"Congratulations! You hit your calorie goal for {today}. Streak increased to {new_streak}!"
-            else:
-                new_streak = 0
-                streak_message = f"You didn't hit your calorie goal for {today}. Streak reset to 0. Keep going!"
+            current_streak = int(user_profile['streak'])
             
             # Update the streak in the database
             update_result = supabase.table('user_profiles') \
                 .update({
-                    'streak': new_streak,
+                    'streak': current_streak + 1,
                     'updated_at': datetime.now().isoformat()
                 }) \
                 .eq('user_id', g.current_user['id']) \
@@ -485,26 +432,9 @@ class UpdateStreak(MethodView):
             
             updated_profile = update_result.data[0]
             
-            # Calculate progress percentage
-            progress_percentage = (consumed_calories / daily_calorie_goal * 100) if daily_calorie_goal > 0 else 0
-            
             return jsonify({
                 'success': True,
-                'message': streak_message,
-                'data': {
-                    'date': today,
-                    'goal_hit': goal_hit,
-                    'previous_streak': current_streak,
-                    'new_streak': new_streak,
-                    'streak_change': new_streak - current_streak,
-                    'calorie_summary': {
-                        'consumed_calories': round(consumed_calories, 2),
-                        'daily_goal': round(daily_calorie_goal, 2),
-                        'difference': round(consumed_calories - daily_calorie_goal, 2),
-                        'progress_percentage': round(progress_percentage, 1),
-                        'foods_consumed_count': len(foods_result.data)
-                    }
-                }
+                'streak': updated_profile['streak']
             }), 200
             
         except Exception as e:
