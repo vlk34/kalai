@@ -7,7 +7,11 @@ class PromptGenerator:
 
     def consumed_food_prompt(self, image):
         buffered = io.BytesIO()
-        image.save(buffered, format="PNG")
+        # Convert to RGB if needed (WEBP does not support P or RGBA in some cases for encoding without alpha)
+        if image.mode in ("RGBA", "P"):
+            image = image.convert("RGB")
+        # Save as WEBP with moderate compression to make payload smaller
+        image.save(buffered, format="WEBP", quality=80)
         img_base64 = base64.b64encode(buffered.getvalue()).decode('utf-8')
 
         # ===== Create User Prompt =====
@@ -19,7 +23,7 @@ class PromptGenerator:
                     {
                         "type": "image_url",
                         "image_url": {
-                            "url": f"data:image/png;base64,{img_base64}"
+                            "url": f"data:image/webp;base64,{img_base64}"
                         }
                     }
                 ]
@@ -48,7 +52,11 @@ class PromptGenerator:
     
     def consumed_food_prompt_with_description(self, image, text_description):
         buffered = io.BytesIO()
-        image.save(buffered, format="PNG")
+        # Convert to RGB if needed (WEBP does not support P or RGBA in some cases for encoding without alpha)
+        if image.mode in ("RGBA", "P"):
+            image = image.convert("RGB")
+        # Save as WEBP with moderate compression to make payload smaller
+        image.save(buffered, format="WEBP", quality=80)
         img_base64 = base64.b64encode(buffered.getvalue()).decode('utf-8')
 
         # ===== Create User Prompt =====
@@ -60,7 +68,7 @@ class PromptGenerator:
                     {
                         "type": "image_url",
                         "image_url": {
-                            "url": f"data:image/png;base64,{img_base64}"
+                            "url": f"data:image/webp;base64,{img_base64}"
                         }
                     }
                 ]

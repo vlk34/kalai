@@ -57,9 +57,8 @@ class Consumed(MethodView):
             # Secure the filename
             filename = secure_filename(file.filename)
             
-            # Generate unique filename with UUID
-            file_extension = filename.rsplit('.', 1)[1].lower()
-            unique_filename = f"{uuid.uuid4()}.{file_extension}"
+            # Always store images in WEBP format to save storage space
+            unique_filename = f"{uuid.uuid4()}.webp"
             
             # Get file size
             file.seek(0, os.SEEK_END)
@@ -74,11 +73,25 @@ class Consumed(MethodView):
                     'message': 'Please upload an image smaller than 10MB'
                 }), 400
             
-            # Read file content
-            file_content = file.read()
-            
-            # Convert bytes back to PIL Image for the prompt generator
-            image = Image.open(io.BytesIO(file_content))
+            # Read original file bytes
+            original_content = file.read()
+
+            # Load the image using Pillow
+            image = Image.open(io.BytesIO(original_content))
+
+            # Convert and compress the image to WEBP format in-memory
+            webp_io = io.BytesIO()
+            # Ensure compatibility (e.g. remove alpha channel) before saving as WEBP
+            if image.mode in ("RGBA", "P"):
+                image = image.convert("RGB")
+            image.save(webp_io, format="WEBP", quality=80)
+            webp_io.seek(0)
+
+            # Final bytes to upload
+            file_content = webp_io.getvalue()
+
+            # Update file size to reflect the WEBP payload
+            file_size = len(file_content)
             
             # Initialize Supabase client
             supabase_url = current_app.config['SUPABASE_URL']
@@ -95,7 +108,7 @@ class Consumed(MethodView):
                     file=file_content,
                     path=storage_path,
                     file_options={
-                        "content-type": file.content_type,
+                        "content-type": "image/webp",
                         "upsert": False
                     }
                 )
@@ -187,7 +200,7 @@ class Consumed(MethodView):
                         'original_filename': filename,
                         'unique_filename': unique_filename,
                         'file_size': file_size,
-                        'file_type': file.content_type,
+                        'file_type': 'image/webp',
                         'user_id': g.current_user['id'],
                         'uploaded_at': datetime.now().isoformat(),
                         'storage_path': storage_path,
