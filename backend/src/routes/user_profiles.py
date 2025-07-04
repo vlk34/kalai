@@ -273,3 +273,4 @@ class RecalculateTargetsView(MethodView):
             return jsonify({
                 'error': f'Failed to recalculate targets: {str(e)}'
             }), 500 
+        

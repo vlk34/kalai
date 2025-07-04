@@ -22,12 +22,28 @@ blp = Blueprint('History', __name__, description='History Operations')
 class RecentlyEaten(MethodView):
     @verify_supabase_token
     def get(self):
-        """Get user's recently consumed food items from today only"""
+        """Get user's recently consumed food items from a specific date (defaults to today)"""
         try:
             # Initialize Supabase client
             supabase_url = current_app.config['SUPABASE_URL']
             supabase_key = os.getenv('SUPABASE_SERVICE_ROLE_KEY') or os.getenv('SUPABASE_ANON_KEY')
             supabase: Client = create_client(supabase_url, supabase_key)
+            
+            # Get date parameter from query string, default to today if not provided
+            date_param = request.args.get('date')
+            
+            if date_param:
+                try:
+                    # Validate and parse the provided date
+                    target_date = datetime.strptime(date_param, '%Y-%m-%d').date()
+                except ValueError:
+                    return jsonify({
+                        'error': 'Invalid date format',
+                        'message': 'Date must be in YYYY-MM-DD format'
+                    }), 400
+            else:
+                # Default to today if no date provided
+                target_date = datetime.now().date()
             
             # Get query parameters for pagination
             limit = request.args.get('limit', 3, type=int)  # Default 3 items (last 3)
@@ -37,19 +53,18 @@ class RecentlyEaten(MethodView):
             if limit > 100:
                 limit = 100
             
-            print(f"Fetching recent foods for user: {g.current_user['id']}")
+            print(f"Fetching recent foods for user: {g.current_user['id']} for date: {target_date}")
             
-            # Get today's date range
-            today = datetime.now().date()
-            today_start = datetime.combine(today, datetime.min.time()).isoformat()
-            today_end = datetime.combine(today + timedelta(days=1), datetime.min.time()).isoformat()
+            # Get the target date range
+            date_start = datetime.combine(target_date, datetime.min.time()).isoformat()
+            date_end = datetime.combine(target_date + timedelta(days=1), datetime.min.time()).isoformat()
             
-            # Query the foods_consumed table for user's recent food from today only
+            # Query the foods_consumed table for user's recent food from the specified date
             result = supabase.table('foods_consumed') \
                 .select('*') \
                 .eq('user_id', g.current_user['id']) \
-                .gte('created_at', today_start) \
-                .lt('created_at', today_end) \
+                .gte('created_at', date_start) \
+                .lt('created_at', date_end) \
                 .order('created_at', desc=True) \
                 .limit(limit) \
                 .offset(offset) \
@@ -58,8 +73,9 @@ class RecentlyEaten(MethodView):
             if not result.data:
                 return jsonify({
                     'success': True,
-                    'message': 'No food records found for today',
+                    'message': f'No food records found for {target_date}',
                     'data': {
+                        'date': target_date.isoformat(),
                         'foods': [],
                         'total_count': 0,
                         'user_id': g.current_user['id']
@@ -114,7 +130,13 @@ class RecentlyEaten(MethodView):
             print(f"Found {len(formatted_foods)} food records")
             
             return jsonify({
-                'foods': formatted_foods,
+                'success': True,
+                'message': f'Retrieved {len(formatted_foods)} recent food items for {target_date}',
+                'data': {
+                    'date': target_date.isoformat(),
+                    'foods': formatted_foods,
+                    'count': len(formatted_foods)
+                }
             }), 200
             
         except Exception as e:
