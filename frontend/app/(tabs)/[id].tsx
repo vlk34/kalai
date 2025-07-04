@@ -53,6 +53,31 @@ const editConsumedFood = async (
   return response.json();
 };
 
+// API call function for deleting a meal
+const deleteConsumedFood = async (accessToken: string, foodId: string) => {
+  const API_BASE_URL = process.env.EXPO_PUBLIC_PRODUCTION_API_URL;
+
+  const response = await fetch(`${API_BASE_URL}/delete_consumed_food`, {
+    method: "DELETE",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      food_id: foodId,
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(
+      `HTTP error! status: ${response.status}, body: ${errorText}`
+    );
+  }
+
+  return response.json();
+};
+
 export default function EditMealScreen() {
   const router = useRouter();
   const { session } = useAuth();
@@ -170,9 +195,35 @@ export default function EditMealScreen() {
         {
           text: "Delete",
           style: "destructive",
-          onPress: () => {
-            // TODO: Implement delete functionality when backend endpoint is available
-            router.back();
+          onPress: async () => {
+            if (!session?.access_token) {
+              return;
+            }
+
+            try {
+              const result = await deleteConsumedFood(
+                session.access_token,
+                id as string
+              );
+
+              if (result.success) {
+                // Invalidate relevant queries to refresh data
+                queryClient.invalidateQueries({
+                  queryKey: ["recently-eaten"],
+                });
+                queryClient.invalidateQueries({
+                  queryKey: ["daily-nutrition-summary"],
+                });
+
+                router.back();
+              }
+            } catch (error: any) {
+              console.error("Delete error:", error);
+              Alert.alert(
+                "Error",
+                "Failed to delete meal. Please try again later."
+              );
+            }
           },
         },
       ]
