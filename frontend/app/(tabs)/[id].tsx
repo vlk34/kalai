@@ -17,6 +17,7 @@ import { Feather, MaterialIcons, FontAwesome5 } from "@expo/vector-icons";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQueryClient } from "@tanstack/react-query";
 import { useMutateRecentMeals } from "@/hooks/useMutateRecentMeals";
+import { useMutateNutrition } from "@/hooks/useMutateNutrition";
 import { formatDateForAPI } from "@/hooks/useUserProfile";
 
 // API call function for saving edited meal data
@@ -86,8 +87,19 @@ export default function EditMealScreen() {
   const queryClient = useQueryClient();
   const { invalidateRecentMeals, updateOptimisticMeal, removeOptimisticMeal } =
     useMutateRecentMeals();
+  const { removeMealFromNutrition, updateOptimisticNutrition } =
+    useMutateNutrition();
   const { id, name, photo_url, calories, protein, carbs, fats, portions } =
     useLocalSearchParams();
+
+  // Add a ref to track if component is mounted
+  const isMounted = useRef(true);
+
+  useEffect(() => {
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
 
   const [editedName, setEditedName] = useState(name as string);
   const [editedCalories, setEditedCalories] = useState(calories as string);
@@ -144,7 +156,9 @@ export default function EditMealScreen() {
   }, [menuPositionAnim]);
 
   const handleBack = () => {
-    router.back();
+    if (isMounted.current) {
+      router.back();
+    }
   };
 
   const handleDelete = () => {
@@ -165,8 +179,22 @@ export default function EditMealScreen() {
               // Get current date for optimistic update
               const today = formatDateForAPI(new Date());
 
-              // Optimistically remove the meal from the UI
+              // Get meal data for nutrition update
+              const mealData = {
+                calories: parseFloat(calories as string) || 0,
+                protein: parseFloat(protein as string) || 0,
+                carbs: parseFloat(carbs as string) || 0,
+                fats: parseFloat(fats as string) || 0,
+              };
+
+              // Navigate back first to avoid black screen
+              if (isMounted.current) {
+                router.back();
+              }
+
+              // Then optimistically remove the meal from the UI and nutrition
               removeOptimisticMeal(id as string, today);
+              removeMealFromNutrition(mealData, today);
 
               const result = await deleteConsumedFood(
                 session.access_token,
@@ -179,17 +207,21 @@ export default function EditMealScreen() {
                 queryClient.invalidateQueries({
                   queryKey: ["daily-nutrition-summary"],
                 });
-
-                router.back();
               } else {
-                // If API call failed, invalidate to revert optimistic update
+                // If API call failed, invalidate to revert optimistic updates
                 invalidateRecentMeals(today);
+                queryClient.invalidateQueries({
+                  queryKey: ["daily-nutrition-summary"],
+                });
               }
             } catch (error: any) {
               console.error("Delete error:", error);
-              // If there was an error, invalidate to revert optimistic update
+              // If there was an error, invalidate to revert optimistic updates
               const today = formatDateForAPI(new Date());
               invalidateRecentMeals(today);
+              queryClient.invalidateQueries({
+                queryKey: ["daily-nutrition-summary"],
+              });
               Alert.alert(
                 "Error",
                 "Failed to delete meal. Please try again later."
@@ -293,8 +325,37 @@ export default function EditMealScreen() {
       // Get current date for optimistic update
       const today = formatDateForAPI(new Date());
 
-      // Optimistically update the meal in the UI
+      // Calculate the difference in nutrition values
+      const oldMealData = {
+        calories: parseFloat(calories as string) || 0,
+        protein: parseFloat(protein as string) || 0,
+        carbs: parseFloat(carbs as string) || 0,
+        fats: parseFloat(fats as string) || 0,
+      };
+
+      const newMealData = {
+        calories: saveData.calories || 0,
+        protein: saveData.protein || 0,
+        carbs: saveData.carbs || 0,
+        fats: saveData.fats || 0,
+      };
+
+      // Calculate the difference
+      const nutritionDiff = {
+        calories: newMealData.calories - oldMealData.calories,
+        protein: newMealData.protein - oldMealData.protein,
+        carbs: newMealData.carbs - oldMealData.carbs,
+        fats: newMealData.fats - oldMealData.fats,
+      };
+
+      // Navigate back first to avoid black screen
+      if (isMounted.current) {
+        router.back();
+      }
+
+      // Then optimistically update the meal in the UI and nutrition
       updateOptimisticMeal(id as string, saveData, today);
+      updateOptimisticNutrition(nutritionDiff, today);
 
       // Call the API
       const result = await editConsumedFood(
@@ -311,17 +372,21 @@ export default function EditMealScreen() {
         queryClient.invalidateQueries({
           queryKey: ["daily-nutrition-summary"],
         });
-
-        router.back();
       } else {
-        // If API call failed, invalidate to revert optimistic update
+        // If API call failed, invalidate to revert optimistic updates
         invalidateRecentMeals(today);
+        queryClient.invalidateQueries({
+          queryKey: ["daily-nutrition-summary"],
+        });
       }
     } catch (error: any) {
       console.error("Save error:", error);
-      // If there was an error, invalidate to revert optimistic update
+      // If there was an error, invalidate to revert optimistic updates
       const today = formatDateForAPI(new Date());
       invalidateRecentMeals(today);
+      queryClient.invalidateQueries({
+        queryKey: ["daily-nutrition-summary"],
+      });
     } finally {
       setIsSaving(false);
     }

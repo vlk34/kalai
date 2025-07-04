@@ -21,6 +21,7 @@ import { useFocusEffect } from "@react-navigation/native";
 import { useCallback } from "react";
 import { useAnalyzeFood } from "@/hooks/useAnalyzeFood";
 import { useMutateRecentMeals } from "@/hooks/useMutateRecentMeals";
+import { useMutateNutrition } from "@/hooks/useMutateNutrition";
 import { useAuth } from "@/contexts/AuthContext";
 import { formatDateForAPI } from "@/hooks/useUserProfile";
 import { useQueryClient } from "@tanstack/react-query";
@@ -45,6 +46,7 @@ export default function CameraScreen() {
   const cameraRef = useRef<CameraView>(null);
   const { isAnalyzing, analysisResult, analyzeFood } = useAnalyzeFood();
   const { addOptimisticMeal, updateOptimisticMeal } = useMutateRecentMeals();
+  const { addMealToNutrition } = useMutateNutrition();
   const { session } = useAuth();
   const queryClient = useQueryClient();
 
@@ -148,6 +150,17 @@ export default function CameraScreen() {
                 photo_url: photoUrl || optimisticMeal.photo_url, // Use server photo URL
                 created_at: databaseRecord.created_at,
                 isAnalyzing: false,
+              },
+              today
+            );
+
+            // Optimistically update nutrition with the real meal data
+            addMealToNutrition(
+              {
+                calories: databaseRecord.calories,
+                protein: databaseRecord.protein,
+                carbs: databaseRecord.carbs,
+                fats: databaseRecord.fats,
               },
               today
             );

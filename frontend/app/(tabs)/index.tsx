@@ -78,7 +78,7 @@ export default function DashboardScreen() {
   // Handle meal item click to navigate to edit page
   const handleMealPress = (meal: any) => {
     router.push({
-      pathname: `/${meal.id}` as any,
+      pathname: `/(tabs)/${meal.id}` as any,
       params: {
         id: meal.id,
         name: meal.name,
