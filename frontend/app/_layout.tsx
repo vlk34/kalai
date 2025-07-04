@@ -37,7 +37,6 @@ export default function RootLayout() {
               <Stack.Screen name="(tabs)" />
               <Stack.Screen name="welcome" />
               <Stack.Screen name="onboarding" />
-              <Stack.Screen name="camera" />
               <Stack.Screen name="+not-found" />
             </Stack>
             <StatusBar style="auto" />

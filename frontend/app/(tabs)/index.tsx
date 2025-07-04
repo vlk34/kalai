@@ -1,5 +1,5 @@
 "use client";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import {
   View,
   Text,
@@ -7,14 +7,26 @@ import {
   TouchableOpacity,
   Image,
   ActivityIndicator,
+  Modal,
+  Animated,
+  Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { router, useFocusEffect } from "expo-router";
+import { router } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
-import { FontAwesome5, MaterialIcons } from "@expo/vector-icons";
+import {
+  FontAwesome5,
+  MaterialIcons,
+  FontAwesome,
+  Feather,
+} from "@expo/vector-icons";
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import * as ImagePicker from "expo-image-picker";
 import { useRecentMeals } from "@/hooks/useRecentMeals";
 import { useMutateRecentMeals } from "@/hooks/useMutateRecentMeals";
+import { useAnalyzeFood } from "@/hooks/useAnalyzeFood";
+import { useMutateNutrition } from "@/hooks/useMutateNutrition";
 import {
   useDailyNutritionSummary,
   getDateForDayOfWeek,
@@ -22,6 +34,7 @@ import {
 } from "@/hooks/useUserProfile";
 import { CircularProgress } from "@/components/ui/CircularProgress";
 import { useQueryClient } from "@tanstack/react-query";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function DashboardScreen() {
   // Initialize with today's date
@@ -32,6 +45,173 @@ export default function DashboardScreen() {
     new Date().getDay()
   );
   const queryClient = useQueryClient();
+  const insets = useSafeAreaInsets();
+  const { session } = useAuth();
+
+  // Plus button and modal state
+  const [showActionModal, setShowActionModal] = useState(false);
+  const buttonAnim = useRef(new Animated.Value(1)).current;
+  const modalAnim = useRef(new Animated.Value(0)).current;
+  const bgOpacityAnim = useRef(new Animated.Value(0)).current;
+  const { analyzeFood } = useAnalyzeFood();
+  const { addOptimisticMeal, updateOptimisticMeal } = useMutateRecentMeals();
+  const { addMealToNutrition } = useMutateNutrition();
+
+  // Request permissions when component mounts
+  useEffect(() => {
+    (async () => {
+      const { status } =
+        await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== "granted") {
+        Alert.alert(
+          "Permission Required",
+          "Sorry, we need camera roll permissions to make this work!"
+        );
+      }
+    })();
+  }, []);
+
+  // Simple animation for modal
+  const showModal = () => {
+    setShowActionModal(true);
+    Animated.parallel([
+      Animated.spring(modalAnim, {
+        toValue: 1,
+        useNativeDriver: true,
+        tension: 65,
+        friction: 11,
+      }),
+      Animated.timing(bgOpacityAnim, {
+        toValue: 1,
+        duration: 500,
+        useNativeDriver: true,
+        easing: (t) => 1 - Math.pow(1 - t, 3),
+      }),
+    ]).start();
+  };
+
+  const hideModal = () => {
+    Animated.parallel([
+      Animated.timing(modalAnim, {
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: true,
+        easing: (t) => 1 - Math.pow(1 - t, 3),
+      }),
+      Animated.timing(bgOpacityAnim, {
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: true,
+        easing: (t) => 1 - Math.pow(1 - t, 3),
+      }),
+    ]).start(() => setShowActionModal(false));
+  };
+
+  const handleCameraPress = () => {
+    hideModal();
+    router.push("/camera");
+  };
+
+  const handleGalleryPress = async () => {
+    hideModal();
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ["images"],
+        aspect: [9, 16],
+        quality: 1,
+      });
+
+      if (!result.canceled) {
+        const photoUri = result.assets[0].uri;
+
+        // Create optimistic meal entry
+        const optimisticMeal = {
+          id: `temp-${Date.now()}`,
+          name: "Analyzing...",
+          emoji: "🍽️",
+          protein: 0,
+          carbs: 0,
+          fats: 0,
+          calories: 0,
+          created_at: new Date().toISOString(),
+          photo_url: photoUri,
+          isAnalyzing: true,
+        };
+
+        // Add to recent meals optimistically
+        const today = formatDateForAPI(new Date());
+        addOptimisticMeal(optimisticMeal, today);
+
+        // Start analysis in background
+        try {
+          const result = await analyzeFood(photoUri);
+
+          // Extract the real data from server response
+          const serverData = result.data;
+          const databaseRecord = serverData.database_record;
+          const photoUrl = serverData.file_info?.photo_url;
+
+          // Replace the optimistic meal with real server data
+          updateOptimisticMeal(
+            optimisticMeal.id,
+            {
+              id: databaseRecord.id, // Replace temp ID with real ID
+              name: databaseRecord.name,
+              emoji: databaseRecord.emoji,
+              protein: databaseRecord.protein,
+              carbs: databaseRecord.carbs,
+              fats: databaseRecord.fats,
+              calories: databaseRecord.calories,
+              photo_url: photoUrl || optimisticMeal.photo_url, // Use server photo URL
+              created_at: databaseRecord.created_at,
+              isAnalyzing: false,
+            },
+            today
+          );
+
+          // Optimistically update nutrition with the real meal data
+          addMealToNutrition(
+            {
+              calories: databaseRecord.calories,
+              protein: databaseRecord.protein,
+              carbs: databaseRecord.carbs,
+              fats: databaseRecord.fats,
+            },
+            today
+          );
+
+          // Invalidate both recent meals and nutrition summary to ensure fresh data
+          queryClient.invalidateQueries({
+            queryKey: ["recent-meals", session?.user?.id, today],
+          });
+          queryClient.invalidateQueries({
+            queryKey: ["daily-nutrition-summary", session?.user?.id, today],
+          });
+        } catch (error) {
+          console.error("Analysis failed:", error);
+          // Update with error state
+          updateOptimisticMeal(
+            optimisticMeal.id,
+            {
+              name: "Analysis Failed",
+              emoji: "❌",
+              protein: 0,
+              carbs: 0,
+              fats: 0,
+              calories: 0,
+              isAnalyzing: false,
+            },
+            today
+          );
+        }
+      }
+    } catch (error) {
+      Alert.alert(
+        "Error",
+        "Failed to pick an image from gallery. Please try again."
+      );
+    }
+  };
 
   // Use TanStack Query hooks for recent meals and user profile
   const {
@@ -56,9 +236,18 @@ export default function DashboardScreen() {
 
   // Handle day selection
   const handleDaySelect = (dayIndex: number) => {
-    const dateForDay = getDateForDayOfWeek(dayIndex);
-    setSelectedDate(dateForDay);
-    setSelectedDayIndex(dayIndex);
+    if (!session?.user?.id) {
+      console.log("No session available, skipping day selection");
+      return;
+    }
+
+    try {
+      const dateForDay = getDateForDayOfWeek(dayIndex);
+      setSelectedDate(dateForDay);
+      setSelectedDayIndex(dayIndex);
+    } catch (error) {
+      console.error("Error selecting day:", error);
+    }
   };
 
   // Function to format time from ISO string to HH:MM format
@@ -78,7 +267,7 @@ export default function DashboardScreen() {
   // Handle meal item click to navigate to edit page
   const handleMealPress = (meal: any) => {
     router.push({
-      pathname: `/(tabs)/${meal.id}` as any,
+      pathname: "/(tabs)/edit-meal" as any,
       params: {
         id: meal.id,
         name: meal.name,
@@ -93,14 +282,19 @@ export default function DashboardScreen() {
   };
 
   // Refresh data when screen comes into focus (e.g., returning from camera)
-  useFocusEffect(
-    useCallback(() => {
-      // Only invalidate nutrition data for the current selected date
-      queryClient.invalidateQueries({
-        queryKey: ["daily-nutrition-summary", undefined, selectedDate],
-      });
-    }, [queryClient, selectedDate])
-  );
+  useEffect(() => {
+    // Only run if we have a session and the component is properly mounted
+    if (session?.user?.id && selectedDate) {
+      try {
+        // Only invalidate nutrition data for the current selected date
+        queryClient.invalidateQueries({
+          queryKey: ["daily-nutrition-summary", session.user.id, selectedDate],
+        });
+      } catch (error) {
+        console.error("Error invalidating queries:", error);
+      }
+    }
+  }, [queryClient, selectedDate, session?.user?.id]);
 
   // Calculate daily stats from daily nutrition summary or fallback to defaults
   const getDailyStats = () => {
@@ -456,6 +650,167 @@ export default function DashboardScreen() {
               )}
             </View>
           </ScrollView>
+
+          {/* Floating Plus Button */}
+          <Animated.View
+            style={{
+              position: "absolute",
+              bottom: insets.bottom + 30,
+              left: "50%",
+              marginLeft: -30,
+              zIndex: 1000,
+            }}
+          >
+            <TouchableOpacity
+              onPress={showModal}
+              style={{
+                width: 60,
+                height: 60,
+                borderRadius: 30,
+                backgroundColor: "#000000",
+                justifyContent: "center",
+                alignItems: "center",
+                elevation: 8,
+                shadowColor: "#000",
+                shadowOffset: {
+                  width: 0,
+                  height: 4,
+                },
+                shadowOpacity: 0.3,
+                shadowRadius: 4.65,
+                borderWidth: 4,
+                borderColor: "white",
+              }}
+            >
+              <Feather name="plus" size={28} color="white" />
+            </TouchableOpacity>
+          </Animated.View>
+
+          {/* Action Modal */}
+          <Modal
+            visible={showActionModal}
+            transparent
+            animationType="none"
+            statusBarTranslucent
+            onRequestClose={hideModal}
+          >
+            <TouchableOpacity
+              activeOpacity={1}
+              onPress={hideModal}
+              style={{ flex: 1 }}
+            >
+              {/* Separate background overlay */}
+              <Animated.View
+                style={{
+                  position: "absolute",
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  backgroundColor: "rgba(0,0,0,0.3)",
+                  opacity: bgOpacityAnim,
+                }}
+              />
+
+              {/* Modal content */}
+              <View style={{ flex: 1, overflow: "hidden" }}>
+                <Animated.View
+                  style={{
+                    position: "absolute",
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    transform: [
+                      {
+                        translateY: modalAnim.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: [400, 0],
+                        }),
+                      },
+                    ],
+                  }}
+                >
+                  <TouchableOpacity
+                    activeOpacity={1}
+                    onPress={(e) => e.stopPropagation()}
+                  >
+                    <View className="bg-white rounded-t-3xl p-6">
+                      {/* Header */}
+                      <View className="items-center mb-6">
+                        <View className="w-12 h-1 bg-gray-300 rounded-full mb-4" />
+                        <Text className="text-2xl font-bold text-black mb-2">
+                          Add Food
+                        </Text>
+                        <Text className="text-gray-600 text-center">
+                          Choose how you'd like to log your meal
+                        </Text>
+                      </View>
+
+                      {/* Action Buttons */}
+                      <View className="space-y-0">
+                        {/* Camera Button */}
+                        <TouchableOpacity
+                          onPress={handleCameraPress}
+                          className="flex-row items-center py-4 px-2"
+                        >
+                          <View className="w-12 h-12 bg-gray-100 rounded-full items-center justify-center mr-4">
+                            <FontAwesome
+                              name="camera"
+                              size={20}
+                              color="#374151"
+                            />
+                          </View>
+                          <View className="flex-1">
+                            <Text className="text-lg font-semibold text-black">
+                              Camera
+                            </Text>
+                            <Text className="text-sm text-gray-600">
+                              Take a photo of your meal
+                            </Text>
+                          </View>
+                          <Feather
+                            name="chevron-right"
+                            size={20}
+                            color="#9ca3af"
+                          />
+                        </TouchableOpacity>
+
+                        {/* Divider */}
+                        <View className="h-px bg-gray-200 mx-2" />
+
+                        {/* Gallery Button */}
+                        <TouchableOpacity
+                          onPress={handleGalleryPress}
+                          className="flex-row items-center py-4 px-2"
+                        >
+                          <View className="w-12 h-12 bg-gray-100 rounded-full items-center justify-center mr-4">
+                            <MaterialIcons
+                              name="photo-library"
+                              size={20}
+                              color="#374151"
+                            />
+                          </View>
+                          <View className="flex-1">
+                            <Text className="text-lg font-semibold text-black">
+                              Gallery
+                            </Text>
+                            <Text className="text-sm text-gray-600">
+                              Choose from your photos
+                            </Text>
+                          </View>
+                          <Feather
+                            name="chevron-right"
+                            size={20}
+                            color="#9ca3af"
+                          />
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  </TouchableOpacity>
+                </Animated.View>
+              </View>
+            </TouchableOpacity>
+          </Modal>
 
           {/* Streak Modal */}
           {showStreakModal && (
