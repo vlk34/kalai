@@ -87,37 +87,24 @@ export default function TabLayout() {
     ]).start(() => setShowActionModal(false));
   };
 
-  // Handle button visibility animation
-  useEffect(() => {
-    // Debug: log pathname to see actual values
-    console.log("Current pathname:", pathname);
-
-    // Show button only on index page, hide on all other pages
-    const isOnIndexPage =
-      pathname === "/(tabs)" ||
-      pathname === "/(tabs)/" ||
-      pathname === "/(tabs)/index" ||
-      pathname?.endsWith("/index") ||
-      !pathname || // fallback for initial load
-      pathname === "/";
-
-    console.log("Is on index page:", isOnIndexPage);
-
-    Animated.spring(buttonAnim, {
-      toValue: isOnIndexPage ? 1 : 0,
-      useNativeDriver: true,
-      tension: 65,
-      friction: 8,
-    }).start();
-  }, [pathname]);
-
+  // Determine if we're on the index page
   const isOnIndexPage =
     pathname === "/(tabs)" ||
     pathname === "/(tabs)/" ||
     pathname === "/(tabs)/index" ||
     pathname?.endsWith("/index") ||
-    !pathname ||
+    !pathname || // fallback for initial load
     pathname === "/";
+
+  // Handle button visibility animation
+  useEffect(() => {
+    Animated.timing(buttonAnim, {
+      toValue: isOnIndexPage ? 1 : 0,
+      duration: 300,
+      useNativeDriver: true,
+      easing: Easing.out(Easing.quad),
+    }).start();
+  }, [pathname]);
 
   const handleCameraPress = () => {
     hideModal();
@@ -228,18 +215,11 @@ export default function TabLayout() {
     }
   };
 
-  const handleAddToLog = () => {
-    router.push("/(tabs)");
-  };
-
-  const handleTakeAnother = () => {
-    router.push("/(tabs)");
-  };
-
   return (
     <View style={{ flex: 1 }}>
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="index" />
+        <Stack.Screen name="[id]" />
         {/* <Stack.Screen name="edit-profile" /> */}
       </Stack>
 
@@ -250,12 +230,11 @@ export default function TabLayout() {
           bottom: insets.bottom + 30,
           left: "50%",
           marginLeft: -30,
-          opacity: buttonAnim,
           transform: [
             {
               translateY: buttonAnim.interpolate({
                 inputRange: [0, 1],
-                outputRange: [20, 0],
+                outputRange: [15, 0],
               }),
             },
           ],
