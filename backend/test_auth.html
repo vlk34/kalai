@@ -248,17 +248,110 @@
         
         <!-- API Testing section -->
         <div style="margin-top: 30px;">
-            <h2>API Tests</h2>
-            <button onclick="testHealthCheck()">Test Health Check</button>
-            <button onclick="testProtectedRoute()" class="secondary">Test Protected Route</button>
+            <h2>🧪 Complete API Test Suite</h2>
             
-            <!-- Photo Upload Section -->
-            <div id="photo-upload-section" style="display: none; margin-top: 20px; padding: 15px; background-color: #f8f9fa; border-radius: 5px;">
-                <h3>Upload Food Photo</h3>
-                <input type="file" id="photo-input" accept="image/*" style="margin-bottom: 10px;">
-                <button onclick="uploadPhoto()" class="secondary">Upload Photo to Consumed</button>
-                <button onclick="getRecentFoods()" style="background-color: #28a745; margin-left: 10px;">View Recent Foods</button>
-                <button onclick="getFullHistory()" style="background-color: #17a2b8; margin-left: 10px;">View Full History</button>
+            <!-- Public Endpoints -->
+            <div style="margin-bottom: 20px;">
+                <h3>📡 Public Endpoints</h3>
+                <button onclick="testHealthCheck()">🏥 Health Check</button>
+                <button onclick="testProtectedRoute()" class="secondary">🔒 Protected Route</button>
+            </div>
+            
+            <!-- Profile Management Section -->
+            <div id="profile-section" style="display: none; margin-bottom: 20px; padding: 15px; background-color: #f8f9fa; border-radius: 5px;">
+                <h3>👤 Profile Management</h3>
+                <div style="margin-bottom: 10px;">
+                    <button onclick="getUserProfile()" style="background-color: #6c757d;">📋 Get Profile</button>
+                    <button onclick="showCreateProfileForm()" style="background-color: #28a745; margin-left: 10px;">➕ Create Profile</button>
+                    <button onclick="recalculateTargets()" style="background-color: #fd7e14; margin-left: 10px;">🔄 Recalculate Targets</button>
+                </div>
+                
+                <!-- Create Profile Form -->
+                <div id="create-profile-form" style="display: none; margin-top: 15px; padding: 15px; background-color: white; border-radius: 5px; border: 1px solid #dee2e6;">
+                    <h4>Create User Profile</h4>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+                        <select id="gender" style="padding: 8px;">
+                            <option value="">Select Gender</option>
+                            <option value="male">Male</option>
+                            <option value="female">Female</option>
+                        </select>
+                        <select id="activity_level" style="padding: 8px;">
+                            <option value="">Activity Level</option>
+                            <option value="sedentary">Sedentary</option>
+                            <option value="lightly_active">Lightly Active</option>
+                            <option value="very_active">Very Active</option>
+                        </select>
+                        <select id="main_goal" style="padding: 8px;">
+                            <option value="">Main Goal</option>
+                            <option value="lose_weight">Lose Weight</option>
+                            <option value="maintain_weight">Maintain Weight</option>
+                            <option value="gain_weight">Gain Weight</option>
+                            <option value="build_muscle">Build Muscle</option>
+                        </select>
+                        <select id="dietary_preference" style="padding: 8px;">
+                            <option value="">Dietary Preference</option>
+                            <option value="no_restrictions">No Restrictions</option>
+                            <option value="vegetarian">Vegetarian</option>
+                            <option value="vegan">Vegan</option>
+                            <option value="keto">Keto</option>
+                        </select>
+                        <input type="number" id="height_value" placeholder="Height" style="padding: 8px;">
+                        <select id="height_unit" style="padding: 8px;">
+                            <option value="metric">Metric (cm)</option>
+                            <option value="imperial">Imperial (ft)</option>
+                        </select>
+                        <input type="number" id="weight_value" placeholder="Weight" style="padding: 8px;">
+                        <select id="weight_unit" style="padding: 8px;">
+                            <option value="metric">Metric (kg)</option>
+                            <option value="imperial">Imperial (lbs)</option>
+                        </select>
+                        <input type="date" id="date_of_birth" style="padding: 8px;">
+                        <select id="tracking_difficulty" style="padding: 8px;">
+                            <option value="easy">Easy</option>
+                            <option value="manageable">Manageable</option>
+                            <option value="challenging">Challenging</option>
+                        </select>
+                        <select id="experience_level" style="padding: 8px;">
+                            <option value="beginner">Beginner</option>
+                            <option value="some_experience">Some Experience</option>
+                            <option value="very_experienced">Very Experienced</option>
+                        </select>
+                    </div>
+                    <button onclick="createUserProfile()" style="background-color: #28a745;">💾 Save Profile</button>
+                    <button onclick="hideCreateProfileForm()" style="background-color: #6c757d; margin-left: 10px;">❌ Cancel</button>
+                </div>
+            </div>
+            
+            <!-- Food Tracking Section -->
+            <div id="food-tracking-section" style="display: none; margin-bottom: 20px; padding: 15px; background-color: #f8f9fa; border-radius: 5px;">
+                <h3>🍽️ Food Tracking</h3>
+                <div style="margin-bottom: 10px;">
+                    <input type="file" id="photo-input" accept="image/*" style="margin-bottom: 10px;">
+                    <button onclick="uploadPhoto()" class="secondary">📸 Upload Food Photo</button>
+                </div>
+                <div style="margin-bottom: 10px;">
+                    <button onclick="getRecentFoods()" style="background-color: #28a745;">📋 Recent Foods (Last 3)</button>
+                    <button onclick="getFullHistory()" style="background-color: #17a2b8; margin-left: 10px;">📚 Full History</button>
+                </div>
+                <!-- Edit Food Section -->
+                <div style="margin-bottom: 10px;">
+                    <input type="text" id="edit-food-id" placeholder="Food ID" style="padding: 8px; width: 140px; margin-right: 6px;">
+                    <input type="text" id="edit-text-description" placeholder="Text Description" style="padding: 8px; width: 240px; margin-right: 6px;">
+                    <button onclick="editFood()" style="background-color: #ffc107;">✏️ Edit Food</button>
+                </div>
+            </div>
+            
+            <!-- Nutrition Analysis Section -->
+            <div id="nutrition-section" style="display: none; margin-bottom: 20px; padding: 15px; background-color: #f8f9fa; border-radius: 5px;">
+                <h3>📊 Nutrition Analysis</h3>
+                <div style="margin-bottom: 10px;">
+                    <input type="date" id="nutrition-date" style="padding: 8px; margin-right: 10px;" placeholder="Select Date">
+                    <button onclick="getDailyNutritionSummary()" style="background-color: #6f42c1;">📈 Get Daily Summary</button>
+                    <button onclick="getDailyNutritionSummary(null)" style="background-color: #20c997; margin-left: 10px;">📅 Today's Summary</button>
+                </div>
+                <div style="margin-top: 10px;">
+                    <button onclick="testDifferentDates()" style="background-color: #fd7e14;">🗓️ Test Different Dates</button>
+                </div>
             </div>
             
             <div id="api-response" class="response-area"></div>
@@ -483,7 +576,9 @@
         function showUserInfo(user, token) {
             document.getElementById('login-form').style.display = 'none';
             document.getElementById('user-info').style.display = 'block';
-            document.getElementById('photo-upload-section').style.display = 'block';
+            document.getElementById('profile-section').style.display = 'block';
+            document.getElementById('food-tracking-section').style.display = 'block';
+            document.getElementById('nutrition-section').style.display = 'block';
             
             document.getElementById('user-details').innerHTML = `
                 <strong>Email:</strong> ${user.email} | <strong>ID:</strong> ${user.id.substring(0, 8)}...
@@ -495,7 +590,9 @@
         function hideUserInfo() {
             document.getElementById('login-form').style.display = 'block';
             document.getElementById('user-info').style.display = 'none';
-            document.getElementById('photo-upload-section').style.display = 'none';
+            document.getElementById('profile-section').style.display = 'none';
+            document.getElementById('food-tracking-section').style.display = 'none';
+            document.getElementById('nutrition-section').style.display = 'none';
         }
         
         function showStatus(message, type) {
@@ -735,6 +832,7 @@
                                     📅 ${createdDate.toLocaleDateString()} at ${createdDate.toLocaleTimeString()}
                                 </div>
                                 ${food.photo_url ? '<div style="font-size: 11px; opacity: 0.6; margin-top: 2px;">📸 Photo available</div>' : ''}
+                                <div style="font-size: 11px; opacity: 0.6; margin-top: 2px;">ID: ${food.id.substring(0,8)}...</div>
                             </div>
                         </div>
                         
@@ -755,6 +853,9 @@
                                 <div class="nutrition-value">${food.fats || 0}g</div>
                                 <div class="nutrition-label">Fats</div>
                             </div>
+                        </div>
+                        <div style="text-align: right; margin-top: 10px;">
+                            <button onclick="promptAndEditFood('${food.id}')" style="background-color: #ffc107;">✏️ Edit</button>
                         </div>
                     </div>
                 `;
@@ -828,6 +929,477 @@
                 <div style="font-weight: bold; margin-bottom: 10px;">${title}</div>
                 <div class="response-area">${JSON.stringify(response, null, 2)}</div>
             `;
+        }
+
+        // Profile Management Functions
+        async function getUserProfile() {
+            if (!supabase) {
+                showApiResponse('Get Profile Error:', {
+                    error: 'Supabase not initialized'
+                });
+                return;
+            }
+            
+            const { data: { session } } = await supabase.auth.getSession();
+            
+            if (!session) {
+                showApiResponse('Get Profile Error:', {
+                    error: 'No active session. Please sign in first.'
+                });
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${BACKEND_URL}/user_profiles`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${session.access_token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.profile) {
+                    showProfileInfo(data);
+                } else {
+                    showApiResponse('Get Profile Response:', {
+                        status: response.status,
+                        data: data
+                    });
+                }
+            } catch (error) {
+                showApiResponse('Get Profile Error:', {
+                    error: error.message
+                });
+            }
+        }
+
+        function showCreateProfileForm() {
+            document.getElementById('create-profile-form').style.display = 'block';
+            // Set default date to 25 years ago
+            const defaultDate = new Date();
+            defaultDate.setFullYear(defaultDate.getFullYear() - 25);
+            document.getElementById('date_of_birth').value = defaultDate.toISOString().split('T')[0];
+        }
+
+        function hideCreateProfileForm() {
+            document.getElementById('create-profile-form').style.display = 'none';
+        }
+
+        async function createUserProfile() {
+            if (!supabase) {
+                showApiResponse('Create Profile Error:', {
+                    error: 'Supabase not initialized'
+                });
+                return;
+            }
+            
+            const { data: { session } } = await supabase.auth.getSession();
+            
+            if (!session) {
+                showApiResponse('Create Profile Error:', {
+                    error: 'No active session. Please sign in first.'
+                });
+                return;
+            }
+
+            // Collect form data
+            const profileData = {
+                gender: document.getElementById('gender').value,
+                activity_level: document.getElementById('activity_level').value,
+                tracking_difficulty: document.getElementById('tracking_difficulty').value,
+                experience_level: document.getElementById('experience_level').value,
+                height_unit: document.getElementById('height_unit').value,
+                height_value: document.getElementById('height_value').value,
+                weight_unit: document.getElementById('weight_unit').value,
+                weight_value: document.getElementById('weight_value').value,
+                date_of_birth: document.getElementById('date_of_birth').value,
+                main_goal: document.getElementById('main_goal').value,
+                dietary_preference: document.getElementById('dietary_preference').value
+            };
+
+            // Validate required fields
+            const requiredFields = ['gender', 'activity_level', 'height_value', 'weight_value', 'date_of_birth', 'main_goal', 'dietary_preference'];
+            const missingFields = requiredFields.filter(field => !profileData[field]);
+            
+            if (missingFields.length > 0) {
+                showApiResponse('Create Profile Error:', {
+                    error: `Missing required fields: ${missingFields.join(', ')}`
+                });
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${BACKEND_URL}/user_profiles`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${session.access_token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(profileData)
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showProfileInfo(data);
+                    hideCreateProfileForm();
+                } else {
+                    showApiResponse('Create Profile Response:', {
+                        status: response.status,
+                        data: data
+                    });
+                }
+            } catch (error) {
+                showApiResponse('Create Profile Error:', {
+                    error: error.message
+                });
+            }
+        }
+
+        async function recalculateTargets() {
+            if (!supabase) {
+                showApiResponse('Recalculate Targets Error:', {
+                    error: 'Supabase not initialized'
+                });
+                return;
+            }
+            
+            const { data: { session } } = await supabase.auth.getSession();
+            
+            if (!session) {
+                showApiResponse('Recalculate Targets Error:', {
+                    error: 'No active session. Please sign in first.'
+                });
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${BACKEND_URL}/recalculate`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${session.access_token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showProfileInfo(data);
+                } else {
+                    showApiResponse('Recalculate Targets Response:', {
+                        status: response.status,
+                        data: data
+                    });
+                }
+            } catch (error) {
+                showApiResponse('Recalculate Targets Error:', {
+                    error: error.message
+                });
+            }
+        }
+
+        function showProfileInfo(data) {
+            const responseArea = document.getElementById('api-response');
+            const profile = data.profile;
+            const targets = data.daily_targets;
+            
+            const age = new Date().getFullYear() - new Date(profile.date_of_birth).getFullYear();
+            
+            responseArea.innerHTML = `
+                <div class="success-message">
+                    ✨ Profile ${data.message.includes('created') ? 'Created' : 'Retrieved'} Successfully! ✨
+                </div>
+                
+                <div class="nutrition-card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                    <div class="nutrition-header">
+                        <span class="nutrition-emoji">👤</span>
+                        <div>
+                            <div>User Profile</div>
+                            <div style="font-size: 14px; opacity: 0.8; font-weight: normal;">
+                                ${profile.gender} • ${age} years old • ${profile.activity_level.replace('_', ' ')}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-bottom: 20px;">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                            <div style="background: rgba(255,255,255,0.2); border-radius: 10px; padding: 12px;">
+                                <div style="font-weight: bold;">Height</div>
+                                <div>${profile.height_value} ${profile.height_unit}</div>
+                            </div>
+                            <div style="background: rgba(255,255,255,0.2); border-radius: 10px; padding: 12px;">
+                                <div style="font-weight: bold;">Weight</div>
+                                <div>${profile.weight_value} ${profile.weight_unit}</div>
+                            </div>
+                            <div style="background: rgba(255,255,255,0.2); border-radius: 10px; padding: 12px;">
+                                <div style="font-weight: bold;">Goal</div>
+                                <div>${profile.main_goal.replace('_', ' ')}</div>
+                            </div>
+                            <div style="background: rgba(255,255,255,0.2); border-radius: 10px; padding: 12px;">
+                                <div style="font-weight: bold;">Diet</div>
+                                <div>${profile.dietary_preference}</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-top: 20px;">
+                        <div style="font-weight: bold; margin-bottom: 10px; font-size: 18px;">🎯 Daily Targets</div>
+                        <div class="nutrition-grid">
+                            <div class="nutrition-item">
+                                <div class="nutrition-value">${targets.calories}</div>
+                                <div class="nutrition-label">Calories</div>
+                            </div>
+                            <div class="nutrition-item">
+                                <div class="nutrition-value">${targets.protein_g}g</div>
+                                <div class="nutrition-label">Protein</div>
+                            </div>
+                            <div class="nutrition-item">
+                                <div class="nutrition-value">${targets.carbs_g}g</div>
+                                <div class="nutrition-label">Carbs</div>
+                            </div>
+                            <div class="nutrition-item">
+                                <div class="nutrition-value">${targets.fats_g}g</div>
+                                <div class="nutrition-label">Fats</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <details style="margin-top: 15px;">
+                    <summary style="cursor: pointer; padding: 10px; background-color: #e9ecef; border-radius: 5px;">
+                        📋 View Raw Response Data
+                    </summary>
+                    <div class="response-area" style="margin-top: 10px;">
+                        ${JSON.stringify(data, null, 2)}
+                    </div>
+                </details>
+            `;
+        }
+
+        // Nutrition Summary Functions
+        async function getDailyNutritionSummary(useToday = false) {
+            if (!supabase) {
+                showApiResponse('Daily Nutrition Error:', {
+                    error: 'Supabase not initialized'
+                });
+                return;
+            }
+            
+            const { data: { session } } = await supabase.auth.getSession();
+            
+            if (!session) {
+                showApiResponse('Daily Nutrition Error:', {
+                    error: 'No active session. Please sign in first.'
+                });
+                return;
+            }
+
+            let url = `${BACKEND_URL}/daily_nutrition_summary`;
+            
+            if (!useToday) {
+                const selectedDate = document.getElementById('nutrition-date').value;
+                if (selectedDate) {
+                    url += `?date=${selectedDate}`;
+                }
+            }
+            
+            try {
+                const response = await fetch(url, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${session.access_token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.data) {
+                    showNutritionSummary(data.data);
+                } else {
+                    showApiResponse('Daily Nutrition Response:', {
+                        status: response.status,
+                        data: data
+                    });
+                }
+            } catch (error) {
+                showApiResponse('Daily Nutrition Error:', {
+                    error: error.message
+                });
+            }
+        }
+
+        function showNutritionSummary(data) {
+            const responseArea = document.getElementById('api-response');
+            const consumed = data.consumed_today;
+            const goals = data.daily_goals;
+            const remaining = data.remaining_to_goal;
+            const progress = data.progress_percentage;
+            const status = data.goals_status;
+            
+            responseArea.innerHTML = `
+                <div class="success-message">
+                    📊 Daily Nutrition Summary for ${data.date}
+                </div>
+                
+                <div class="nutrition-card" style="background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);">
+                    <div class="nutrition-header">
+                        <span class="nutrition-emoji">📈</span>
+                        <div>
+                            <div>Progress Overview</div>
+                            <div style="font-size: 14px; opacity: 0.8; font-weight: normal;">
+                                ${data.foods_consumed_count} foods consumed today
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 15px; margin-top: 20px;">
+                        <div class="nutrition-item" style="background: ${status.calories_exceeded ? 'rgba(255,0,0,0.3)' : 'rgba(0,255,0,0.3)'};">
+                            <div class="nutrition-value">${progress.calories}%</div>
+                            <div class="nutrition-label">Calories Progress</div>
+                            <div style="font-size: 12px; margin-top: 5px;">${consumed.calories}/${goals.calories}</div>
+                        </div>
+                        <div class="nutrition-item" style="background: ${status.protein_exceeded ? 'rgba(255,0,0,0.3)' : 'rgba(0,255,0,0.3)'};">
+                            <div class="nutrition-value">${progress.protein}%</div>
+                            <div class="nutrition-label">Protein Progress</div>
+                            <div style="font-size: 12px; margin-top: 5px;">${consumed.protein}g/${goals.protein}g</div>
+                        </div>
+                        <div class="nutrition-item" style="background: ${status.carbs_exceeded ? 'rgba(255,0,0,0.3)' : 'rgba(0,255,0,0.3)'};">
+                            <div class="nutrition-value">${progress.carbs}%</div>
+                            <div class="nutrition-label">Carbs Progress</div>
+                            <div style="font-size: 12px; margin-top: 5px;">${consumed.carbs}g/${goals.carbs}g</div>
+                        </div>
+                        <div class="nutrition-item" style="background: ${status.fats_exceeded ? 'rgba(255,0,0,0.3)' : 'rgba(0,255,0,0.3)'};">
+                            <div class="nutrition-value">${progress.fats}%</div>
+                            <div class="nutrition-label">Fats Progress</div>
+                            <div style="font-size: 12px; margin-top: 5px;">${consumed.fats}g/${goals.fats}g</div>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-top: 20px; background: rgba(255,255,255,0.2); border-radius: 10px; padding: 15px;">
+                        <div style="font-weight: bold; margin-bottom: 10px;">Remaining to Goal:</div>
+                        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; text-align: center;">
+                            <div>
+                                <div style="font-weight: bold; color: ${remaining.calories < 0 ? '#ff4757' : '#2ed573'};">${remaining.calories > 0 ? '+' : ''}${remaining.calories}</div>
+                                <div style="font-size: 12px;">Calories</div>
+                            </div>
+                            <div>
+                                <div style="font-weight: bold; color: ${remaining.protein < 0 ? '#ff4757' : '#2ed573'};">${remaining.protein > 0 ? '+' : ''}${remaining.protein}g</div>
+                                <div style="font-size: 12px;">Protein</div>
+                            </div>
+                            <div>
+                                <div style="font-weight: bold; color: ${remaining.carbs < 0 ? '#ff4757' : '#2ed573'};">${remaining.carbs > 0 ? '+' : ''}${remaining.carbs}g</div>
+                                <div style="font-size: 12px;">Carbs</div>
+                            </div>
+                            <div>
+                                <div style="font-weight: bold; color: ${remaining.fats < 0 ? '#ff4757' : '#2ed573'};">${remaining.fats > 0 ? '+' : ''}${remaining.fats}g</div>
+                                <div style="font-size: 12px;">Fats</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <details style="margin-top: 15px;">
+                    <summary style="cursor: pointer; padding: 10px; background-color: #e9ecef; border-radius: 5px;">
+                        📋 View Raw Response Data
+                    </summary>
+                    <div class="response-area" style="margin-top: 10px;">
+                        ${JSON.stringify(data, null, 2)}
+                    </div>
+                </details>
+            `;
+        }
+
+        async function testDifferentDates() {
+            const dates = [
+                new Date().toISOString().split('T')[0], // Today
+                new Date(Date.now() - 86400000).toISOString().split('T')[0], // Yesterday
+                new Date(Date.now() - 172800000).toISOString().split('T')[0] // 2 days ago
+            ];
+            
+            for (let i = 0; i < dates.length; i++) {
+                const date = dates[i];
+                const dateLabel = i === 0 ? 'Today' : i === 1 ? 'Yesterday' : '2 Days Ago';
+                
+                showApiResponse(`🗓️ Testing ${dateLabel} (${date})`, {
+                    message: 'Fetching nutrition data...'
+                });
+                
+                // Small delay between requests
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                
+                document.getElementById('nutrition-date').value = date;
+                await getDailyNutritionSummary();
+                
+                // Break between tests
+                if (i < dates.length - 1) {
+                    await new Promise(resolve => setTimeout(resolve, 2000));
+                }
+            }
+        }
+
+        // Edit Food Record Function
+        async function editFood() {
+            if (!supabase) {
+                showApiResponse('Edit Food Error:', { error: 'Supabase not initialized' });
+                return;
+            }
+
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) {
+                showApiResponse('Edit Food Error:', { error: 'No active session. Please sign in first.' });
+                return;
+            }
+
+            const foodId = document.getElementById('edit-food-id').value.trim();
+            const textDescription = document.getElementById('edit-text-description').value.trim();
+
+            if (!foodId || !textDescription) {
+                showApiResponse('Edit Food Error:', { error: 'Please provide both Food ID and Text Description.' });
+                return;
+            }
+
+            try {
+                const response = await fetch(`${BACKEND_URL}/edit_consumed_food`, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${session.access_token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        food_id: foodId,
+                        text_description: textDescription
+                    })
+                });
+
+                const data = await response.json();
+
+                showApiResponse('Edit Food Response:', {
+                    status: response.status,
+                    data: data
+                });
+
+                // Refresh recent foods after successful update
+                if (response.ok) {
+                    getRecentFoods();
+                }
+
+            } catch (error) {
+                showApiResponse('Edit Food Error:', { error: error.message });
+            }
+        }
+
+        // Prompt helper for quick editing from food cards
+        function promptAndEditFood(foodId) {
+            const description = prompt('Enter text description for more accurate analysis:');
+            if (description) {
+                document.getElementById('edit-food-id').value = foodId;
+                document.getElementById('edit-text-description').value = description;
+                editFood();
+            }
         }
     </script>
 </body>

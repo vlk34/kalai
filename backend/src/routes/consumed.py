@@ -204,5 +204,178 @@ class Consumed(MethodView):
                 'message': str(e)
             }), 500
 
+@blp.route('/edit_consumed_food')
+class EditConsumedFood(MethodView):
+    @verify_supabase_token
+    def put(self):
+        try:
+            # Get request data
+            data = request.get_json()
+            
+            if not data:
+                return jsonify({
+                    'error': 'No data provided',
+                    'message': 'Please provide food_id and text_description'
+                }), 400
+            
+            food_id = data.get('food_id')
+            text_description = data.get('text_description')
+            
+            if not food_id:
+                return jsonify({
+                    'error': 'Missing food_id',
+                    'message': 'Please provide a valid food_id'
+                }), 400
+            
+            if not text_description:
+                return jsonify({
+                    'error': 'Missing text_description',
+                    'message': 'Please provide a text description for more accurate analysis'
+                }), 400
+            
+            # Initialize Supabase client
+            supabase_url = current_app.config['SUPABASE_URL']
+            supabase_key = os.getenv('SUPABASE_SERVICE_ROLE_KEY') or os.getenv('SUPABASE_ANON_KEY')
+            supabase: Client = create_client(supabase_url, supabase_key)
+            
+            # Get the existing food record
+            try:
+                result = supabase.table('foods_consumed').select('*').eq('id', food_id).eq('user_id', g.current_user['id']).execute()
+                
+                if not result.data:
+                    return jsonify({
+                        'error': 'Food record not found',
+                        'message': 'No food record found with the provided ID for this user'
+                    }), 404
+                
+                existing_record = result.data[0]
+                photo_path = existing_record.get('photo_path')
+                
+                if not photo_path:
+                    return jsonify({
+                        'error': 'No photo found',
+                        'message': 'This food record does not have an associated photo'
+                    }), 400
+                    
+            except Exception as e:
+                return jsonify({
+                    'error': 'Failed to retrieve food record',
+                    'message': f'Could not retrieve food record: {str(e)}'
+                }), 500
+            
+            # Download the image from Supabase Storage
+            try:
+                # Download the image file
+                image_response = supabase.storage.from_('food-images').download(photo_path)
+                
+                if not image_response:
+                    return jsonify({
+                        'error': 'Failed to download image',
+                        'message': 'Could not retrieve the image from storage'
+                    }), 500
+                
+                # Convert bytes to PIL Image
+                image = Image.open(io.BytesIO(image_response))
+                
+            except Exception as e:
+                return jsonify({
+                    'error': 'Failed to process image',
+                    'message': f'Could not process the stored image: {str(e)}'
+                }), 500
+            
+            # Use AI to re-analyze with text description
+            try:
+                model = Model()
+                prompt_generator = PromptGenerator()
+                
+                messages = prompt_generator.consumed_food_prompt_with_description(image, text_description)
+                response = model.gemini_chat_completion(messages)
+                
+                # Parse the JSON response from Gemini
+                cleaned_response = response.strip()
+                if cleaned_response.startswith('```json'):
+                    cleaned_response = cleaned_response.replace('```json\n', '').replace('\n```', '')
+                
+                nutritional_data = json.loads(cleaned_response)
+                
+            except json.JSONDecodeError as e:
+                return jsonify({
+                    'error': 'Failed to parse nutritional data',
+                    'message': f'AI response was not valid JSON: {str(e)}',
+                    'raw_response': response
+                }), 500
+            except Exception as e:
+                return jsonify({
+                    'error': 'AI analysis failed',
+                    'message': f'Could not analyze the food: {str(e)}'
+                }), 500
+            
+            # Update the database record
+            try:
+                update_data = {
+                    'name': nutritional_data.get('name', existing_record['name']),
+                    'emoji': nutritional_data.get('emoji', existing_record['emoji']),
+                    'protein': float(nutritional_data.get('protein', 0)),
+                    'carbs': float(nutritional_data.get('carbs', 0)),
+                    'fats': float(nutritional_data.get('fats', 0)),
+                    'calories': float(nutritional_data.get('calories', 0))
+                }
+                
+                result = supabase.table('foods_consumed').update(update_data).eq('id', food_id).eq('user_id', g.current_user['id']).execute()
+                
+                if not result.data:
+                    raise Exception("No data returned from database update")
+                
+                updated_record = result.data[0]
+                
+            except Exception as e:
+                return jsonify({
+                    'error': 'Failed to update database',
+                    'message': f'Could not update nutritional data: {str(e)}',
+                    'nutritional_data': nutritional_data
+                }), 500
+            
+            # Get signed URL for the photo (expires in 1 hour)
+            try:
+                photo_url_response = supabase.storage.from_('food-images').create_signed_url(photo_path, 3600)
+                
+                if isinstance(photo_url_response, dict):
+                    photo_url = photo_url_response.get('signedURL') or photo_url_response.get('signedUrl')
+                elif isinstance(photo_url_response, str):
+                    photo_url = photo_url_response
+                else:
+                    photo_url = None
+                    
+            except Exception as e:
+                print(f"Warning: Could not generate signed URL for photo: {str(e)}")
+                photo_url = None
+            
+            return jsonify({
+                'success': True,
+                'message': 'Food record updated successfully with improved analysis',
+                'data': {
+                    'food_id': food_id,
+                    'text_description': text_description,
+                    'photo_url': photo_url,
+                    'original_analysis': {
+                        'name': existing_record['name'],
+                        'emoji': existing_record['emoji'],
+                        'protein': existing_record['protein'],
+                        'carbs': existing_record['carbs'],
+                        'fats': existing_record['fats'],
+                        'calories': existing_record['calories']
+                    },
+                    'updated_analysis': nutritional_data,
+                    'database_record': updated_record
+                }
+            }), 200
+            
+        except Exception as e:
+            return jsonify({
+                'error': 'Edit failed',
+                'message': str(e)
+            }), 500
+        
+    
 
 

@@ -235,20 +235,36 @@ class FullHistory(MethodView):
 class DailyNutritionSummary(MethodView):
     @verify_supabase_token
     def get(self):
-        """Get user's daily nutrition summary with consumed vs goals"""
+        """Get user's daily nutrition summary with consumed vs goals for a specific date"""
         try:
             # Initialize Supabase client
             supabase_url = current_app.config['SUPABASE_URL']
             supabase_key = os.getenv('SUPABASE_SERVICE_ROLE_KEY') or os.getenv('SUPABASE_ANON_KEY')
             supabase: Client = create_client(supabase_url, supabase_key)
             
-            # Get today's date in ISO format for filtering
-            today = datetime.now().date().isoformat()
-            tomorrow = (datetime.now().date() + timedelta(days=1)).isoformat()
+            # Get date parameter from query string, default to today if not provided
+            date_param = request.args.get('date')
             
-            print(f"Fetching daily nutrition summary for user: {g.current_user['id']}")
+            if date_param:
+                try:
+                    # Validate and parse the provided date
+                    target_date = datetime.strptime(date_param, '%Y-%m-%d').date()
+                except ValueError:
+                    return jsonify({
+                        'error': 'Invalid date format',
+                        'message': 'Date must be in YYYY-MM-DD format'
+                    }), 400
+            else:
+                # Default to today if no date provided
+                target_date = datetime.now().date()
             
-            # Get today's consumed foods
+            # Get the target date and next day in ISO format for filtering
+            today = target_date.isoformat()
+            tomorrow = (target_date + timedelta(days=1)).isoformat()
+            
+            print(f"Fetching daily nutrition summary for user: {g.current_user['id']} for date: {today}")
+            
+            # Get consumed foods for the target date
             foods_result = supabase.table('foods_consumed') \
                 .select('protein, carbs, fats, calories') \
                 .eq('user_id', g.current_user['id']) \
@@ -270,7 +286,7 @@ class DailyNutritionSummary(MethodView):
             
             user_goals = profile_result.data[0]
             
-            # Calculate today's consumed totals
+            # Calculate consumed totals for the target date
             consumed_calories = 0
             consumed_protein = 0
             consumed_carbs = 0
