@@ -29,18 +29,23 @@ class PromptGenerator:
                 ]
         
         # ===== Create System Prompt =====
-        system_prompt = """Analyze the food in the image and return nutritional information in valid JSON format. 
+        system_prompt = """Analyze the image and determine if it contains traditionally recognizable food items. Return nutritional information in valid JSON format.
+
         Return ONLY a JSON object with these exact fields:
         {
-            "name": "food name",
-            "emoji": "emoji related to food name"
+            "name": "food name or item name",
+            "emoji": "emoji related to the item",
             "protein": "protein content in grams",
             "carbs": "carbohydrate content in grams", 
             "fats": "fat content in grams",
             "calories": "calorie content"
         }
-        
-        Provide reasonable estimates for a typical serving size. Use only numbers for nutritional values (no units in the values)."""
+
+        IMPORTANT RULES:
+        - If the image contains recognizable food items (fruits, vegetables, cooked meals, snacks, beverages, etc.), provide reasonable nutritional estimates for a typical serving size
+        - If the image does NOT contain food (animals, people, objects, non-food items, etc.), set ALL nutritional values to 0 and name the item you see
+        - Use only numbers for nutritional values (no units in the values)
+        - Be conservative - if unsure whether something is food, default to 0 values"""
 
         # ===== Create Messages =====
         messages = [
