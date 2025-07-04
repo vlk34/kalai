@@ -258,10 +258,10 @@ Recalculates daily nutrition goals using the latest profile data.
 
 ---
 
-### 9. Get Recently Eaten Foods
+### 9. Get Recently Eaten Foods (Today Only)
 **GET** `/recently_eaten`
 
-Get user's recently consumed food items (last 3 by default).
+Get user's recently consumed food items from today only (last 3 by default).
 
 **Authentication:** Required
 
@@ -305,6 +305,7 @@ GET /recently_eaten?limit=5&offset=0
 ```
 
 **Note:** 
+- Only returns foods consumed today (based on server date)
 - `photo_url` will be `null` if no photo was uploaded for that food item
 - Photo URLs are **signed URLs** that expire after 1 hour for security
 - Only the photo owner can access their photos through these URLs
@@ -314,7 +315,7 @@ GET /recently_eaten?limit=5&offset=0
 ```json
 {
   "success": true,
-  "message": "No food records found",
+  "message": "No food records found for today",
   "data": {
     "foods": [],
     "total_count": 0,
@@ -455,6 +456,80 @@ GET /daily_nutrition_summary
 - Remaining values can be negative if goals are exceeded
 - Progress percentages are capped at reasonable values for display
 
+---
+
+### 12. Delete Consumed Food Record
+**DELETE** `/delete_consumed_food`
+
+Delete a consumed food record and optionally remove the associated photo from storage.
+
+**Authentication:** Required
+
+**Content-Type:** `application/json`
+
+**Request Body:**
+```json
+{
+  "food_id": "uuid_of_record_to_delete"
+}
+```
+
+**Success Response (200):**
+```json
+{
+  "success": true,
+  "message": "Food record deleted successfully",
+  "data": {
+    "deleted_record": {
+      "id": "food_uuid",
+      "user_id": "user_uuid",
+      "name": "Grilled Chicken Breast",
+      "emoji": "🍗",
+      "protein": 31.0,
+      "carbs": 0.0,
+      "fats": 3.6,
+      "calories": 165.0,
+      "photo_path": "food-photos/user_uuid/uuid.webp",
+      "created_at": "2024-01-01T12:00:00"
+    },
+    "photo_deleted": true,
+    "photo_path": "food-photos/user_uuid/uuid.webp"
+  }
+}
+```
+
+**Error Responses:**
+
+*400 - No data provided:*
+```json
+{
+  "error": "No data provided",
+  "message": "Please provide food_id"
+}
+```
+
+*400 - Missing food_id:*
+```json
+{
+  "error": "Missing food_id",
+  "message": "Please provide a valid food_id of the record to delete"
+}
+```
+
+*404 - Record not found:*
+```json
+{
+  "error": "Food record not found",
+  "message": "No food record found with the provided ID for this user"
+}
+```
+
+**Notes:**
+- Only the user who created the record can delete it
+- If the record has an associated photo, it will be automatically removed from storage
+- If photo deletion fails, the operation continues (record is still deleted from database)
+- The `photo_deleted` field indicates whether the photo was successfully removed from storage
+
 ## Frontend Integration Examples
 
 ### JavaScript/Fetch Example
@@ -507,6 +582,22 @@ const getDailyNutritionSummary = async (token) => {
     headers: {
       'Authorization': `Bearer ${token}`
     }
+  });
+  
+  return await response.json();
+};
+
+// 5. Delete consumed food record
+const deleteConsumedFood = async (token, foodId) => {
+  const response = await fetch('http://localhost:5000/delete_consumed_food', {
+    method: 'DELETE',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      food_id: foodId
+    })
   });
   
   return await response.json();
@@ -570,6 +661,29 @@ const FoodTracker = ({ supabaseToken }) => {
     }
   };
 
+  const handleDeleteFood = async (foodId) => {
+    try {
+      const response = await fetch('http://localhost:5000/delete_consumed_food', {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${supabaseToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          food_id: foodId
+        })
+      });
+
+      const result = await response.json();
+      if (result.success) {
+        // Refresh recent foods after successful deletion
+        loadRecentFoods();
+      }
+    } catch (error) {
+      console.error('Error deleting food:', error);
+    }
+  };
+
   return (
     <div>
       <input 
@@ -582,16 +696,31 @@ const FoodTracker = ({ supabaseToken }) => {
       <div>
         <h3>Recent Foods:</h3>
         {recentFoods.map(food => (
-          <div key={food.id} style={{ display: 'flex', alignItems: 'center', margin: '10px 0' }}>
-            {food.photo_url && (
-              <img 
-                src={food.photo_url} 
-                alt={food.name}
-                style={{ width: '50px', height: '50px', objectFit: 'cover', marginRight: '10px', borderRadius: '5px' }}
-                onError={(e) => { e.target.style.display = 'none'; }}
-              />
-            )}
-            <span>{food.emoji} {food.name} - {food.calories} cal</span>
+          <div key={food.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '10px 0' }}>
+            <div style={{ display: 'flex', alignItems: 'center' }}>
+              {food.photo_url && (
+                <img 
+                  src={food.photo_url} 
+                  alt={food.name}
+                  style={{ width: '50px', height: '50px', objectFit: 'cover', marginRight: '10px', borderRadius: '5px' }}
+                  onError={(e) => { e.target.style.display = 'none'; }}
+                />
+              )}
+              <span>{food.emoji} {food.name} - {food.calories} cal</span>
+            </div>
+            <button 
+              onClick={() => handleDeleteFood(food.id)}
+              style={{ 
+                backgroundColor: '#ff4444', 
+                color: 'white', 
+                border: 'none', 
+                padding: '5px 10px', 
+                borderRadius: '3px',
+                cursor: 'pointer'
+              }}
+            >
+              Delete
+            </button>
           </div>
         ))}
       </div>

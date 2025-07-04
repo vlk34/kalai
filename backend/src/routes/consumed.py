@@ -467,3 +467,101 @@ class EditConsumedFood(MethodView):
                 'message': str(e)
             }), 500
 
+@blp.route('/delete_consumed_food')
+class DeleteConsumedFood(MethodView):
+    """Delete a consumed food record"""
+
+    @verify_supabase_token
+    def delete(self):
+        try:
+            data = request.get_json()
+
+            if not data:
+                return jsonify({
+                    'error': 'No data provided',
+                    'message': 'Please provide food_id'
+                }), 400
+
+            food_id = data.get('food_id')
+
+            if not food_id:
+                return jsonify({
+                    'error': 'Missing food_id',
+                    'message': 'Please provide a valid food_id of the record to delete'
+                }), 400
+
+            # Initialize Supabase client
+            supabase_url = current_app.config['SUPABASE_URL']
+            supabase_key = os.getenv('SUPABASE_SERVICE_ROLE_KEY') or os.getenv('SUPABASE_ANON_KEY')
+            supabase: Client = create_client(supabase_url, supabase_key)
+
+            # First, get the record to check ownership and get photo path
+            try:
+                result = supabase.table('foods_consumed') \
+                    .select('*') \
+                    .eq('id', food_id) \
+                    .eq('user_id', g.current_user['id']) \
+                    .execute()
+
+                if not result.data:
+                    return jsonify({
+                        'error': 'Food record not found',
+                        'message': 'No food record found with the provided ID for this user'
+                    }), 404
+
+                record_to_delete = result.data[0]
+                photo_path = record_to_delete.get('photo_path')
+
+            except Exception as e:
+                return jsonify({
+                    'error': 'Failed to retrieve food record',
+                    'message': f'Could not retrieve food record: {str(e)}'
+                }), 500
+
+            # Delete the record from database
+            try:
+                delete_result = supabase.table('foods_consumed') \
+                    .delete() \
+                    .eq('id', food_id) \
+                    .eq('user_id', g.current_user['id']) \
+                    .execute()
+
+                if not delete_result.data:
+                    return jsonify({
+                        'error': 'Failed to delete record',
+                        'message': 'Record could not be deleted from database'
+                    }), 500
+
+            except Exception as e:
+                return jsonify({
+                    'error': 'Database deletion failed',
+                    'message': f'Could not delete record from database: {str(e)}'
+                }), 500
+
+            # Optionally delete the photo from storage
+            photo_deleted = False
+            if photo_path:
+                try:
+                    supabase.storage.from_('food-images').remove([photo_path])
+                    photo_deleted = True
+                    print(f"Successfully deleted photo from storage: {photo_path}")
+                except Exception as e:
+                    print(f"Warning: Could not delete photo from storage: {str(e)}")
+                    # Don't fail the entire operation if photo deletion fails
+
+            return jsonify({
+                'success': True,
+                'message': 'Food record deleted successfully',
+                'data': {
+                    'deleted_record': record_to_delete,
+                    'photo_deleted': photo_deleted,
+                    'photo_path': photo_path
+                }
+            }), 200
+
+        except Exception as e:
+            return jsonify({
+                'error': 'Delete failed',
+                'message': str(e)
+            }), 500
+

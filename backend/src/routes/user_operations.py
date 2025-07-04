@@ -22,7 +22,7 @@ blp = Blueprint('History', __name__, description='History Operations')
 class RecentlyEaten(MethodView):
     @verify_supabase_token
     def get(self):
-        """Get user's recently consumed food items"""
+        """Get user's recently consumed food items from today only"""
         try:
             # Initialize Supabase client
             supabase_url = current_app.config['SUPABASE_URL']
@@ -39,10 +39,17 @@ class RecentlyEaten(MethodView):
             
             print(f"Fetching recent foods for user: {g.current_user['id']}")
             
-            # Query the foods_consumed table for user's recent food
+            # Get today's date range
+            today = datetime.now().date()
+            today_start = datetime.combine(today, datetime.min.time()).isoformat()
+            today_end = datetime.combine(today + timedelta(days=1), datetime.min.time()).isoformat()
+            
+            # Query the foods_consumed table for user's recent food from today only
             result = supabase.table('foods_consumed') \
                 .select('*') \
                 .eq('user_id', g.current_user['id']) \
+                .gte('created_at', today_start) \
+                .lt('created_at', today_end) \
                 .order('created_at', desc=True) \
                 .limit(limit) \
                 .offset(offset) \
@@ -51,7 +58,7 @@ class RecentlyEaten(MethodView):
             if not result.data:
                 return jsonify({
                     'success': True,
-                    'message': 'No food records found',
+                    'message': 'No food records found for today',
                     'data': {
                         'foods': [],
                         'total_count': 0,
