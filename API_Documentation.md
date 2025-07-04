@@ -54,7 +54,7 @@ Example of a protected endpoint.
 ### 3. Upload and Analyze Food Photo
 **POST** `/consumed`
 
-Upload a food photo for nutritional analysis and save to database.
+Upload a food photo for nutritional analysis and save to database. The image will be compressed and stored in **WEBP** format to save space.
 
 **Authentication:** Required
 
@@ -73,7 +73,7 @@ Upload a food photo for nutritional analysis and save to database.
       "original_filename": "food.jpg",
       "unique_filename": "uuid.jpg",
       "file_size": 1024000,
-      "file_type": "image/jpeg",
+      "file_type": "image/webp",
       "user_id": "user_uuid",
               "uploaded_at": "2024-01-01T12:00:00",
         "storage_path": "food-photos/user_uuid/uuid.jpg",
@@ -131,7 +131,134 @@ Upload a food photo for nutritional analysis and save to database.
 
 ---
 
-### 4. Get Recently Eaten Foods
+### 4. Edit Food Record with AI Context
+**POST** `/edit_with_ai`
+
+Re-analyze a food photo with an additional text description to improve accuracy.
+
+**Authentication:** Required
+
+**Content-Type:** `application/json`
+
+**Request Body:**
+```json
+{
+  "food_id": "uuid_of_existing_record",
+  "text_description": "Grilled chicken breast with mixed vegetables"
+}
+```
+
+**Success Response (200):**
+```json
+{
+  "success": true,
+  "message": "Food record updated successfully with improved analysis",
+  "data": {
+    "food_id": "uuid",
+    "text_description": "Grilled chicken breast with mixed vegetables",
+    "photo_url": "https://...signedUrl...",
+    "original_analysis": { /* previous macros */ },
+    "updated_analysis": { /* new macros */ },
+    "database_record": { /* full row */ }
+  }
+}
+```
+
+---
+
+### 5. Manually Edit Food Record
+**PUT** `/edit_consumed_food`
+
+Update one or more nutrient fields without invoking AI.
+
+**Authentication:** Required
+
+**Content-Type:** `application/json`
+
+**Request Body (any combination of editable fields):**
+```json
+{
+  "food_id": "uuid_of_existing_record",
+  "name": "Brown Rice (1 cup)",
+  "protein": 5,
+  "carbs": 45,
+  "fats": 1,
+  "calories": 218
+}
+```
+
+**Success Response (200):**
+```json
+{
+  "success": true,
+  "message": "Food record updated successfully",
+  "data": {
+    "id": "uuid",
+    "name": "Brown Rice (1 cup)",
+    "protein": 5.0,
+    "carbs": 45.0,
+    "fats": 1.0,
+    "calories": 218.0,
+    ...
+  }
+}
+```
+
+---
+
+### 6. User Profile – Create or Update
+**POST** `/user_profiles`
+
+Submit onboarding data which also calculates daily nutrition targets.
+
+**Authentication:** Required
+
+**Content-Type:** `application/json`
+
+**Required Fields:**
+`gender, activity_level, tracking_difficulty, experience_level, height_unit, height_value, weight_unit, weight_value, date_of_birth (YYYY-MM-DD), main_goal, dietary_preference`
+
+**Success Response (201):**
+```json
+{
+  "message": "Profile created successfully",
+  "profile": { /* DB row */ },
+  "daily_targets": { "calories": 2000, "protein_g": 150, "carbs_g": 250, "fats_g": 70 }
+}
+```
+
+---
+
+### 7. User Profile – Get Current Profile
+**GET** `/user_profiles`
+
+Returns the stored profile and daily targets.
+
+**Authentication:** Required
+
+**Success Response (200):** Same structure as creation response.
+
+---
+
+### 8. Recalculate Daily Targets
+**POST** `/recalculate`
+
+Recalculates daily nutrition goals using the latest profile data.
+
+**Authentication:** Required
+
+**Success Response (200):**
+```json
+{
+  "message": "Daily targets recalculated successfully",
+  "profile": { /* updated profile */ },
+  "daily_targets": { "calories": 1900, ... }
+}
+```
+
+---
+
+### 9. Get Recently Eaten Foods
 **GET** `/recently_eaten`
 
 Get user's recently consumed food items (last 3 by default).
@@ -198,7 +325,7 @@ GET /recently_eaten?limit=5&offset=0
 
 ---
 
-### 5. Get Full Food History
+### 10. Get Full Food History
 **GET** `/full_history`
 
 Get user's complete food consumption history with pagination.
@@ -251,7 +378,7 @@ GET /full_history?limit=10&offset=20
 
 ---
 
-### 6. Get Daily Nutrition Summary
+### 11. Get Daily Nutrition Summary
 **GET** `/daily_nutrition_summary`
 
 Get user's daily nutrition summary comparing consumed nutrition with daily goals.
@@ -327,8 +454,6 @@ GET /daily_nutrition_summary
 - Requires completed user profile with daily nutrition goals
 - Remaining values can be negative if goals are exceeded
 - Progress percentages are capped at reasonable values for display
-
----
 
 ## Frontend Integration Examples
 

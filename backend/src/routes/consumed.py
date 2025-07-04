@@ -217,10 +217,10 @@ class Consumed(MethodView):
                 'message': str(e)
             }), 500
 
-@blp.route('/edit_consumed_food')
-class EditConsumedFood(MethodView):
+@blp.route('/edit_with_ai')
+class EditWithAI(MethodView):
     @verify_supabase_token
-    def put(self):
+    def post(self):
         try:
             # Get request data
             data = request.get_json()
@@ -389,6 +389,81 @@ class EditConsumedFood(MethodView):
                 'message': str(e)
             }), 500
         
-    
+@blp.route('/edit_consumed_food')
+class EditConsumedFood(MethodView):
+    """Manually edit a consumed food record (name & macronutrients)"""
 
+    @verify_supabase_token
+    def put(self):
+        try:
+            data = request.get_json()
+
+            if not data:
+                return jsonify({
+                    'error': 'No data provided',
+                    'message': 'Please provide at least food_id and one field to update'
+                }), 400
+
+            food_id = data.get('food_id')
+
+            if not food_id:
+                return jsonify({
+                    'error': 'Missing food_id',
+                    'message': 'Please provide a valid food_id of the record to edit'
+                }), 400
+
+            # Build update payload – only include provided fields
+            updatable_fields = ['name', 'protein', 'carbs', 'fats', 'calories']
+            update_payload = {}
+            for field in updatable_fields:
+                if field in data and data[field] is not None:
+                    # Convert numeric fields to float, keep name as-is
+                    if field in ['protein', 'carbs', 'fats', 'calories']:
+                        try:
+                            update_payload[field] = float(data[field])
+                        except (TypeError, ValueError):
+                            return jsonify({
+                                'error': f'Invalid value for {field}',
+                                'message': f"{field.capitalize()} must be a number"
+                            }), 400
+                    else:
+                        update_payload[field] = data[field]
+
+            if not update_payload:
+                return jsonify({
+                    'error': 'No valid fields provided',
+                    'message': f'Provide at least one of: {", ".join(updatable_fields)}'
+                }), 400
+
+            # Initialize Supabase client
+            supabase_url = current_app.config['SUPABASE_URL']
+            supabase_key = os.getenv('SUPABASE_SERVICE_ROLE_KEY') or os.getenv('SUPABASE_ANON_KEY')
+            supabase: Client = create_client(supabase_url, supabase_key)
+
+            # Perform update and fetch updated record
+            result = supabase.table('foods_consumed') \
+                .update(update_payload) \
+                .eq('id', food_id) \
+                .eq('user_id', g.current_user['id']) \
+                .execute()
+
+            if not result.data:
+                return jsonify({
+                    'error': 'Food record not found or not updated',
+                    'message': 'Ensure the food_id is correct and belongs to the current user'
+                }), 404
+
+            updated_record = result.data[0]
+
+            return jsonify({
+                'success': True,
+                'message': 'Food record updated successfully',
+                'data': updated_record
+            }), 200
+
+        except Exception as e:
+            return jsonify({
+                'error': 'Edit failed',
+                'message': str(e)
+            }), 500
 
