@@ -36,6 +36,7 @@ import {
 import { CircularProgress } from "@/components/ui/CircularProgress";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
+import { useFocusEffect } from "@react-navigation/native";
 
 export default function DashboardScreen() {
   // Initialize with today's date
@@ -278,6 +279,7 @@ export default function DashboardScreen() {
         carbs: meal.carbs.toString(),
         fats: meal.fats.toString(),
         portions: "1", // Default portions
+        selectedDate: selectedDate, // Pass the current selected date
       },
     });
   };

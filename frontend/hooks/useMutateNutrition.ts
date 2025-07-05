@@ -29,14 +29,17 @@ export const useMutateNutrition = () => {
     },
     date?: string
   ) => {
-    const queryKey = date
-      ? ["daily-nutrition-summary", session?.user?.id, date]
-      : ["daily-nutrition-summary", session?.user?.id];
+    // Always include date in query key to match the actual query structure
+    const queryKey = ["daily-nutrition-summary", session?.user?.id, date];
+    console.log("Updating optimistic nutrition:", { queryKey, updates });
 
     queryClient.setQueryData(
       queryKey,
       (oldData: DailyNutritionSummary | undefined) => {
-        if (!oldData) return oldData;
+        if (!oldData) {
+          console.log("No existing nutrition data found");
+          return oldData;
+        }
 
         const { calories = 0, protein = 0, carbs = 0, fats = 0 } = updates;
 
@@ -114,7 +117,7 @@ export const useMutateNutrition = () => {
           fats_exceeded: newConsumedToday.fats > oldData.daily_goals.fats,
         };
 
-        return {
+        const newData = {
           ...oldData,
           consumed_today: newConsumedToday,
           remaining_to_goal: newRemainingToGoal,
@@ -122,6 +125,9 @@ export const useMutateNutrition = () => {
           foods_consumed_count: Math.max(0, newFoodsConsumedCount),
           goals_status: newGoalsStatus,
         };
+
+        console.log("Updated nutrition data:", newData);
+        return newData;
       }
     );
   };
@@ -168,10 +174,21 @@ export const useMutateNutrition = () => {
     );
   };
 
+  const invalidateAllNutrition = () => {
+    // Invalidate all nutrition queries to ensure fresh data
+    queryClient.invalidateQueries({
+      queryKey: ["daily-nutrition-summary"],
+    });
+    queryClient.invalidateQueries({
+      queryKey: ["user-profile"],
+    });
+  };
+
   return {
     invalidateNutrition,
     updateOptimisticNutrition,
     removeMealFromNutrition,
     addMealToNutrition,
+    invalidateAllNutrition,
   };
 };

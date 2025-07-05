@@ -16,12 +16,14 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useUserProfile, useRecalculateTargets } from "@/hooks/useUserProfile";
 import { useRouter } from "expo-router";
 import { useSelectorContext } from "@/contexts/SelectorContext";
+import { useMutateNutrition } from "@/hooks/useMutateNutrition";
 
 const EditProfileScreen = () => {
   const router = useRouter();
   const { session } = useAuth();
   const { data: userProfile, isLoading: isLoadingProfile } = useUserProfile();
   const recalculateTargetsMutation = useRecalculateTargets();
+  const { invalidateAllNutrition } = useMutateNutrition();
 
   const [isLoading, setIsLoading] = useState(false);
   const [showRecalculationModal, setShowRecalculationModal] = useState(false);
@@ -317,7 +319,12 @@ const EditProfileScreen = () => {
     try {
       await recalculateTargetsMutation.mutateAsync();
       setShowRecalculationModal(false);
-      router.push("/(tabs)");
+
+      // Invalidate all nutrition data to ensure fresh data
+      invalidateAllNutrition();
+
+      router.back();
+      router.back();
     } catch (error) {
       Alert.alert("Error", "Failed to recalculate targets. Please try again.");
     }
