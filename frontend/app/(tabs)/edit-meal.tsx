@@ -111,6 +111,21 @@ export default function EditMealScreen() {
   const [editedFats, setEditedFats] = useState(fats as string);
   const [isSaving, setIsSaving] = useState(false);
 
+  // Base values for portion calculations
+  const [basePortion, setBasePortion] = useState(1.0);
+  const [baseCalories, setBaseCalories] = useState(
+    Number.parseFloat(calories as string) || 0
+  );
+  const [baseProtein, setBaseProtein] = useState(
+    Number.parseFloat(protein as string) || 0
+  );
+  const [baseCarbs, setBaseCarbs] = useState(
+    Number.parseFloat(carbs as string) || 0
+  );
+  const [baseFats, setBaseFats] = useState(
+    Number.parseFloat(fats as string) || 0
+  );
+
   // Error states for validation feedback
   const [errors, setErrors] = useState({
     name: false,
@@ -159,6 +174,27 @@ export default function EditMealScreen() {
     if (isMounted.current) {
       router.back();
     }
+  };
+
+  const updatePortionValues = (newPortion: number) => {
+    const multiplier = newPortion / basePortion;
+    setEditedCalories((baseCalories * multiplier).toFixed(0));
+    setEditedProtein((baseProtein * multiplier).toFixed(1));
+    setEditedCarbs((baseCarbs * multiplier).toFixed(1));
+    setEditedFats((baseFats * multiplier).toFixed(1));
+    setEditedPortions(newPortion.toFixed(2));
+  };
+
+  const handlePortionIncrease = () => {
+    const currentPortion = Number.parseFloat(editedPortions) || 1.0;
+    const newPortion = Math.min(currentPortion + 0.25, 10.0); // Max 10 portions
+    updatePortionValues(newPortion);
+  };
+
+  const handlePortionDecrease = () => {
+    const currentPortion = Number.parseFloat(editedPortions) || 1.0;
+    const newPortion = Math.max(currentPortion - 0.25, 0.25); // Min 0.25 portions
+    updatePortionValues(newPortion);
   };
 
   const handleDelete = () => {
@@ -509,15 +545,22 @@ export default function EditMealScreen() {
             {/* Portions */}
             <View className="flex-1">
               <Text className="text-sm text-gray-500 mb-1">Portions</Text>
-              <View className="flex-row items-center bg-gray-50 rounded-xl px-3 py-2">
-                <TextInput
-                  value={editedPortions}
-                  onChangeText={setEditedPortions}
-                  className="flex-1 text-base font-semibold text-black"
-                  keyboardType="numeric"
-                  placeholder="1"
-                />
-                <Feather name="edit-2" size={14} color="#9ca3af" />
+              <View className="flex-row items-center bg-gray-50 rounded-xl px-3 py-2 h-16">
+                <TouchableOpacity
+                  onPress={handlePortionDecrease}
+                  className="p-1"
+                >
+                  <Feather name="minus" size={16} color="#6b7280" />
+                </TouchableOpacity>
+                <Text className="flex-1 text-base font-semibold text-black text-center">
+                  {Number.parseFloat(editedPortions).toFixed(2)}
+                </Text>
+                <TouchableOpacity
+                  onPress={handlePortionIncrease}
+                  className="p-1"
+                >
+                  <Feather name="plus" size={16} color="#6b7280" />
+                </TouchableOpacity>
               </View>
             </View>
           </View>

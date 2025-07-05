@@ -363,12 +363,14 @@ const EditProfileScreen = () => {
     showArrow?: boolean;
   }) => {
     // Initialize animation value for this dropdown if it doesn't exist
-    if (dropdownKey && !dropdownAnimations[dropdownKey]) {
-      setDropdownAnimations((prev) => ({
-        ...prev,
-        [dropdownKey]: new Animated.Value(0),
-      }));
-    }
+    useEffect(() => {
+      if (dropdownKey && !dropdownAnimations[dropdownKey]) {
+        setDropdownAnimations((prev) => ({
+          ...prev,
+          [dropdownKey]: new Animated.Value(0),
+        }));
+      }
+    }, [dropdownKey]); // Remove dropdownAnimations from dependency to avoid infinite loops
 
     // Calculate dropdown width based on content with better positioning
     const getDropdownWidth = () => {
