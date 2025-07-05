@@ -404,7 +404,7 @@ class UpdateStreak(MethodView):
             
             # Get user's profile including current streak and daily calorie goal
             profile_result = supabase.table('user_profiles') \
-                .select('daily_calories, streak') \
+                .select('daily_calories, streak, streak_update_date') \
                 .eq('user_id', g.current_user['id']) \
                 .execute()
             
@@ -414,6 +414,19 @@ class UpdateStreak(MethodView):
                     'message': 'Please complete your profile setup first'
                 }), 404
             
+            # Check if streak was already updated today (compare dates only)
+            streak_update_date = profile_result.data[0].get('streak_update_date')
+            if streak_update_date:
+                # Parse the stored date and compare with today's date
+                stored_date = datetime.fromisoformat(streak_update_date.replace('Z', '+00:00')).date()
+                today_date = datetime.now().date()
+                
+                if stored_date == today_date:
+                    return jsonify({
+                        'error': 'Streak already updated today',
+                        'message': 'You can only update your streak once per day'
+                    }), 400
+
             user_profile = profile_result.data[0]
             daily_calorie_goal = float(user_profile['daily_calories']) if user_profile['daily_calories'] else 0
             current_streak = int(user_profile['streak'])
@@ -422,7 +435,8 @@ class UpdateStreak(MethodView):
             update_result = supabase.table('user_profiles') \
                 .update({
                     'streak': current_streak + 1,
-                    'updated_at': datetime.now().isoformat()
+                    'updated_at': datetime.now().isoformat(),
+                    'streak_update_date': datetime.now().isoformat()
                 }) \
                 .eq('user_id', g.current_user['id']) \
                 .execute()
