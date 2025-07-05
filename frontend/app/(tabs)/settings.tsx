@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { View, Text, ScrollView, TouchableOpacity, Alert } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { IconSymbol } from "@/components/ui/IconSymbol";
@@ -15,6 +15,8 @@ const SettingsScreen = () => {
   const recalculateTargetsMutation = useRecalculateTargets();
 
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
+  const [isNavigatingToEditProfile, setIsNavigatingToEditProfile] =
+    useState(false);
 
   // Formatting functions
   const formatGender = (gender: string) => {
@@ -178,6 +180,19 @@ const SettingsScreen = () => {
     }
   };
 
+  const navigateToEditProfile = useCallback(() => {
+    if (isNavigatingToEditProfile) return; // Prevent multiple rapid clicks
+
+    setIsNavigatingToEditProfile(true);
+
+    // Add a small delay to prevent rapid navigation
+    setTimeout(() => {
+      router.push("/edit-profile");
+      // Reset the flag after navigation
+      setTimeout(() => setIsNavigatingToEditProfile(false), 500);
+    }, 100);
+  }, [isNavigatingToEditProfile]);
+
   const SettingRow = ({
     title,
     value,
@@ -272,7 +287,7 @@ const SettingsScreen = () => {
                 />
                 <SettingRow
                   title="Edit Profile Information"
-                  onPress={() => router.push("/edit-profile")}
+                  onPress={navigateToEditProfile}
                 />
               </>
             ) : (

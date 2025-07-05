@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import {
   View,
   Text,
@@ -28,6 +28,9 @@ const EditProfileScreen = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [showRecalculationModal, setShowRecalculationModal] = useState(false);
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
+  const [isNavigatingToHeight, setIsNavigatingToHeight] = useState(false);
+  const [isNavigatingToWeight, setIsNavigatingToWeight] = useState(false);
+  const [isNavigatingToDate, setIsNavigatingToDate] = useState(false);
   const [profileData, setProfileData] = useState({
     gender: "",
     activity_level: "",
@@ -176,34 +179,61 @@ const EditProfileScreen = () => {
     return experienceMap[level] || level;
   };
 
-  const handleHeightPress = () => {
-    router.push({
-      pathname: "/height-selector",
-      params: {
-        currentValue: profileData.height_value.toString(),
-        unit: profileData.height_unit,
-      },
-    });
-  };
+  const handleHeightPress = useCallback(() => {
+    if (isNavigatingToHeight) return; // Prevent multiple rapid clicks
 
-  const handleWeightPress = () => {
-    router.push({
-      pathname: "/weight-selector",
-      params: {
-        currentValue: profileData.weight_value.toString(),
-        unit: profileData.weight_unit,
-      },
-    });
-  };
+    setIsNavigatingToHeight(true);
 
-  const handleDateOfBirthPress = () => {
-    router.push({
-      pathname: "/date-selector",
-      params: {
-        currentDate: profileData.date_of_birth,
-      },
-    });
-  };
+    // Add a small delay to prevent rapid navigation
+    setTimeout(() => {
+      router.push({
+        pathname: "/height-selector",
+        params: {
+          currentValue: profileData.height_value.toString(),
+          unit: profileData.height_unit,
+        },
+      });
+      // Reset the flag after navigation
+      setTimeout(() => setIsNavigatingToHeight(false), 500);
+    }, 100);
+  }, [isNavigatingToHeight, profileData.height_value, profileData.height_unit]);
+
+  const handleWeightPress = useCallback(() => {
+    if (isNavigatingToWeight) return; // Prevent multiple rapid clicks
+
+    setIsNavigatingToWeight(true);
+
+    // Add a small delay to prevent rapid navigation
+    setTimeout(() => {
+      router.push({
+        pathname: "/weight-selector",
+        params: {
+          currentValue: profileData.weight_value.toString(),
+          unit: profileData.weight_unit,
+        },
+      });
+      // Reset the flag after navigation
+      setTimeout(() => setIsNavigatingToWeight(false), 500);
+    }, 100);
+  }, [isNavigatingToWeight, profileData.weight_value, profileData.weight_unit]);
+
+  const handleDateOfBirthPress = useCallback(() => {
+    if (isNavigatingToDate) return; // Prevent multiple rapid clicks
+
+    setIsNavigatingToDate(true);
+
+    // Add a small delay to prevent rapid navigation
+    setTimeout(() => {
+      router.push({
+        pathname: "/date-selector",
+        params: {
+          currentDate: profileData.date_of_birth,
+        },
+      });
+      // Reset the flag after navigation
+      setTimeout(() => setIsNavigatingToDate(false), 500);
+    }, 100);
+  }, [isNavigatingToDate, profileData.date_of_birth]);
 
   // Map frontend values to backend values
   const mapToBackendValues = (data: any) => {

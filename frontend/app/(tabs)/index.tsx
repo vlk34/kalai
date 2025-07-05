@@ -109,10 +109,22 @@ export default function DashboardScreen() {
     ]).start(() => setShowActionModal(false));
   };
 
-  const handleCameraPress = () => {
+  const [isNavigatingToCamera, setIsNavigatingToCamera] = useState(false);
+  const [isNavigatingToSettings, setIsNavigatingToSettings] = useState(false);
+
+  const handleCameraPress = useCallback(() => {
+    if (isNavigatingToCamera) return; // Prevent multiple rapid clicks
+
+    setIsNavigatingToCamera(true);
     hideModal();
-    router.push("/camera");
-  };
+
+    // Add a small delay to prevent rapid navigation
+    setTimeout(() => {
+      router.push("/camera");
+      // Reset the flag after navigation
+      setTimeout(() => setIsNavigatingToCamera(false), 500);
+    }, 100);
+  }, [isNavigatingToCamera, hideModal]);
 
   const handleGalleryPress = async () => {
     hideModal();
@@ -315,7 +327,6 @@ export default function DashboardScreen() {
 
     // If nutrition data is available, use it
     if (dailyNutrition) {
-      console.log("Getting values from daily nutrition summary");
       return {
         caloriesLeft: Math.max(0, dailyNutrition.remaining_to_goal.calories),
         totalCalories: dailyNutrition.daily_goals.calories,
@@ -336,13 +347,31 @@ export default function DashboardScreen() {
   const progressPercentage =
     (caloriesConsumed / dailyStats.totalCalories) * 100;
 
-  const openCamera = () => {
-    router.push("/camera");
-  };
+  const openCamera = useCallback(() => {
+    if (isNavigatingToCamera) return; // Prevent multiple rapid clicks
 
-  const navigateToSettings = () => {
-    router.push("/settings");
-  };
+    setIsNavigatingToCamera(true);
+
+    // Add a small delay to prevent rapid navigation
+    setTimeout(() => {
+      router.push("/camera");
+      // Reset the flag after navigation
+      setTimeout(() => setIsNavigatingToCamera(false), 500);
+    }, 100);
+  }, [isNavigatingToCamera]);
+
+  const navigateToSettings = useCallback(() => {
+    if (isNavigatingToSettings) return; // Prevent multiple rapid clicks
+
+    setIsNavigatingToSettings(true);
+
+    // Add a small delay to prevent rapid navigation
+    setTimeout(() => {
+      router.push("/settings");
+      // Reset the flag after navigation
+      setTimeout(() => setIsNavigatingToSettings(false), 500);
+    }, 100);
+  }, [isNavigatingToSettings]);
 
   return (
     <View className="flex-1">
@@ -374,7 +403,10 @@ export default function DashboardScreen() {
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={navigateToSettings}
-                className="bg-white rounded-full p-2 shadow-sm"
+                disabled={isNavigatingToSettings}
+                className={`bg-white rounded-full p-2 shadow-sm ${
+                  isNavigatingToSettings ? "opacity-50" : ""
+                }`}
               >
                 <MaterialIcons name="settings" size={24} color="black" />
               </TouchableOpacity>
@@ -754,7 +786,10 @@ export default function DashboardScreen() {
                         {/* Camera Button */}
                         <TouchableOpacity
                           onPress={handleCameraPress}
-                          className="flex-row items-center py-4 px-2"
+                          disabled={isNavigatingToCamera}
+                          className={`flex-row items-center py-4 px-2 ${
+                            isNavigatingToCamera ? "opacity-50" : ""
+                          }`}
                         >
                           <View className="w-12 h-12 bg-gray-100 rounded-full items-center justify-center mr-4">
                             <FontAwesome
@@ -843,7 +878,10 @@ export default function DashboardScreen() {
                       setShowStreakModal(false);
                       openCamera();
                     }}
-                    className="flex-1 bg-green-500 rounded-2xl py-2"
+                    disabled={isNavigatingToCamera}
+                    className={`flex-1 rounded-2xl py-2 ${
+                      isNavigatingToCamera ? "bg-gray-400" : "bg-green-500"
+                    }`}
                   >
                     <Text className="text-center font-semibold text-white">
                       Log Meal Now
