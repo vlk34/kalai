@@ -102,9 +102,14 @@ export default function CameraScreen() {
   const takePicture = async () => {
     if (cameraRef.current && isCameraReady) {
       try {
-        const photo = await cameraRef.current.takePictureAsync();
+        const photo = await cameraRef.current.takePictureAsync({
+          quality: 0.8, // Initial compression to reduce size
+        });
         if (photo?.uri) {
           setCapturedPhoto(photo.uri);
+
+          // Use the original photo for now - compression handled by camera quality setting
+          const compressedImage = { uri: photo.uri };
 
           // Create optimistic meal entry
           const optimisticMeal = {
@@ -116,7 +121,7 @@ export default function CameraScreen() {
             fats: 0,
             calories: 0,
             created_at: new Date().toISOString(),
-            photo_url: photo.uri,
+            photo_url: compressedImage.uri, // Use compressed image URI
             isAnalyzing: true,
           };
 
@@ -127,9 +132,9 @@ export default function CameraScreen() {
           // Navigate back to main screen immediately
           router.back();
 
-          // Start analysis in background
+          // Start analysis in background with compressed image
           try {
-            const result = await analyzeFood(photo.uri);
+            const result = await analyzeFood(compressedImage.uri);
 
             // Extract the real data from server response
             const serverData = result.data;
@@ -165,10 +170,7 @@ export default function CameraScreen() {
               today
             );
 
-            // Invalidate both recent meals and nutrition summary to ensure fresh data
-            queryClient.invalidateQueries({
-              queryKey: ["recent-meals", session?.user?.id, today],
-            });
+            // Only invalidate nutrition summary, not recent meals (optimistic updates handle recent meals)
             queryClient.invalidateQueries({
               queryKey: ["daily-nutrition-summary", session?.user?.id, today],
             });

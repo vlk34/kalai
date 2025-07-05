@@ -23,6 +23,7 @@ import {
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as ImagePicker from "expo-image-picker";
+
 import { useRecentMeals } from "@/hooks/useRecentMeals";
 import { useMutateRecentMeals } from "@/hooks/useMutateRecentMeals";
 import { useAnalyzeFood } from "@/hooks/useAnalyzeFood";
@@ -227,11 +228,15 @@ export default function DashboardScreen() {
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ["images"],
         aspect: [9, 16],
-        quality: 1,
+        quality: 0.8, // Initial compression to reduce size
       });
 
       if (!result.canceled) {
         const photoUri = result.assets[0].uri;
+
+        // Use the original photo for now - compression handled by ImagePicker quality setting
+        const compressedImage = { uri: photoUri };
+
         // Create optimistic meal entry
         const optimisticMeal = {
           id: `temp-${Date.now()}`,
@@ -242,7 +247,7 @@ export default function DashboardScreen() {
           fats: 0,
           calories: 0,
           created_at: new Date().toISOString(),
-          photo_url: photoUri,
+          photo_url: compressedImage.uri, // Use compressed image URI
           isAnalyzing: true,
         };
 
@@ -250,9 +255,9 @@ export default function DashboardScreen() {
         const today = formatDateForAPI(new Date());
         addOptimisticMeal(optimisticMeal, today);
 
-        // Start analysis in background
+        // Start analysis in background with compressed image
         try {
-          const result = await analyzeFood(photoUri);
+          const result = await analyzeFood(compressedImage.uri);
           // Extract the real data from server response
           const serverData = result.data;
           const databaseRecord = serverData.database_record;
@@ -287,10 +292,7 @@ export default function DashboardScreen() {
             today
           );
 
-          // Invalidate both recent meals and nutrition summary to ensure fresh data
-          queryClient.invalidateQueries({
-            queryKey: ["recent-meals", session?.user?.id, today],
-          });
+          // Only invalidate nutrition summary, not recent meals (optimistic updates handle recent meals)
           queryClient.invalidateQueries({
             queryKey: ["daily-nutrition-summary", session?.user?.id, today],
           });
