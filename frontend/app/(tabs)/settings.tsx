@@ -1,6 +1,5 @@
 "use client";
-
-import React, { useState } from "react";
+import { useState } from "react";
 import { View, Text, ScrollView, TouchableOpacity, Alert } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { IconSymbol } from "@/components/ui/IconSymbol";
@@ -14,6 +13,7 @@ const SettingsScreen = () => {
   const { signOut, session } = useAuth();
   const { data: userProfile, isLoading: isLoadingProfile } = useUserProfile();
   const recalculateTargetsMutation = useRecalculateTargets();
+
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
 
   // Formatting functions
@@ -33,7 +33,6 @@ const SettingsScreen = () => {
       .split("_")
       .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
       .join(" ");
-
     // Special case formatting for specific goals
     switch (formattedGoal.toLowerCase()) {
       case "lose weight":
@@ -172,7 +171,6 @@ const SettingsScreen = () => {
 
       // Then recalculate the targets
       await recalculateTargetsMutation.mutateAsync();
-
       setIsEditModalVisible(false);
       Alert.alert("Success", "Profile updated successfully!");
     } catch (error) {
@@ -274,7 +272,7 @@ const SettingsScreen = () => {
                 />
                 <SettingRow
                   title="Edit Profile Information"
-                  onPress={() => router.push("/")}
+                  onPress={() => router.push("/edit-profile")}
                 />
               </>
             ) : (
@@ -354,12 +352,6 @@ const SettingsScreen = () => {
                 )
               }
             />
-            {/* <SettingRow
-              title="Data Sync"
-              onPress={() =>
-                Alert.alert("Data Sync", "Manage data synchronization settings")
-              }
-            /> */}
           </View>
 
           {/* Health Integration */}

@@ -8,6 +8,7 @@ import { View, ActivityIndicator } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { QueryProvider } from "@/contexts/QueryProvider";
+import { SelectorProvider } from "@/contexts/SelectorContext";
 import "../global.css";
 
 function LoadingScreen() {
@@ -31,16 +32,18 @@ export default function RootLayout() {
     <SafeAreaProvider>
       <QueryProvider>
         <AuthProvider>
-          <ThemeProvider value={DarkTheme}>
-            <Stack screenOptions={{ headerShown: false }}>
-              <Stack.Screen name="(auth)" />
-              <Stack.Screen name="(tabs)" />
-              <Stack.Screen name="welcome" />
-              <Stack.Screen name="onboarding" />
-              <Stack.Screen name="+not-found" />
-            </Stack>
-            <StatusBar style="auto" />
-          </ThemeProvider>
+          <SelectorProvider>
+            <ThemeProvider value={DarkTheme}>
+              <Stack screenOptions={{ headerShown: false }}>
+                <Stack.Screen name="(auth)" />
+                <Stack.Screen name="(tabs)" />
+                <Stack.Screen name="welcome" />
+                <Stack.Screen name="onboarding" />
+                <Stack.Screen name="+not-found" />
+              </Stack>
+              <StatusBar style="auto" />
+            </ThemeProvider>
+          </SelectorProvider>
         </AuthProvider>
       </QueryProvider>
     </SafeAreaProvider>

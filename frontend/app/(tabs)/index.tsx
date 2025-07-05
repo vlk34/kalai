@@ -19,6 +19,7 @@ import {
   MaterialIcons,
   FontAwesome,
   Feather,
+  Entypo,
 } from "@expo/vector-icons";
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
