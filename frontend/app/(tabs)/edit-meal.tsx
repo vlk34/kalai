@@ -188,11 +188,19 @@ export default function EditMealScreen() {
   };
 
   const updatePortionValues = (newPortion: number) => {
-    const multiplier = newPortion / basePortion;
-    setEditedCalories((baseCalories * multiplier).toFixed(0));
-    setEditedProtein((baseProtein * multiplier).toFixed(1));
-    setEditedCarbs((baseCarbs * multiplier).toFixed(1));
-    setEditedFats((baseFats * multiplier).toFixed(1));
+    const currentPortion = Number.parseFloat(editedPortions) || 1.0;
+    const multiplier = newPortion / currentPortion;
+
+    // Use current edited values as base for calculations
+    const currentCalories = Number.parseFloat(editedCalories) || 0;
+    const currentProtein = Number.parseFloat(editedProtein) || 0;
+    const currentCarbs = Number.parseFloat(editedCarbs) || 0;
+    const currentFats = Number.parseFloat(editedFats) || 0;
+
+    setEditedCalories((currentCalories * multiplier).toFixed(0));
+    setEditedProtein((currentProtein * multiplier).toFixed(1));
+    setEditedCarbs((currentCarbs * multiplier).toFixed(1));
+    setEditedFats((currentFats * multiplier).toFixed(1));
     setEditedPortions(newPortion.toFixed(2));
   };
 
