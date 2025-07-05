@@ -19,7 +19,6 @@ import {
   MaterialIcons,
   FontAwesome,
   Feather,
-  Entypo,
 } from "@expo/vector-icons";
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -30,13 +29,13 @@ import { useAnalyzeFood } from "@/hooks/useAnalyzeFood";
 import { useMutateNutrition } from "@/hooks/useMutateNutrition";
 import {
   useDailyNutritionSummary,
-  getDateForDayOfWeek,
   formatDateForAPI,
 } from "@/hooks/useUserProfile";
 import { CircularProgress } from "@/components/ui/CircularProgress";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
-import { useFocusEffect } from "@react-navigation/native";
+import { useStreak, useUpdateStreak } from "@/hooks/useStreak";
+import { useGoalTracking } from "@/hooks/useGoalTracking";
 
 export default function DashboardScreen() {
   // Initialize with today's date
@@ -46,15 +45,38 @@ export default function DashboardScreen() {
   const [selectedDayIndex, setSelectedDayIndex] = useState<number>(
     new Date().getDay()
   );
+  const [selectedDateIndex, setSelectedDateIndex] = useState<number>(29); // Today is the last index (30 days - 1)
+
   const queryClient = useQueryClient();
   const insets = useSafeAreaInsets();
   const { session } = useAuth();
+  const scrollViewRef = useRef<ScrollView>(null);
 
   // Plus button and modal state
   const [showActionModal, setShowActionModal] = useState(false);
   const buttonAnim = useRef(new Animated.Value(1)).current;
   const modalAnim = useRef(new Animated.Value(0)).current;
   const bgOpacityAnim = useRef(new Animated.Value(0)).current;
+
+  // Streak functionality
+  const { data: streakData } = useStreak();
+  const updateStreakMutation = useUpdateStreak();
+  const {
+    markGoalReached,
+    markCongratulationsShown,
+    hasReachedGoal,
+    shouldShowCongratulations,
+  } = useGoalTracking();
+
+  // Congratulations modal state
+  const [showCongratulationsModal, setShowCongratulationsModal] =
+    useState(false);
+  const [showStreakModal, setShowStreakModal] = useState(false);
+  const congratsModalAnim = useRef(new Animated.Value(0)).current;
+  const congratsBgOpacityAnim = useRef(new Animated.Value(0)).current;
+  const streakModalAnim = useRef(new Animated.Value(0)).current;
+  const streakBgOpacityAnim = useRef(new Animated.Value(0)).current;
+
   const { analyzeFood } = useAnalyzeFood();
   const { addOptimisticMeal, updateOptimisticMeal } = useMutateRecentMeals();
   const { addMealToNutrition } = useMutateNutrition();
@@ -73,7 +95,7 @@ export default function DashboardScreen() {
     })();
   }, []);
 
-  // Simple animation for modal
+  // Simple animation for action modal
   const showModal = () => {
     setShowActionModal(true);
     Animated.parallel([
@@ -108,23 +130,96 @@ export default function DashboardScreen() {
       }),
     ]).start(() => setShowActionModal(false));
   };
+  // Congratulations modal animations
+  const showCongratulationsModalWithAnimation = () => {
+    setShowCongratulationsModal(true);
+    Animated.parallel([
+      Animated.spring(congratsModalAnim, {
+        toValue: 1,
+        useNativeDriver: true,
+        tension: 65,
+        friction: 11,
+      }),
+      Animated.timing(congratsBgOpacityAnim, {
+        toValue: 1,
+        duration: 500,
+        useNativeDriver: true,
+        easing: (t) => 1 - Math.pow(1 - t, 3),
+      }),
+    ]).start();
+  };
+
+  const hideCongratulationsModal = () => {
+    Animated.parallel([
+      Animated.timing(congratsModalAnim, {
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: true,
+        easing: (t) => 1 - Math.pow(1 - t, 3),
+      }),
+      Animated.timing(congratsBgOpacityAnim, {
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: true,
+        easing: (t) => 1 - Math.pow(1 - t, 3),
+      }),
+    ]).start(() => {
+      setShowCongratulationsModal(false);
+      // Mark congratulations as shown for today
+      markCongratulationsShown(selectedDate);
+    });
+  };
+
+  // Streak modal animations
+  const showStreakModalWithAnimation = () => {
+    setShowStreakModal(true);
+    Animated.parallel([
+      Animated.spring(streakModalAnim, {
+        toValue: 1,
+        useNativeDriver: true,
+        tension: 65,
+        friction: 11,
+      }),
+      Animated.timing(streakBgOpacityAnim, {
+        toValue: 1,
+        duration: 500,
+        useNativeDriver: true,
+        easing: (t) => 1 - Math.pow(1 - t, 3),
+      }),
+    ]).start();
+  };
+
+  const hideStreakModal = () => {
+    Animated.parallel([
+      Animated.timing(streakModalAnim, {
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: true,
+        easing: (t) => 1 - Math.pow(1 - t, 3),
+      }),
+      Animated.timing(streakBgOpacityAnim, {
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: true,
+        easing: (t) => 1 - Math.pow(1 - t, 3),
+      }),
+    ]).start(() => setShowStreakModal(false));
+  };
 
   const [isNavigatingToCamera, setIsNavigatingToCamera] = useState(false);
   const [isNavigatingToSettings, setIsNavigatingToSettings] = useState(false);
 
   const handleCameraPress = useCallback(() => {
     if (isNavigatingToCamera) return; // Prevent multiple rapid clicks
-
     setIsNavigatingToCamera(true);
     hideModal();
-
     // Add a small delay to prevent rapid navigation
     setTimeout(() => {
       router.push("/camera");
       // Reset the flag after navigation
       setTimeout(() => setIsNavigatingToCamera(false), 500);
     }, 100);
-  }, [isNavigatingToCamera, hideModal]);
+  }, [isNavigatingToCamera]);
 
   const handleGalleryPress = async () => {
     hideModal();
@@ -137,7 +232,6 @@ export default function DashboardScreen() {
 
       if (!result.canceled) {
         const photoUri = result.assets[0].uri;
-
         // Create optimistic meal entry
         const optimisticMeal = {
           id: `temp-${Date.now()}`,
@@ -159,7 +253,6 @@ export default function DashboardScreen() {
         // Start analysis in background
         try {
           const result = await analyzeFood(photoUri);
-
           // Extract the real data from server response
           const serverData = result.data;
           const databaseRecord = serverData.database_record;
@@ -233,6 +326,7 @@ export default function DashboardScreen() {
     isLoading: isLoadingMeals,
     error,
   } = useRecentMeals(selectedDate);
+
   const { invalidateRecentMeals } = useMutateRecentMeals();
 
   // Use the new daily nutrition summary hook
@@ -242,23 +336,42 @@ export default function DashboardScreen() {
     error: nutritionError,
   } = useDailyNutritionSummary(selectedDate);
 
-  // Use the streak context instead of local state
-  const [showStreakModal, setShowStreakModal] = useState(false);
-  const [streak, setStreak] = useState(0);
+  // Turkish day abbreviations
+  const turkishDays = ["Paz", "Pzt", "Sal", "Çar", "Per", "Cum", "Cts"];
 
-  const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  // Get dates for the past 30 days with today on the right
+  const getMonthDates = () => {
+    const today = new Date();
+    const dates = [];
+    const dayNames = [];
+    // Generate 30 days starting from 30 days ago
+    for (let i = 29; i >= 0; i--) {
+      const date = new Date(today);
+      date.setDate(today.getDate() - i);
+      dates.push({
+        date: date.getDate(),
+        dayIndex: date.getDay(),
+        fullDate: date,
+      });
+      dayNames.push(turkishDays[date.getDay()]);
+    }
+    return { dates, dayNames };
+  };
+
+  const { dates: monthDates, dayNames: monthDayNames } = getMonthDates();
 
   // Handle day selection
-  const handleDaySelect = (dayIndex: number) => {
+  const handleDaySelect = (dateIndex: number, dateObj: any) => {
     if (!session?.user?.id) {
       console.log("No session available, skipping day selection");
       return;
     }
-
     try {
-      const dateForDay = getDateForDayOfWeek(dayIndex);
-      setSelectedDate(dateForDay);
-      setSelectedDayIndex(dayIndex);
+      const selectedFullDate = dateObj.fullDate;
+      const formattedDate = formatDateForAPI(selectedFullDate);
+      setSelectedDate(formattedDate);
+      setSelectedDayIndex(dateObj.dayIndex);
+      setSelectedDateIndex(dateIndex);
     } catch (error) {
       console.error("Error selecting day:", error);
     }
@@ -296,6 +409,14 @@ export default function DashboardScreen() {
     });
   };
 
+  // Scroll to today's date when component mounts
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      scrollViewRef.current?.scrollToEnd({ animated: false });
+    }, 100);
+    return () => clearTimeout(timer);
+  }, []);
+
   // Refresh data when screen comes into focus (e.g., returning from camera)
   useEffect(() => {
     // Only run if we have a session and the component is properly mounted
@@ -323,12 +444,20 @@ export default function DashboardScreen() {
       totalCarbs: 0,
       fatsLeft: 0,
       totalFats: 0,
+      isOverGoal: false,
+      consumed: 0,
     };
 
     // If nutrition data is available, use it
     if (dailyNutrition) {
+      const consumed = dailyNutrition.consumed_today.calories;
+      const goal = dailyNutrition.daily_goals.calories;
+      const isOverGoal = consumed > goal;
+
       return {
-        caloriesLeft: Math.max(0, dailyNutrition.remaining_to_goal.calories),
+        caloriesLeft: isOverGoal
+          ? consumed
+          : Math.max(0, dailyNutrition.remaining_to_goal.calories),
         totalCalories: dailyNutrition.daily_goals.calories,
         proteinLeft: Math.max(0, dailyNutrition.remaining_to_goal.protein),
         totalProtein: dailyNutrition.daily_goals.protein,
@@ -336,22 +465,46 @@ export default function DashboardScreen() {
         totalCarbs: dailyNutrition.daily_goals.carbs,
         fatsLeft: Math.max(0, dailyNutrition.remaining_to_goal.fats),
         totalFats: dailyNutrition.daily_goals.fats,
+        isOverGoal,
+        consumed,
       };
     }
-
     return defaultStats;
   };
 
   const dailyStats = getDailyStats();
-  const caloriesConsumed = dailyStats.totalCalories - dailyStats.caloriesLeft;
+  const caloriesConsumed = dailyStats.isOverGoal
+    ? dailyStats.totalCalories
+    : dailyStats.totalCalories - dailyStats.caloriesLeft;
   const progressPercentage =
     (caloriesConsumed / dailyStats.totalCalories) * 100;
 
+  // Check if goal is reached and handle congratulations
+  useEffect(() => {
+    if (dailyNutrition && selectedDate) {
+      const consumed = dailyNutrition.consumed_today.calories;
+      const goal = dailyNutrition.daily_goals.calories;
+
+      // Check if goal is reached (consumed >= goal)
+      if (consumed >= goal && !hasReachedGoal(selectedDate)) {
+        // Mark goal as reached
+        markGoalReached(selectedDate);
+
+        // Update streak in background
+        updateStreakMutation.mutate();
+      }
+
+      // Show congratulations if needed (only for today and only once)
+      const today = formatDateForAPI(new Date());
+      if (selectedDate === today && shouldShowCongratulations(selectedDate)) {
+        showCongratulationsModalWithAnimation();
+      }
+    }
+  }, [dailyNutrition, selectedDate]);
+
   const openCamera = useCallback(() => {
     if (isNavigatingToCamera) return; // Prevent multiple rapid clicks
-
     setIsNavigatingToCamera(true);
-
     // Add a small delay to prevent rapid navigation
     setTimeout(() => {
       router.push("/camera");
@@ -362,9 +515,7 @@ export default function DashboardScreen() {
 
   const navigateToSettings = useCallback(() => {
     if (isNavigatingToSettings) return; // Prevent multiple rapid clicks
-
     setIsNavigatingToSettings(true);
-
     // Add a small delay to prevent rapid navigation
     setTimeout(() => {
       router.push("/settings");
@@ -376,7 +527,8 @@ export default function DashboardScreen() {
   return (
     <View className="flex-1">
       <LinearGradient
-        colors={["#fafafa", "#f4f6f8", "#eef2f5"]}
+        colors={["#e5e7eb", "#f4f4f4"]}
+        locations={[0, 0.7]}
         className="flex-1"
       >
         <SafeAreaView className="flex-1">
@@ -393,20 +545,18 @@ export default function DashboardScreen() {
             </View>
             <View className="flex-row items-center gap-3">
               <TouchableOpacity
-                onPress={() => setShowStreakModal(true)}
+                onPress={showStreakModalWithAnimation}
                 className="flex-row items-center gap-2 bg-white rounded-full px-4 py-2 shadow-sm"
               >
                 <FontAwesome6 name="fire" size={24} color="orange" />
                 <Text className="text-lg font-bold text-orange-600">
-                  {streak} days
+                  {streakData?.current_streak || 0} days
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={navigateToSettings}
                 disabled={isNavigatingToSettings}
-                className={`bg-white rounded-full p-2 shadow-sm ${
-                  isNavigatingToSettings ? "opacity-50" : ""
-                }`}
+                className={`bg-white rounded-full p-2 shadow-sm ${isNavigatingToSettings ? "opacity-50" : ""}`}
               >
                 <MaterialIcons name="settings" size={24} color="black" />
               </TouchableOpacity>
@@ -414,24 +564,69 @@ export default function DashboardScreen() {
           </View>
 
           {/* Days Header */}
-          <View className="px-6 mb-6">
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-              <View className="flex-row space-x-4">
-                {days.map((day, index) => (
-                  <TouchableOpacity
-                    key={day}
-                    onPress={() => handleDaySelect(index)}
-                    className={`px-4 py-2 rounded-full ${
-                      selectedDayIndex === index ? "bg-black" : "bg-white"
-                    } shadow-sm`}
-                  >
-                    <Text
-                      className={`font-semibold ${selectedDayIndex === index ? "text-white" : "text-gray-700"}`}
-                    >
-                      {day}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
+          <View className="px-6 mb-4">
+            <ScrollView
+              ref={scrollViewRef}
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ paddingLeft: 0, paddingRight: 0 }}
+              bounces={false}
+              className="rounded-xl shadow-md"
+            >
+              <View className="flex-row bg-white rounded-2xl ">
+                {monthDates.map((dateObj, index) => {
+                  const dateString = formatDateForAPI(dateObj.fullDate);
+                  const goalReached = hasReachedGoal(dateString);
+
+                  return (
+                    <View key={index} className="flex-row items-center">
+                      <TouchableOpacity
+                        onPress={() => handleDaySelect(index, dateObj)}
+                        className={`px-3 py-3 min-w-[50px] relative ${
+                          selectedDateIndex === index
+                            ? "bg-black rounded-2xl mx-1 my-1"
+                            : "mx-1 my-1"
+                        }`}
+                      >
+                        <View className="items-center">
+                          <Text
+                            className={`text-xs font-medium ${
+                              selectedDateIndex === index
+                                ? "text-white"
+                                : "text-gray-500"
+                            }`}
+                          >
+                            {monthDayNames[index]}
+                          </Text>
+                          <Text
+                            className={`text-lg font-bold ${
+                              selectedDateIndex === index
+                                ? "text-white"
+                                : "text-gray-900"
+                            }`}
+                          >
+                            {dateObj.date}
+                          </Text>
+                        </View>
+                        {/* Goal reached indicator */}
+                        {goalReached && (
+                          <View className="absolute -top-1 -right-1 w-4 h-4 bg-orange-500 rounded-full border-2 border-white shadow-sm">
+                            <View className="w-full h-full items-center justify-center">
+                              <FontAwesome6
+                                name="fire"
+                                size={8}
+                                color="white"
+                              />
+                            </View>
+                          </View>
+                        )}
+                      </TouchableOpacity>
+                      {index < monthDates.length - 1 && (
+                        <View className="w-px h-8 bg-gray-200" />
+                      )}
+                    </View>
+                  );
+                })}
               </View>
             </ScrollView>
           </View>
@@ -459,12 +654,28 @@ export default function DashboardScreen() {
                     </View>
                   ) : (
                     <View>
-                      <Text className="text-5xl font-bold text-black-600 py-2">
-                        {Math.round(dailyStats.caloriesLeft)}
-                      </Text>
-                      <Text className="text-sm text-gray-800 mb-1 pl-2">
-                        Calories Left
-                      </Text>
+                      {dailyStats.isOverGoal ? (
+                        <>
+                          <Text className="text-5xl font-bold text-black-600 py-2">
+                            {Math.round(dailyStats.consumed)}
+                          </Text>
+                          <Text className="text-sm text-gray-800 mb-1">
+                            Calories Eaten
+                          </Text>
+                          <Text className="text-xs text-gray-500">
+                            Goal: {Math.round(dailyStats.totalCalories)}
+                          </Text>
+                        </>
+                      ) : (
+                        <>
+                          <Text className="text-5xl font-bold text-black-600 py-2">
+                            {Math.round(dailyStats.caloriesLeft)}
+                          </Text>
+                          <Text className="text-sm text-gray-800 mb-1">
+                            Calories Left
+                          </Text>
+                        </>
+                      )}
                     </View>
                   )}
                 </View>
@@ -620,11 +831,7 @@ export default function DashboardScreen() {
                                 </Text>
                               </View>
                               <Text
-                                className={`text-xs font-medium ${
-                                  meal.name === "Analyzing..."
-                                    ? "text-gray-400"
-                                    : ""
-                                }`}
+                                className={`text-xs font-medium ${meal.name === "Analyzing..." ? "text-gray-400" : ""}`}
                               >
                                 {meal.name === "Analyzing..."
                                   ? "--"
@@ -638,11 +845,7 @@ export default function DashboardScreen() {
                                 </Text>
                               </View>
                               <Text
-                                className={`text-xs font-medium ${
-                                  meal.name === "Analyzing..."
-                                    ? "text-gray-400"
-                                    : ""
-                                }`}
+                                className={`text-xs font-medium ${meal.name === "Analyzing..." ? "text-gray-400" : ""}`}
                               >
                                 {meal.name === "Analyzing..."
                                   ? "--"
@@ -656,11 +859,7 @@ export default function DashboardScreen() {
                                 </Text>
                               </View>
                               <Text
-                                className={`text-xs font-medium ${
-                                  meal.name === "Analyzing..."
-                                    ? "text-gray-400"
-                                    : ""
-                                }`}
+                                className={`text-xs font-medium ${meal.name === "Analyzing..." ? "text-gray-400" : ""}`}
                               >
                                 {meal.name === "Analyzing..."
                                   ? "--"
@@ -746,7 +945,6 @@ export default function DashboardScreen() {
                   opacity: bgOpacityAnim,
                 }}
               />
-
               {/* Modal content */}
               <View style={{ flex: 1, overflow: "hidden" }}>
                 <Animated.View
@@ -780,16 +978,13 @@ export default function DashboardScreen() {
                           Choose how you'd like to log your meal
                         </Text>
                       </View>
-
                       {/* Action Buttons */}
                       <View className="space-y-0">
                         {/* Camera Button */}
                         <TouchableOpacity
                           onPress={handleCameraPress}
                           disabled={isNavigatingToCamera}
-                          className={`flex-row items-center py-4 px-2 ${
-                            isNavigatingToCamera ? "opacity-50" : ""
-                          }`}
+                          className={`flex-row items-center py-4 px-2 ${isNavigatingToCamera ? "opacity-50" : ""}`}
                         >
                           <View className="w-12 h-12 bg-gray-100 rounded-full items-center justify-center mr-4">
                             <FontAwesome
@@ -812,10 +1007,8 @@ export default function DashboardScreen() {
                             color="#9ca3af"
                           />
                         </TouchableOpacity>
-
                         {/* Divider */}
                         <View className="h-px bg-gray-200 mx-2" />
-
                         {/* Gallery Button */}
                         <TouchableOpacity
                           onPress={handleGalleryPress}
@@ -850,47 +1043,180 @@ export default function DashboardScreen() {
             </TouchableOpacity>
           </Modal>
 
-          {/* Streak Modal */}
-          {showStreakModal && (
-            <View className="absolute inset-0 bg-black/30 justify-center items-center z-50">
-              <View className="bg-white rounded-3xl mx-6 p-8 items-center shadow-2xl">
-                <View className="bg-orange-100 rounded-full p-6 mb-6">
-                  <FontAwesome6 name="fire" size={48} color="orange" />
-                </View>
-                <Text className="text-2xl font-bold text-gray-900 text-center mb-3">
-                  🔥 {streak} Day Streak!
-                </Text>
-                <Text className="text-lg text-gray-700 text-center mb-6 leading-6">
-                  You're on fire! Keep reaching your daily calorie goals to
-                  maintain your streak.
-                </Text>
-                <View className="flex-row gap-2 space-x-3 w-full">
+          {/* Congratulations Modal */}
+          <Modal
+            visible={showCongratulationsModal}
+            transparent={true}
+            animationType="none"
+            onRequestClose={hideCongratulationsModal}
+          >
+            <TouchableOpacity
+              activeOpacity={1}
+              onPress={hideCongratulationsModal}
+              style={{ flex: 1 }}
+            >
+              {/* Background overlay */}
+              <Animated.View
+                style={{
+                  position: "absolute",
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  backgroundColor: "rgba(0,0,0,0.5)",
+                  opacity: congratsBgOpacityAnim,
+                }}
+              />
+              {/* Modal content */}
+              <View
+                style={{
+                  flex: 1,
+                  justifyContent: "center",
+                  alignItems: "center",
+                  paddingHorizontal: 24,
+                }}
+              >
+                <Animated.View
+                  style={{
+                    transform: [
+                      {
+                        scale: congratsModalAnim.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: [0.8, 1],
+                        }),
+                      },
+                    ],
+                    opacity: congratsModalAnim,
+                  }}
+                >
                   <TouchableOpacity
-                    onPress={() => setShowStreakModal(false)}
-                    className="flex-1 bg-gray-100 rounded-2xl py-2"
+                    activeOpacity={1}
+                    onPress={(e) => e.stopPropagation()}
                   >
-                    <Text className="text-center font-semibold text-gray-700">
-                      Close
-                    </Text>
+                    <View className="bg-white rounded-3xl p-8 items-center shadow-2xl w-full max-w-sm">
+                      <View className="bg-orange-100 rounded-full p-6 mb-6">
+                        <FontAwesome6 name="trophy" size={48} color="#FF8C00" />
+                      </View>
+                      <Text className="text-2xl font-bold text-gray-900 text-center mb-3">
+                        Goal Reached!
+                      </Text>
+                      <Text className="text-lg text-gray-700 text-center mb-6 leading-6">
+                        Congratulations! You've reached your daily calorie goal.
+                        Your streak has been updated!
+                      </Text>
+                      <View className="flex-row gap-2 space-x-3 w-full">
+                        <TouchableOpacity
+                          onPress={() => {
+                            hideCongratulationsModal();
+                          }}
+                          className={`flex-1 rounded-2xl py-3 bg-orange-500`}
+                        >
+                          <Text className="text-center font-semibold text-white">
+                            Keep going!
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
                   </TouchableOpacity>
-                  <TouchableOpacity
-                    onPress={() => {
-                      setShowStreakModal(false);
-                      openCamera();
-                    }}
-                    disabled={isNavigatingToCamera}
-                    className={`flex-1 rounded-2xl py-2 ${
-                      isNavigatingToCamera ? "bg-gray-400" : "bg-green-500"
-                    }`}
-                  >
-                    <Text className="text-center font-semibold text-white">
-                      Log Meal Now
-                    </Text>
-                  </TouchableOpacity>
-                </View>
+                </Animated.View>
               </View>
-            </View>
-          )}
+            </TouchableOpacity>
+          </Modal>
+
+          {/* Streak Modal */}
+          <Modal
+            visible={showStreakModal}
+            transparent={true}
+            animationType="none"
+            onRequestClose={hideStreakModal}
+          >
+            <TouchableOpacity
+              activeOpacity={1}
+              onPress={hideStreakModal}
+              style={{ flex: 1 }}
+            >
+              {/* Background overlay */}
+              <Animated.View
+                style={{
+                  position: "absolute",
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  backgroundColor: "rgba(0,0,0,0.5)",
+                  opacity: streakBgOpacityAnim,
+                }}
+              />
+              {/* Modal content */}
+              <View
+                style={{
+                  flex: 1,
+                  justifyContent: "center",
+                  alignItems: "center",
+                  paddingHorizontal: 24,
+                }}
+              >
+                <Animated.View
+                  style={{
+                    transform: [
+                      {
+                        scale: streakModalAnim.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: [0.8, 1],
+                        }),
+                      },
+                    ],
+                    opacity: streakModalAnim,
+                  }}
+                >
+                  <TouchableOpacity
+                    activeOpacity={1}
+                    onPress={(e) => e.stopPropagation()}
+                  >
+                    <View className="bg-white rounded-3xl p-8 items-center shadow-2xl w-full max-w-sm">
+                      <View className="bg-orange-100 rounded-full p-6 mb-6">
+                        <FontAwesome6 name="fire" size={48} color="orange" />
+                      </View>
+                      <Text className="text-2xl font-bold text-gray-900 text-center mb-3">
+                        🔥 {streakData?.current_streak || 0} Day Streak!
+                      </Text>
+                      <Text className="text-lg text-gray-700 text-center mb-2 leading-6">
+                        You're on fire! Keep reaching your daily calorie goals
+                        to maintain your streak.
+                      </Text>
+                      <Text className="text-sm text-gray-500 text-center mb-6">
+                        Daily Goal:{" "}
+                        {Math.round(streakData?.daily_calorie_goal || 0)}{" "}
+                        calories
+                      </Text>
+                      <View className="flex-row gap-2 space-x-3 w-full">
+                        <TouchableOpacity
+                          onPress={hideStreakModal}
+                          className="flex-1 bg-gray-100 rounded-2xl py-3"
+                        >
+                          <Text className="text-center font-semibold text-gray-700">
+                            Close
+                          </Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          onPress={() => {
+                            hideStreakModal();
+                            openCamera();
+                          }}
+                          disabled={isNavigatingToCamera}
+                          className={`flex-1 rounded-2xl py-3 ${isNavigatingToCamera ? "bg-gray-400" : "bg-green-500"}`}
+                        >
+                          <Text className="text-center font-semibold text-white">
+                            Log Meal Now
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  </TouchableOpacity>
+                </Animated.View>
+              </View>
+            </TouchableOpacity>
+          </Modal>
         </SafeAreaView>
       </LinearGradient>
     </View>
