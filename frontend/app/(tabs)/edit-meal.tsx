@@ -10,6 +10,7 @@ import {
   Alert,
   Keyboard,
   Platform,
+  Modal,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, useLocalSearchParams } from "expo-router";
@@ -119,6 +120,7 @@ export default function EditMealScreen() {
   const [editedProtein, setEditedProtein] = useState(protein as string);
   const [editedFats, setEditedFats] = useState(fats as string);
   const [isSaving, setIsSaving] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   // Base values for portion calculations
   const [basePortion, setBasePortion] = useState(1.0);
@@ -207,82 +209,67 @@ export default function EditMealScreen() {
   };
 
   const handleDelete = () => {
-    Alert.alert(
-      "Delete Meal",
-      "Are you sure you want to delete this meal? This action cannot be undone.",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: async () => {
-            if (!session?.access_token) {
-              return;
-            }
+    setShowDeleteModal(true);
+  };
 
-            try {
-              // Get current date for optimistic update
-              const targetDate =
-                (selectedDate as string) || formatDateForAPI(new Date());
-              console.log("Using target date for delete:", targetDate);
+  const handleConfirmDelete = async () => {
+    if (!session?.access_token) {
+      return;
+    }
 
-              // Get meal data for nutrition update
-              const mealData = {
-                calories: parseFloat(calories as string) || 0,
-                protein: parseFloat(protein as string) || 0,
-                carbs: parseFloat(carbs as string) || 0,
-                fats: parseFloat(fats as string) || 0,
-              };
+    try {
+      // Get current date for optimistic update
+      const targetDate =
+        (selectedDate as string) || formatDateForAPI(new Date());
+      console.log("Using target date for delete:", targetDate);
 
-              // Apply optimistic updates FIRST
-              console.log("Applying optimistic delete updates for meal:", id);
-              removeOptimisticMeal(id as string, targetDate);
-              removeMealFromNutrition(mealData, targetDate);
+      // Get meal data for nutrition update
+      const mealData = {
+        calories: parseFloat(calories as string) || 0,
+        protein: parseFloat(protein as string) || 0,
+        carbs: parseFloat(carbs as string) || 0,
+        fats: parseFloat(fats as string) || 0,
+      };
 
-              // Then navigate back
-              if (isMounted.current) {
-                router.back();
-              }
+      // Apply optimistic updates FIRST
+      console.log("Applying optimistic delete updates for meal:", id);
+      removeOptimisticMeal(id as string, targetDate);
+      removeMealFromNutrition(mealData, targetDate);
 
-              // Make API call in background
-              const result = await deleteConsumedFood(
-                session.access_token,
-                id as string
-              );
+      // Close modal and navigate back
+      setShowDeleteModal(false);
+      if (isMounted.current) {
+        router.back();
+      }
 
-              if (!result.success) {
-                // If API call failed, invalidate to revert optimistic updates
-                invalidateRecentMeals(targetDate);
-                queryClient.invalidateQueries({
-                  queryKey: [
-                    "daily-nutrition-summary",
-                    session?.user?.id,
-                    targetDate,
-                  ],
-                });
-              }
-            } catch (error: any) {
-              console.error("Delete error:", error);
-              // If there was an error, invalidate to revert optimistic updates
-              const targetDate =
-                (selectedDate as string) || formatDateForAPI(new Date());
-              invalidateRecentMeals(targetDate);
-              queryClient.invalidateQueries({
-                queryKey: [
-                  "daily-nutrition-summary",
-                  session?.user?.id,
-                  targetDate,
-                ],
-              });
-              Alert.alert(
-                "Error",
-                "Failed to delete meal. Please try again later."
-              );
-            }
-          },
-        },
-      ]
-    );
+      // Make API call in background
+      const result = await deleteConsumedFood(
+        session.access_token,
+        id as string
+      );
+
+      if (!result.success) {
+        // If API call failed, invalidate to revert optimistic updates
+        invalidateRecentMeals(targetDate);
+        queryClient.invalidateQueries({
+          queryKey: ["daily-nutrition-summary", session?.user?.id, targetDate],
+        });
+      }
+    } catch (error: any) {
+      console.error("Delete error:", error);
+      // If there was an error, invalidate to revert optimistic updates
+      const targetDate =
+        (selectedDate as string) || formatDateForAPI(new Date());
+      invalidateRecentMeals(targetDate);
+      queryClient.invalidateQueries({
+        queryKey: ["daily-nutrition-summary", session?.user?.id, targetDate],
+      });
+      Alert.alert("Error", "Failed to delete meal. Please try again later.");
+    }
+  };
+
+  const handleCancelDelete = () => {
+    setShowDeleteModal(false);
   };
 
   const handleSave = async () => {
@@ -694,6 +681,44 @@ export default function EditMealScreen() {
           </View>
         </View>
       </Animated.View>
+
+      {/* Delete Confirmation Modal */}
+      <Modal
+        visible={showDeleteModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowDeleteModal(false)}
+      >
+        <View className="flex-1 bg-black/50 justify-center items-center px-6">
+          <View className="bg-white rounded-2xl p-6 w-full max-w-sm">
+            <Text className="text-xl font-bold text-gray-900 mb-4 text-center">
+              Delete Meal
+            </Text>
+            <Text className="text-gray-600 mb-6 text-center">
+              Are you sure you want to delete this meal? This action cannot be
+              undone and will permanently remove the meal from your records.
+            </Text>
+            <View className="flex-row gap-2">
+              <TouchableOpacity
+                onPress={handleCancelDelete}
+                className="flex-1 bg-gray-200 rounded-xl py-3"
+              >
+                <Text className="text-gray-900 font-semibold text-center">
+                  Cancel
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={handleConfirmDelete}
+                className="flex-1 bg-red-500 rounded-xl py-3"
+              >
+                <Text className="text-white font-semibold text-center">
+                  Delete
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
