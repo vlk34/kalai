@@ -41,8 +41,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       );
 
       if (response.ok) {
-        // Profile exists, user has completed onboarding
-        setHasCompletedOnboarding(true);
+        const data = await response.json();
+        // Check the onboarding_completed field from the profile
+        const isOnboardingCompleted =
+          data.profile?.onboarding_completed === true;
+        setHasCompletedOnboarding(isOnboardingCompleted);
       } else if (response.status === 404) {
         // No profile found, user hasn't completed onboarding
         setHasCompletedOnboarding(false);

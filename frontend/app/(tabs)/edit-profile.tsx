@@ -52,17 +52,17 @@ const EditProfileScreen = () => {
   useEffect(() => {
     if (userProfile) {
       setProfileData({
-        gender: userProfile.gender || "",
-        activity_level: userProfile.activity_level || "",
-        tracking_difficulty: userProfile.tracking_difficulty || "",
-        experience_level: userProfile.experience_level || "",
-        height_unit: userProfile.height_unit || "metric",
-        height_value: userProfile.height_value || 170,
-        weight_unit: userProfile.weight_unit || "metric",
-        weight_value: userProfile.weight_value || 70,
-        date_of_birth: userProfile.date_of_birth || "",
-        main_goal: userProfile.main_goal || "",
-        dietary_preference: userProfile.dietary_preference || "",
+        gender: userProfile.profile.gender || "",
+        activity_level: userProfile.profile.activity_level || "",
+        tracking_difficulty: userProfile.profile.tracking_difficulty || "",
+        experience_level: userProfile.profile.experience_level || "",
+        height_unit: userProfile.profile.height_unit || "metric",
+        height_value: userProfile.profile.height_value || 170,
+        weight_unit: userProfile.profile.weight_unit || "metric",
+        weight_value: userProfile.profile.weight_value || 70,
+        date_of_birth: userProfile.profile.date_of_birth || "",
+        main_goal: userProfile.profile.main_goal || "",
+        dietary_preference: userProfile.profile.dietary_preference || "",
       });
     }
   }, [userProfile]);

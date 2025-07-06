@@ -2,6 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
+import { useUserProfileStreak } from "./useUserProfile";
 
 interface StreakData {
   current_streak: number;
@@ -22,36 +23,26 @@ interface UpdateStreakResponse {
 }
 
 export const useStreak = () => {
-  const { session } = useAuth();
+  const { data: userProfileData, isLoading, error } = useUserProfileStreak();
 
-  return useQuery({
-    queryKey: ["streak", session?.user?.id],
-    queryFn: async (): Promise<StreakData> => {
-      if (!session?.access_token) {
-        throw new Error("No authentication token");
+  // Transform user profile data to match the expected streak format
+  const streakData: StreakData | undefined = userProfileData
+    ? {
+        current_streak: userProfileData.streak || 0,
+        daily_calorie_goal: userProfileData.daily_targets?.calories || 0,
+        last_updated:
+          userProfileData.profile?.updated_at ||
+          userProfileData.profile?.created_at ||
+          new Date().toISOString(),
+        user_id: userProfileData.user_id,
       }
+    : undefined;
 
-      const response = await fetch(
-        `${process.env.EXPO_PUBLIC_PRODUCTION_API_URL}/get_streak`,
-        {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${session.access_token}`,
-            "Content-Type": "application/json",
-          },
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error("Failed to fetch streak data");
-      }
-
-      const result: StreakResponse = await response.json();
-      return result.data;
-    },
-    enabled: !!session?.access_token,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-  });
+  return {
+    data: streakData,
+    isLoading,
+    error,
+  };
 };
 
 export const useUpdateStreak = () => {
@@ -83,20 +74,50 @@ export const useUpdateStreak = () => {
       return result.streak;
     },
     onSuccess: (newStreak) => {
-      // Update the streak in the cache
+      // Update the user profile cache with new streak data
       queryClient.setQueryData(
-        ["streak", session?.user?.id],
-        (oldData: StreakData | undefined) => {
+        ["user-profile-streak", session?.user?.id],
+        (oldData: any) => {
           if (oldData) {
             return {
               ...oldData,
-              current_streak: newStreak,
-              last_updated: new Date().toISOString(),
+              streak: newStreak,
+              profile: {
+                ...oldData.profile,
+                updated_at: new Date().toISOString(),
+              },
             };
           }
           return oldData;
         }
       );
+
+      // Also update the main user profile cache
+      queryClient.setQueryData(
+        ["user-profile", session?.user?.id],
+        (oldData: any) => {
+          if (oldData) {
+            return {
+              ...oldData,
+              streak: newStreak,
+              profile: {
+                ...oldData.profile,
+                updated_at: new Date().toISOString(),
+              },
+            };
+          }
+          return oldData;
+        }
+      );
+    },
+    onError: () => {
+      // If the API call fails, invalidate queries to revert optimistic updates
+      queryClient.invalidateQueries({
+        queryKey: ["user-profile-streak", session?.user?.id],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["user-profile", session?.user?.id],
+      });
     },
   });
 };

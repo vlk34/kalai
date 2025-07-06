@@ -26,6 +26,22 @@ export interface UserProfile {
   onboarding_completed: boolean;
   created_at: string;
   updated_at: string;
+  streak?: number;
+  streak_history?: string[];
+}
+
+export interface UserProfileResponse {
+  message: string;
+  user_id: string;
+  profile: UserProfile;
+  daily_targets: {
+    calories: number;
+    protein_g: number;
+    carbs_g: number;
+    fats_g: number;
+  };
+  streak?: number;
+  streak_history?: string[];
 }
 
 export interface DailyTargets {
@@ -136,7 +152,7 @@ const mapOnboardingToBackend = (data: OnboardingData) => {
 // API functions
 const fetchUserProfile = async (
   accessToken: string
-): Promise<UserProfile | null> => {
+): Promise<UserProfileResponse | null> => {
   const response = await fetch(`${API_BASE_URL}/user_profiles`, {
     method: "GET",
     headers: {
@@ -157,7 +173,8 @@ const fetchUserProfile = async (
   }
 
   const result = await response.json();
-  return result.profile;
+  console.log("User profile response:", result);
+  return result;
 };
 
 const createUserProfile = async (
@@ -254,6 +271,37 @@ export const useUserProfile = () => {
     enabled: !!session?.access_token,
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes
+    retry: (failureCount, error) => {
+      // Don't retry on auth errors
+      if (error.message.includes("401") || error.message.includes("403")) {
+        return false;
+      }
+      return failureCount < 3;
+    },
+  });
+};
+
+// Hook that returns just the profile data for backward compatibility
+export const useUserProfileData = () => {
+  const { data: userProfileResponse, isLoading, error } = useUserProfile();
+
+  return {
+    data: userProfileResponse?.profile || null,
+    isLoading,
+    error,
+  };
+};
+
+// Hook specifically for getting streak data from user profile
+export const useUserProfileStreak = () => {
+  const { session } = useAuth();
+
+  return useQuery({
+    queryKey: ["user-profile-streak", session?.user?.id],
+    queryFn: () => fetchUserProfile(session!.access_token),
+    enabled: !!session?.access_token,
+    staleTime: 2 * 60 * 1000, // 2 minutes (streak data changes more frequently)
+    gcTime: 5 * 60 * 1000, // 5 minutes
     retry: (failureCount, error) => {
       // Don't retry on auth errors
       if (error.message.includes("401") || error.message.includes("403")) {

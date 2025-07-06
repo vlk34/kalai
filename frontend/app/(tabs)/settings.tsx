@@ -1,36 +1,47 @@
 "use client";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { View, Text, ScrollView, TouchableOpacity, Alert } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { IconSymbol } from "@/components/ui/IconSymbol";
 import { useAuth } from "@/contexts/AuthContext";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useUserProfile, useRecalculateTargets } from "@/hooks/useUserProfile";
+import {
+  useUserProfile,
+  useRecalculateTargets,
+  useUserProfileData,
+} from "@/hooks/useUserProfile";
 import { useRouter } from "expo-router";
 
 const SettingsScreen = () => {
   const router = useRouter();
   const { signOut, session } = useAuth();
-  const { data: userProfile, isLoading: isLoadingProfile } = useUserProfile();
+  const { data: userProfile, isLoading: isLoadingProfile } =
+    useUserProfileData();
   const recalculateTargetsMutation = useRecalculateTargets();
 
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
   const [isNavigatingToEditProfile, setIsNavigatingToEditProfile] =
     useState(false);
 
+  // Use fetched data directly
+  const displayUserProfile = userProfile;
+
   // Formatting functions
-  const formatGender = (gender: string) => {
+  const formatGender = (gender?: string) => {
+    if (!gender || typeof gender !== "string") return "Not set";
     return gender.charAt(0).toUpperCase() + gender.slice(1).toLowerCase();
   };
 
-  const formatActivityLevel = (level: string) => {
+  const formatActivityLevel = (level?: string) => {
+    if (!level || typeof level !== "string") return "Not set";
     return level
       .split("_")
       .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
       .join(" ");
   };
 
-  const formatGoal = (goal: string) => {
+  const formatGoal = (goal?: string) => {
+    if (!goal || typeof goal !== "string") return "Not set";
     const formattedGoal = goal
       .split("_")
       .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
@@ -208,25 +219,31 @@ const SettingsScreen = () => {
     onPress?: () => void;
     showArrow?: boolean;
     isEditable?: boolean;
-  }) => (
-    <TouchableOpacity
-      onPress={onPress}
-      className="flex-row items-center justify-between py-4 px-6 border-b border-gray-100"
-      disabled={!onPress}
-    >
-      <Text className="text-gray-900 font-medium text-base">{title}</Text>
-      <View className="flex-row items-center">
-        {value && (
-          <Text className="text-gray-600 mr-2">
-            {value} {unit}
-          </Text>
-        )}
-        {showArrow && (
-          <IconSymbol name="chevron.right" size={16} color="#9CA3AF" />
-        )}
-      </View>
-    </TouchableOpacity>
-  );
+  }) => {
+    // Ensure value is always a valid string or number
+    const displayValue =
+      value !== undefined && value !== null ? String(value) : "";
+
+    return (
+      <TouchableOpacity
+        onPress={onPress}
+        className="flex-row items-center justify-between py-4 px-6 border-b border-gray-100"
+        disabled={!onPress}
+      >
+        <Text className="text-gray-900 font-medium text-base">{title}</Text>
+        <View className="flex-row items-center">
+          {displayValue && (
+            <Text className="text-gray-600 mr-2">
+              {displayValue} {unit}
+            </Text>
+          )}
+          {showArrow && (
+            <IconSymbol name="chevron.right" size={16} color="#9CA3AF" />
+          )}
+        </View>
+      </TouchableOpacity>
+    );
+  };
 
   const SectionHeader = ({ title }: { title: string }) => (
     <Text className="text-lg font-semibold text-gray-900 px-6 pt-8 pb-4">
@@ -250,40 +267,48 @@ const SettingsScreen = () => {
               <View className="px-6 py-4">
                 <Text className="text-gray-500">Loading profile...</Text>
               </View>
-            ) : userProfile ? (
+            ) : displayUserProfile ? (
               <>
                 <SettingRow
                   title="Gender"
-                  value={formatGender(userProfile.gender)}
+                  value={formatGender(displayUserProfile.gender)}
                   showArrow={false}
                 />
                 <SettingRow
                   title="Date of Birth"
-                  value={new Date(
-                    userProfile.date_of_birth
-                  ).toLocaleDateString()}
+                  value={
+                    displayUserProfile.date_of_birth
+                      ? new Date(
+                          displayUserProfile.date_of_birth
+                        ).toLocaleDateString()
+                      : "Not set"
+                  }
                   showArrow={false}
                 />
                 <SettingRow
                   title="Height"
-                  value={userProfile.height_value}
-                  unit={userProfile.height_unit === "metric" ? "cm" : "ft"}
+                  value={displayUserProfile.height_value || 0}
+                  unit={
+                    displayUserProfile.height_unit === "metric" ? "cm" : "ft"
+                  }
                   showArrow={false}
                 />
                 <SettingRow
                   title="Weight"
-                  value={userProfile.weight_value}
-                  unit={userProfile.weight_unit === "metric" ? "kg" : "lbs"}
+                  value={displayUserProfile.weight_value || 0}
+                  unit={
+                    displayUserProfile.weight_unit === "metric" ? "kg" : "lbs"
+                  }
                   showArrow={false}
                 />
                 <SettingRow
                   title="Goal"
-                  value={formatGoal(userProfile.main_goal)}
+                  value={formatGoal(displayUserProfile.main_goal)}
                   showArrow={false}
                 />
                 <SettingRow
                   title="Activity Level"
-                  value={formatActivityLevel(userProfile.activity_level)}
+                  value={formatActivityLevel(displayUserProfile.activity_level)}
                   showArrow={false}
                 />
                 <TouchableOpacity
@@ -304,34 +329,64 @@ const SettingsScreen = () => {
           </View>
 
           {/* Daily Targets */}
-          {userProfile && (
+          {displayUserProfile && (
             <>
               <SectionHeader title="Daily Targets" />
               <View className="bg-white">
                 <SettingRow
                   title="Calories"
-                  value={userProfile.daily_calories}
+                  value={displayUserProfile.daily_calories || 0}
                   unit="cal"
                   showArrow={false}
                 />
                 <SettingRow
                   title="Protein"
-                  value={Math.round(userProfile.daily_protein_g)}
+                  value={Math.round(displayUserProfile.daily_protein_g || 0)}
                   unit="g"
                   showArrow={false}
                 />
                 <SettingRow
                   title="Carbs"
-                  value={Math.round(userProfile.daily_carbs_g)}
+                  value={Math.round(displayUserProfile.daily_carbs_g || 0)}
                   unit="g"
                   showArrow={false}
                 />
                 <SettingRow
                   title="Fats"
-                  value={Math.round(userProfile.daily_fats_g)}
+                  value={Math.round(displayUserProfile.daily_fats_g || 0)}
                   unit="g"
                   showArrow={false}
                 />
+              </View>
+            </>
+          )}
+
+          {/* Streak Information */}
+          {displayUserProfile?.streak !== undefined && (
+            <>
+              <SectionHeader title="Streak Information" />
+              <View className="bg-white">
+                <SettingRow
+                  title="Current Streak"
+                  value={displayUserProfile?.streak || 0}
+                  unit="days"
+                  showArrow={false}
+                />
+                <SettingRow
+                  title="Daily Goal"
+                  value={displayUserProfile?.daily_calories || 0}
+                  unit="calories"
+                  showArrow={false}
+                />
+                {displayUserProfile?.streak_history &&
+                  Array.isArray(displayUserProfile.streak_history) &&
+                  displayUserProfile.streak_history.length > 0 && (
+                    <SettingRow
+                      title="Streak History"
+                      value={`${displayUserProfile.streak_history.length} days achieved`}
+                      showArrow={false}
+                    />
+                  )}
               </View>
             </>
           )}

@@ -35,6 +35,7 @@ import { useMutateNutrition } from "@/hooks/useMutateNutrition";
 import {
   useDailyNutritionSummary,
   formatDateForAPI,
+  useUserProfileStreak,
 } from "@/hooks/useUserProfile";
 import { CircularProgress } from "@/components/ui/CircularProgress";
 import { useQueryClient } from "@tanstack/react-query";
@@ -74,6 +75,9 @@ export default function DashboardScreen() {
     hasReachedGoal,
     shouldShowCongratulations,
   } = useGoalTracking();
+
+  // User profile streak data for day selector icons
+  const { data: userProfileData } = useUserProfileStreak();
 
   // Congratulations modal state
   const [showCongratulationsModal, setShowCongratulationsModal] =
@@ -656,8 +660,19 @@ export default function DashboardScreen() {
           // Mark goal as reached
           markGoalReached(selectedDate);
 
+          // Optimistically update streak data for immediate UI feedback
+          optimisticallyUpdateStreak(selectedDate);
+
           // Update streak in background
           updateStreakMutation.mutate();
+
+          // Invalidate user profile data to refresh streak history (as fallback)
+          queryClient.invalidateQueries({
+            queryKey: ["user-profile-streak", session?.user?.id],
+          });
+          queryClient.invalidateQueries({
+            queryKey: ["user-profile", session?.user?.id],
+          });
         }
 
         // Show congratulations if needed (only for today and only once)
@@ -697,7 +712,9 @@ export default function DashboardScreen() {
     // Add a small delay to prevent rapid navigation
     setTimeout(() => {
       try {
-        navigationRouter.push("/settings");
+        navigationRouter.push({
+          pathname: "/settings",
+        });
       } catch (error) {
         console.error("Navigation error in navigateToSettings:", error);
         // Reset the flag if navigation fails
@@ -707,6 +724,59 @@ export default function DashboardScreen() {
       setTimeout(() => setIsNavigatingToSettings(false), 500);
     }, 100);
   }, [isNavigatingToSettings, navigationRouter]);
+
+  // Function to check if a specific date has a streak achieved
+  const hasStreakAchieved = (dateString: string): boolean => {
+    if (
+      !userProfileData?.streak_history ||
+      !Array.isArray(userProfileData.streak_history)
+    )
+      return false;
+    return userProfileData.streak_history.includes(dateString);
+  };
+
+  // Function to optimistically update streak data
+  const optimisticallyUpdateStreak = (dateString: string) => {
+    if (!userProfileData) return;
+
+    // Optimistically update the streak history
+    queryClient.setQueryData(
+      ["user-profile-streak", session?.user?.id],
+      (oldData: any) => {
+        if (!oldData) return oldData;
+
+        const updatedStreakHistory = [
+          ...(oldData.streak_history || []),
+          dateString,
+        ];
+
+        return {
+          ...oldData,
+          streak: (oldData.streak || 0) + 1,
+          streak_history: updatedStreakHistory,
+        };
+      }
+    );
+
+    // Also update the main user profile cache
+    queryClient.setQueryData(
+      ["user-profile", session?.user?.id],
+      (oldData: any) => {
+        if (!oldData) return oldData;
+
+        const updatedStreakHistory = [
+          ...(oldData.streak_history || []),
+          dateString,
+        ];
+
+        return {
+          ...oldData,
+          streak: (oldData.streak || 0) + 1,
+          streak_history: updatedStreakHistory,
+        };
+      }
+    );
+  };
 
   return (
     <View className="flex-1">
@@ -762,7 +832,7 @@ export default function DashboardScreen() {
               <View className="flex-row bg-white rounded-2xl ">
                 {monthDates.map((dateObj, index) => {
                   const dateString = formatDateForAPI(dateObj.fullDate);
-                  const goalReached = hasReachedGoal(dateString);
+                  const goalReached = hasStreakAchieved(dateString);
 
                   return (
                     <View key={index} className="flex-row items-center">
