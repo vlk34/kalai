@@ -14,7 +14,7 @@ import {
 import { CameraView, useCameraPermissions } from "expo-camera";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { IconSymbol } from "@/components/ui/IconSymbol";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { useFocusEffect } from "@react-navigation/native";
@@ -39,6 +39,7 @@ interface NutritionAnalysis {
 }
 
 export default function CameraScreen() {
+  const { selectedDate } = useLocalSearchParams();
   const [permission, requestPermission] = useCameraPermissions();
   const [showResults, setShowResults] = useState(false);
   const [capturedPhoto, setCapturedPhoto] = useState<string | null>(null);
@@ -125,9 +126,9 @@ export default function CameraScreen() {
             isAnalyzing: true,
           };
 
-          // Add to recent meals optimistically
-          const today = formatDateForAPI(new Date());
-          addOptimisticMeal(optimisticMeal, today);
+          // Use the selected date from parameters, or fall back to today
+          const targetDate = formatDateForAPI(new Date()); // Always use today's date for meal analysis
+          addOptimisticMeal(optimisticMeal, targetDate);
 
           // Navigate back to main screen immediately
           router.back();
@@ -156,7 +157,7 @@ export default function CameraScreen() {
                 created_at: databaseRecord.created_at,
                 isAnalyzing: false,
               },
-              today
+              targetDate
             );
 
             // Optimistically update nutrition with the real meal data
@@ -167,12 +168,16 @@ export default function CameraScreen() {
                 carbs: databaseRecord.carbs,
                 fats: databaseRecord.fats,
               },
-              today
+              targetDate
             );
 
             // Only invalidate nutrition summary, not recent meals (optimistic updates handle recent meals)
             queryClient.invalidateQueries({
-              queryKey: ["daily-nutrition-summary", session?.user?.id, today],
+              queryKey: [
+                "daily-nutrition-summary",
+                session?.user?.id,
+                targetDate,
+              ],
             });
           } catch (error) {
             console.error("Analysis failed:", error);
@@ -188,7 +193,7 @@ export default function CameraScreen() {
                 calories: 0,
                 isAnalyzing: false,
               },
-              today
+              targetDate
             );
           }
         }

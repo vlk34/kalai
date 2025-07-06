@@ -46,6 +46,7 @@ import {
   useCreateProfile,
   type OnboardingData as OnboardingDataType,
 } from "@/hooks/useUserProfile";
+import { useAuth } from "@/contexts/AuthContext";
 
 // Import selector components
 import HeightSelectorOnboarding from "./(tabs)/height-selector-onboarding";
@@ -80,6 +81,7 @@ export default function OnboardingScreen() {
 
   // API hooks
   const createProfileMutation = useCreateProfile();
+  const { setOnboardingCompleted } = useAuth();
 
   const totalSteps = 9;
   const progress = ((currentStep + 1) / totalSteps) * 100;
@@ -209,7 +211,7 @@ export default function OnboardingScreen() {
       setRealTimeTargets(result.daily_targets);
 
       await AsyncStorage.setItem("onboardingData", JSON.stringify(data));
-      await AsyncStorage.setItem("hasCompletedOnboarding", "true");
+      await setOnboardingCompleted(true);
 
       router.replace("/(tabs)");
     } catch (error) {
@@ -229,7 +231,7 @@ export default function OnboardingScreen() {
                 "onboardingData",
                 JSON.stringify(data)
               );
-              await AsyncStorage.setItem("hasCompletedOnboarding", "true");
+              await setOnboardingCompleted(true);
               router.replace("/(tabs)");
             },
           },
@@ -411,7 +413,7 @@ export default function OnboardingScreen() {
             </Text>
 
             <OptionButton
-              icon={<BatteryLow size={24} color="#374151" />}
+              icon={<Battery size={24} color="#374151" />}
               title="Sedentary"
               subtitle="Little to no exercise"
               selected={data.activityLevel === "low"}
@@ -419,7 +421,7 @@ export default function OnboardingScreen() {
               twoLines={true}
             />
             <OptionButton
-              icon={<Battery size={24} color="#374151" />}
+              icon={<BatteryLow size={24} color="#374151" />}
               title="Lightly Active"
               subtitle="Light exercise 1-3 days/week"
               selected={data.activityLevel === "moderate"}

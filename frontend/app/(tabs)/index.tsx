@@ -10,8 +10,12 @@ import {
   Modal,
   Animated,
   Alert,
+  BackHandler,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import {
@@ -21,7 +25,7 @@ import {
   Feather,
 } from "@expo/vector-icons";
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useFocusEffect } from "@react-navigation/native";
 import * as ImagePicker from "expo-image-picker";
 
 import { useRecentMeals } from "@/hooks/useRecentMeals";
@@ -78,9 +82,43 @@ export default function DashboardScreen() {
   const streakModalAnim = useRef(new Animated.Value(0)).current;
   const streakBgOpacityAnim = useRef(new Animated.Value(0)).current;
 
+  const [isNavigatingToCamera, setIsNavigatingToCamera] = useState(false);
+  const [isNavigatingToSettings, setIsNavigatingToSettings] = useState(false);
+  const [isAnalyzingMeal, setIsAnalyzingMeal] = useState(false);
+  const [justReturnedFromCamera, setJustReturnedFromCamera] = useState(false);
+
   const { analyzeFood } = useAnalyzeFood();
   const { addOptimisticMeal, updateOptimisticMeal } = useMutateRecentMeals();
   const { addMealToNutrition } = useMutateNutrition();
+
+  // Android back button handler - only for homepage
+  useFocusEffect(
+    useCallback(() => {
+      const backAction = () => {
+        // Show confirmation dialog when user tries to exit the app from homepage
+        Alert.alert("Exit App", "Are you sure you want to exit?", [
+          {
+            text: "Cancel",
+            style: "cancel",
+            onPress: () => null,
+          },
+          {
+            text: "Exit",
+            style: "destructive",
+            onPress: () => BackHandler.exitApp(),
+          },
+        ]);
+        return true; // Prevent default back behavior
+      };
+
+      const backHandler = BackHandler.addEventListener(
+        "hardwareBackPress",
+        backAction
+      );
+
+      return () => backHandler.remove();
+    }, [])
+  );
 
   // Request permissions when component mounts
   useEffect(() => {
@@ -207,20 +245,20 @@ export default function DashboardScreen() {
     ]).start(() => setShowStreakModal(false));
   };
 
-  const [isNavigatingToCamera, setIsNavigatingToCamera] = useState(false);
-  const [isNavigatingToSettings, setIsNavigatingToSettings] = useState(false);
-
   const handleCameraPress = useCallback(() => {
     if (isNavigatingToCamera) return; // Prevent multiple rapid clicks
     setIsNavigatingToCamera(true);
     hideModal();
     // Add a small delay to prevent rapid navigation
     setTimeout(() => {
-      router.push("/camera");
+      router.push({
+        pathname: "/camera",
+        params: { selectedDate: selectedDate },
+      });
       // Reset the flag after navigation
       setTimeout(() => setIsNavigatingToCamera(false), 500);
     }, 100);
-  }, [isNavigatingToCamera]);
+  }, [isNavigatingToCamera, selectedDate]);
 
   const handleGalleryPress = async () => {
     hideModal();
@@ -254,6 +292,9 @@ export default function DashboardScreen() {
         // Add to recent meals optimistically
         const today = formatDateForAPI(new Date());
         addOptimisticMeal(optimisticMeal, today);
+
+        // Set analyzing state to trigger auto-switch
+        setIsAnalyzingMeal(true);
 
         // Start analysis in background with compressed image
         try {
@@ -434,6 +475,53 @@ export default function DashboardScreen() {
     }
   }, [queryClient, selectedDate, session?.user?.id]);
 
+  // Auto-switch to today's date when a meal is being analyzed (only once)
+  useEffect(() => {
+    if (isAnalyzingMeal) {
+      // Switch to today's date to show the analysis progress (only once)
+      const today = formatDateForAPI(new Date());
+      const todayIndex = monthDates.findIndex(
+        (dateObj) => formatDateForAPI(dateObj.fullDate) === today
+      );
+
+      if (todayIndex !== -1 && selectedDate !== today) {
+        setSelectedDate(today);
+        setSelectedDayIndex(monthDates[todayIndex].dayIndex);
+        setSelectedDateIndex(todayIndex);
+      }
+
+      // Reset the analyzing state immediately so user can navigate freely
+      setIsAnalyzingMeal(false);
+    }
+  }, [isAnalyzingMeal, selectedDate, monthDates]);
+
+  // Check for analyzing meals when returning from camera (only once)
+  useEffect(() => {
+    if (justReturnedFromCamera) {
+      // Switch to today's date to show the analysis progress (only once)
+      const today = formatDateForAPI(new Date());
+      const todayIndex = monthDates.findIndex(
+        (dateObj) => formatDateForAPI(dateObj.fullDate) === today
+      );
+
+      if (todayIndex !== -1) {
+        setSelectedDate(today);
+        setSelectedDayIndex(monthDates[todayIndex].dayIndex);
+        setSelectedDateIndex(todayIndex);
+      }
+
+      // Reset the flag when the effect is cleaned up
+      setJustReturnedFromCamera(false);
+    }
+  }, [justReturnedFromCamera, selectedDate, monthDates]);
+
+  // Set flag when returning from camera
+  useFocusEffect(
+    useCallback(() => {
+      setJustReturnedFromCamera(true);
+    }, [])
+  );
+
   // Calculate daily stats from daily nutrition summary or fallback to defaults
   const getDailyStats = () => {
     // Default values if data not loaded yet
@@ -509,11 +597,14 @@ export default function DashboardScreen() {
     setIsNavigatingToCamera(true);
     // Add a small delay to prevent rapid navigation
     setTimeout(() => {
-      router.push("/camera");
+      router.push({
+        pathname: "/camera",
+        params: { selectedDate: selectedDate },
+      });
       // Reset the flag after navigation
       setTimeout(() => setIsNavigatingToCamera(false), 500);
     }, 100);
-  }, [isNavigatingToCamera]);
+  }, [isNavigatingToCamera, selectedDate]);
 
   const navigateToSettings = useCallback(() => {
     if (isNavigatingToSettings) return; // Prevent multiple rapid clicks
@@ -775,8 +866,11 @@ export default function DashboardScreen() {
                     <TouchableOpacity
                       key={meal.id}
                       onPress={() => handleMealPress(meal)}
-                      className="bg-white rounded-2xl px-3 py-2 shadow-sm"
-                      activeOpacity={0.7}
+                      disabled={meal.isAnalyzing}
+                      className={`bg-white rounded-2xl px-3 py-2 shadow-sm ${
+                        meal.isAnalyzing ? "opacity-60" : ""
+                      }`}
+                      activeOpacity={meal.isAnalyzing ? 1 : 0.7}
                     >
                       <View className="flex-row items-center">
                         <View className="relative">

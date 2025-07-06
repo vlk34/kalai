@@ -34,11 +34,48 @@ export default function RootLayout() {
         <AuthProvider>
           <SelectorProvider>
             <ThemeProvider value={DefaultTheme}>
-              <Stack screenOptions={{ headerShown: false }}>
-                <Stack.Screen name="(auth)" />
-                <Stack.Screen name="(tabs)" />
-                <Stack.Screen name="welcome" />
-                <Stack.Screen name="onboarding" />
+              <Stack
+                screenOptions={{
+                  headerShown: false,
+                  gestureEnabled: true,
+                }}
+              >
+                <Stack.Screen
+                  name="index"
+                  options={{
+                    gestureEnabled: false,
+                  }}
+                />
+                <Stack.Screen
+                  name="(auth)"
+                  options={{
+                    gestureEnabled: true,
+                  }}
+                />
+                <Stack.Screen
+                  name="(tabs)"
+                  options={{
+                    gestureEnabled: false,
+                  }}
+                />
+                <Stack.Screen
+                  name="welcome"
+                  options={{
+                    gestureEnabled: true,
+                  }}
+                />
+                <Stack.Screen
+                  name="auth-selection"
+                  options={{
+                    gestureEnabled: true,
+                  }}
+                />
+                <Stack.Screen
+                  name="onboarding"
+                  options={{
+                    gestureEnabled: false,
+                  }}
+                />
                 <Stack.Screen name="+not-found" />
               </Stack>
               <StatusBar style="auto" />

@@ -91,6 +91,7 @@ const SettingsScreen = () => {
         onPress: async () => {
           try {
             await signOut();
+            // Navigation will be handled automatically by AuthContext
           } catch (error) {
             Alert.alert("Error", "Failed to sign out");
           }
