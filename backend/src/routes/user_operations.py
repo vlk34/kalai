@@ -90,6 +90,9 @@ class RecentlyEaten(MethodView):
             total_fats = 0
             
             for food in result.data:
+                # Get portion size (default to 1 if not set)
+                portion = float(food.get('portion'))
+                
                 # Get signed URL if photo_path exists
                 photo_url = None
                 if food.get('photo_path'):
@@ -107,14 +110,21 @@ class RecentlyEaten(MethodView):
                     except Exception as e:
                         print(f"Warning: Could not generate signed URL for photo {food['photo_path']}: {str(e)}")
                 
+                # Calculate nutritional values multiplied by portion
+                base_protein = float(food['protein']) if food['protein'] else 0
+                base_carbs = float(food['carbs']) if food['carbs'] else 0
+                base_fats = float(food['fats']) if food['fats'] else 0
+                base_calories = float(food['calories']) if food['calories'] else 0
+                
                 formatted_food = {
                     'id': food['id'],
                     'name': food['name'],
                     'emoji': food['emoji'],
-                    'protein': float(food['protein']) if food['protein'] else 0,
-                    'carbs': float(food['carbs']) if food['carbs'] else 0,
-                    'fats': float(food['fats']) if food['fats'] else 0,
-                    'calories': float(food['calories']) if food['calories'] else 0,
+                    'protein': round(base_protein * portion, 2),
+                    'carbs': round(base_carbs * portion, 2),
+                    'fats': round(base_fats * portion, 2),
+                    'calories': round(base_calories * portion, 2),
+                    'portion': portion,
                     'photo_url': photo_url,
                     'created_at': food['created_at']
                 }
@@ -195,6 +205,9 @@ class FullHistory(MethodView):
             total_fats = 0
             
             for food in result.data:
+                # Get portion size (default to 1 if not set)
+                portion = float(food.get('portion'))
+                
                 # Get signed URL if photo_path exists
                 photo_url = None
                 if food.get('photo_path'):
@@ -212,14 +225,21 @@ class FullHistory(MethodView):
                     except Exception as e:
                         print(f"Warning: Could not generate signed URL for photo {food['photo_path']}: {str(e)}")
                 
+                # Calculate nutritional values multiplied by portion
+                base_protein = float(food['protein']) if food['protein'] else 0
+                base_carbs = float(food['carbs']) if food['carbs'] else 0
+                base_fats = float(food['fats']) if food['fats'] else 0
+                base_calories = float(food['calories']) if food['calories'] else 0
+                
                 formatted_food = {
                     'id': food['id'],
                     'name': food['name'],
                     'emoji': food['emoji'],
-                    'protein': float(food['protein']) if food['protein'] else 0,
-                    'carbs': float(food['carbs']) if food['carbs'] else 0,
-                    'fats': float(food['fats']) if food['fats'] else 0,
-                    'calories': float(food['calories']) if food['calories'] else 0,
+                    'protein': round(base_protein * portion, 2),
+                    'carbs': round(base_carbs * portion, 2),
+                    'fats': round(base_fats * portion, 2),
+                    'calories': round(base_calories * portion, 2),
+                    'portion': portion,
                     'photo_url': photo_url,
                     'created_at': food['created_at']
                 }
@@ -295,7 +315,7 @@ class DailyNutritionSummary(MethodView):
             
             # Get consumed foods for the target date
             foods_result = supabase.table('foods_consumed') \
-                .select('protein, carbs, fats, calories') \
+                .select('protein, carbs, fats, calories, portion') \
                 .eq('user_id', g.current_user['id']) \
                 .gte('created_at', today) \
                 .lt('created_at', tomorrow) \
@@ -322,10 +342,14 @@ class DailyNutritionSummary(MethodView):
             consumed_fats = 0
             
             for food in foods_result.data:
-                consumed_calories += float(food['calories']) if food['calories'] else 0
-                consumed_protein += float(food['protein']) if food['protein'] else 0
-                consumed_carbs += float(food['carbs']) if food['carbs'] else 0
-                consumed_fats += float(food['fats']) if food['fats'] else 0
+                # Get portion size (default to 1 if not set)
+                portion = float(food.get('portion'))
+                
+                # Multiply base nutritional values by portion
+                consumed_calories += (float(food['calories']) if food['calories'] else 0) * portion
+                consumed_protein += (float(food['protein']) if food['protein'] else 0) * portion
+                consumed_carbs += (float(food['carbs']) if food['carbs'] else 0) * portion
+                consumed_fats += (float(food['fats']) if food['fats'] else 0) * portion
             
             # Get daily goals (handle None values)
             goal_calories = float(user_goals['daily_calories']) if user_goals['daily_calories'] else 0
