@@ -16,7 +16,7 @@ import {
   SafeAreaView,
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
-import { router } from "expo-router";
+import { router, useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import {
   FontAwesome5,
@@ -41,6 +41,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
 import { useStreak, useUpdateStreak } from "@/hooks/useStreak";
 import { useGoalTracking } from "@/hooks/useGoalTracking";
+import { MacrosSection } from "@/components/ui/MacrosSection";
 
 export default function DashboardScreen() {
   // Initialize with today's date
@@ -56,6 +57,7 @@ export default function DashboardScreen() {
   const insets = useSafeAreaInsets();
   const { session } = useAuth();
   const scrollViewRef = useRef<ScrollView>(null);
+  const navigationRouter = useRouter();
 
   // Plus button and modal state
   const [showActionModal, setShowActionModal] = useState(false);
@@ -251,14 +253,20 @@ export default function DashboardScreen() {
     hideModal();
     // Add a small delay to prevent rapid navigation
     setTimeout(() => {
-      router.push({
-        pathname: "/camera",
-        params: { selectedDate: selectedDate },
-      });
+      try {
+        navigationRouter.push({
+          pathname: "/camera",
+          params: { selectedDate: selectedDate },
+        });
+      } catch (error) {
+        console.error("Navigation error in handleCameraPress:", error);
+        // Reset the flag if navigation fails
+        setIsNavigatingToCamera(false);
+      }
       // Reset the flag after navigation
       setTimeout(() => setIsNavigatingToCamera(false), 500);
     }, 100);
-  }, [isNavigatingToCamera, selectedDate]);
+  }, [isNavigatingToCamera, selectedDate, navigationRouter]);
 
   const handleGalleryPress = async () => {
     hideModal();
@@ -417,6 +425,7 @@ export default function DashboardScreen() {
       setSelectedDateIndex(dateIndex);
     } catch (error) {
       console.error("Error selecting day:", error);
+      // Don't crash the app, just log the error
     }
   };
 
@@ -436,20 +445,24 @@ export default function DashboardScreen() {
 
   // Handle meal item click to navigate to edit page
   const handleMealPress = (meal: any) => {
-    router.push({
-      pathname: "/(tabs)/edit-meal" as any,
-      params: {
-        id: meal.id,
-        name: meal.name,
-        photo_url: meal.photo_url,
-        calories: meal.calories.toString(),
-        protein: meal.protein.toString(),
-        carbs: meal.carbs.toString(),
-        fats: meal.fats.toString(),
-        portions: "1", // Default portions
-        selectedDate: selectedDate, // Pass the current selected date
-      },
-    });
+    try {
+      navigationRouter.push({
+        pathname: "/(tabs)/edit-meal" as any,
+        params: {
+          id: meal.id,
+          name: meal.name,
+          photo_url: meal.photo_url,
+          calories: meal.calories.toString(),
+          protein: meal.protein.toString(),
+          carbs: meal.carbs.toString(),
+          fats: meal.fats.toString(),
+          portions: "1", // Default portions
+          selectedDate: selectedDate, // Pass the current selected date
+        },
+      });
+    } catch (error) {
+      console.error("Navigation error in handleMealPress:", error);
+    }
   };
 
   // Scroll to today's date when component mounts
@@ -478,49 +491,81 @@ export default function DashboardScreen() {
   // Auto-switch to today's date when a meal is being analyzed (only once)
   useEffect(() => {
     if (isAnalyzingMeal) {
-      // Switch to today's date to show the analysis progress (only once)
-      const today = formatDateForAPI(new Date());
-      const todayIndex = monthDates.findIndex(
-        (dateObj) => formatDateForAPI(dateObj.fullDate) === today
-      );
+      try {
+        // Switch to today's date to show the analysis progress (only once)
+        const today = formatDateForAPI(new Date());
+        const todayIndex = monthDates.findIndex(
+          (dateObj) => formatDateForAPI(dateObj.fullDate) === today
+        );
 
-      if (todayIndex !== -1 && selectedDate !== today) {
-        setSelectedDate(today);
-        setSelectedDayIndex(monthDates[todayIndex].dayIndex);
-        setSelectedDateIndex(todayIndex);
+        if (todayIndex !== -1 && selectedDate !== today) {
+          setSelectedDate(today);
+          setSelectedDayIndex(monthDates[todayIndex].dayIndex);
+          setSelectedDateIndex(todayIndex);
+        }
+
+        // Reset the analyzing state immediately so user can navigate freely
+        setIsAnalyzingMeal(false);
+      } catch (error) {
+        console.error("Error in analyzing meal effect:", error);
+        setIsAnalyzingMeal(false);
       }
-
-      // Reset the analyzing state immediately so user can navigate freely
-      setIsAnalyzingMeal(false);
     }
   }, [isAnalyzingMeal, selectedDate, monthDates]);
 
   // Check for analyzing meals when returning from camera (only once)
   useEffect(() => {
     if (justReturnedFromCamera) {
-      // Switch to today's date to show the analysis progress (only once)
-      const today = formatDateForAPI(new Date());
-      const todayIndex = monthDates.findIndex(
-        (dateObj) => formatDateForAPI(dateObj.fullDate) === today
-      );
+      try {
+        // Switch to today's date to show the analysis progress (only once)
+        const today = formatDateForAPI(new Date());
+        const todayIndex = monthDates.findIndex(
+          (dateObj) => formatDateForAPI(dateObj.fullDate) === today
+        );
 
-      if (todayIndex !== -1) {
-        setSelectedDate(today);
-        setSelectedDayIndex(monthDates[todayIndex].dayIndex);
-        setSelectedDateIndex(todayIndex);
+        if (todayIndex !== -1) {
+          setSelectedDate(today);
+          setSelectedDayIndex(monthDates[todayIndex].dayIndex);
+          setSelectedDateIndex(todayIndex);
+        }
+
+        // Reset the flag when the effect is cleaned up
+        setJustReturnedFromCamera(false);
+      } catch (error) {
+        console.error("Error in justReturnedFromCamera effect:", error);
+        setJustReturnedFromCamera(false);
       }
-
-      // Reset the flag when the effect is cleaned up
-      setJustReturnedFromCamera(false);
     }
   }, [justReturnedFromCamera, selectedDate, monthDates]);
 
   // Set flag when returning from camera
   useFocusEffect(
     useCallback(() => {
-      setJustReturnedFromCamera(true);
+      try {
+        setJustReturnedFromCamera(true);
+      } catch (error) {
+        console.error("Error in useFocusEffect:", error);
+      }
     }, [])
   );
+
+  // Clear state when user changes
+  useEffect(() => {
+    if (session?.user?.id) {
+      try {
+        // Reset navigation flags when user changes
+        setIsNavigatingToCamera(false);
+        setIsNavigatingToSettings(false);
+        setIsAnalyzingMeal(false);
+        setJustReturnedFromCamera(false);
+
+        // Clear any stale query cache for the previous user
+        queryClient.clear();
+      } catch (error) {
+        console.error("Error clearing state on user change:", error);
+      }
+    }
+  }, [session?.user?.id, queryClient]);
 
   // Calculate daily stats from daily nutrition summary or fallback to defaults
   const getDailyStats = () => {
@@ -536,6 +581,12 @@ export default function DashboardScreen() {
       totalFats: 0,
       isOverGoal: false,
       consumed: 0,
+      proteinConsumed: 0,
+      carbsConsumed: 0,
+      fatsConsumed: 0,
+      isOverProteinGoal: false,
+      isOverCarbsGoal: false,
+      isOverFatsGoal: false,
     };
 
     // If nutrition data is available, use it
@@ -544,19 +595,43 @@ export default function DashboardScreen() {
       const goal = dailyNutrition.daily_goals.calories;
       const isOverGoal = consumed > goal;
 
+      const proteinConsumed = dailyNutrition.consumed_today.protein;
+      const proteinGoal = dailyNutrition.daily_goals.protein;
+      const isOverProteinGoal = proteinConsumed > proteinGoal;
+
+      const carbsConsumed = dailyNutrition.consumed_today.carbs;
+      const carbsGoal = dailyNutrition.daily_goals.carbs;
+      const isOverCarbsGoal = carbsConsumed > carbsGoal;
+
+      const fatsConsumed = dailyNutrition.consumed_today.fats;
+      const fatsGoal = dailyNutrition.daily_goals.fats;
+      const isOverFatsGoal = fatsConsumed > fatsGoal;
+
       return {
         caloriesLeft: isOverGoal
           ? consumed
           : Math.max(0, dailyNutrition.remaining_to_goal.calories),
         totalCalories: dailyNutrition.daily_goals.calories,
-        proteinLeft: Math.max(0, dailyNutrition.remaining_to_goal.protein),
+        proteinLeft: isOverProteinGoal
+          ? proteinConsumed
+          : Math.max(0, dailyNutrition.remaining_to_goal.protein),
         totalProtein: dailyNutrition.daily_goals.protein,
-        carbsLeft: Math.max(0, dailyNutrition.remaining_to_goal.carbs),
+        carbsLeft: isOverCarbsGoal
+          ? carbsConsumed
+          : Math.max(0, dailyNutrition.remaining_to_goal.carbs),
         totalCarbs: dailyNutrition.daily_goals.carbs,
-        fatsLeft: Math.max(0, dailyNutrition.remaining_to_goal.fats),
+        fatsLeft: isOverFatsGoal
+          ? fatsConsumed
+          : Math.max(0, dailyNutrition.remaining_to_goal.fats),
         totalFats: dailyNutrition.daily_goals.fats,
         isOverGoal,
         consumed,
+        proteinConsumed,
+        carbsConsumed,
+        fatsConsumed,
+        isOverProteinGoal,
+        isOverCarbsGoal,
+        isOverFatsGoal,
       };
     }
     return defaultStats;
@@ -572,22 +647,26 @@ export default function DashboardScreen() {
   // Check if goal is reached and handle congratulations
   useEffect(() => {
     if (dailyNutrition && selectedDate) {
-      const consumed = dailyNutrition.consumed_today.calories;
-      const goal = dailyNutrition.daily_goals.calories;
+      try {
+        const consumed = dailyNutrition.consumed_today.calories;
+        const goal = dailyNutrition.daily_goals.calories;
 
-      // Check if goal is reached (consumed >= goal)
-      if (consumed >= goal && !hasReachedGoal(selectedDate)) {
-        // Mark goal as reached
-        markGoalReached(selectedDate);
+        // Check if goal is reached (consumed >= goal)
+        if (consumed >= goal && !hasReachedGoal(selectedDate)) {
+          // Mark goal as reached
+          markGoalReached(selectedDate);
 
-        // Update streak in background
-        updateStreakMutation.mutate();
-      }
+          // Update streak in background
+          updateStreakMutation.mutate();
+        }
 
-      // Show congratulations if needed (only for today and only once)
-      const today = formatDateForAPI(new Date());
-      if (selectedDate === today && shouldShowCongratulations(selectedDate)) {
-        showCongratulationsModalWithAnimation();
+        // Show congratulations if needed (only for today and only once)
+        const today = formatDateForAPI(new Date());
+        if (selectedDate === today && shouldShowCongratulations(selectedDate)) {
+          showCongratulationsModalWithAnimation();
+        }
+      } catch (error) {
+        console.error("Error in goal reached effect:", error);
       }
     }
   }, [dailyNutrition, selectedDate]);
@@ -597,25 +676,37 @@ export default function DashboardScreen() {
     setIsNavigatingToCamera(true);
     // Add a small delay to prevent rapid navigation
     setTimeout(() => {
-      router.push({
-        pathname: "/camera",
-        params: { selectedDate: selectedDate },
-      });
+      try {
+        navigationRouter.push({
+          pathname: "/camera",
+          params: { selectedDate: selectedDate },
+        });
+      } catch (error) {
+        console.error("Navigation error in openCamera:", error);
+        // Reset the flag if navigation fails
+        setIsNavigatingToCamera(false);
+      }
       // Reset the flag after navigation
       setTimeout(() => setIsNavigatingToCamera(false), 500);
     }, 100);
-  }, [isNavigatingToCamera, selectedDate]);
+  }, [isNavigatingToCamera, selectedDate, navigationRouter]);
 
   const navigateToSettings = useCallback(() => {
     if (isNavigatingToSettings) return; // Prevent multiple rapid clicks
     setIsNavigatingToSettings(true);
     // Add a small delay to prevent rapid navigation
     setTimeout(() => {
-      router.push("/settings");
+      try {
+        navigationRouter.push("/settings");
+      } catch (error) {
+        console.error("Navigation error in navigateToSettings:", error);
+        // Reset the flag if navigation fails
+        setIsNavigatingToSettings(false);
+      }
       // Reset the flag after navigation
       setTimeout(() => setIsNavigatingToSettings(false), 500);
     }, 100);
-  }, [isNavigatingToSettings]);
+  }, [isNavigatingToSettings, navigationRouter]);
 
   return (
     <View className="flex-1">
@@ -752,7 +843,7 @@ export default function DashboardScreen() {
                           <Text className="text-5xl font-bold text-black-600 py-2">
                             {Math.round(dailyStats.consumed)}
                           </Text>
-                          <Text className="text-sm text-gray-800 mb-1">
+                          <Text className="text-sm text-gray-600 mb-1">
                             Calories Eaten
                           </Text>
                           <Text className="text-xs text-gray-500">
@@ -764,7 +855,7 @@ export default function DashboardScreen() {
                           <Text className="text-5xl font-bold text-black-600 py-2">
                             {Math.round(dailyStats.caloriesLeft)}
                           </Text>
-                          <Text className="text-sm text-gray-800 mb-1">
+                          <Text className="text-xs text-gray-600 mb-1">
                             Calories Left
                           </Text>
                         </>
@@ -781,7 +872,12 @@ export default function DashboardScreen() {
             </View>
 
             {/* Macros Section */}
-            <View className="flex-row gap-2 space-x-4  mb-4">
+            <MacrosSection
+              dailyStats={dailyStats}
+              isLoadingNutrition={isLoadingNutrition}
+              nutritionError={nutritionError}
+            />
+            {/* <View className="flex-row gap-2 space-x-4  mb-4">
               <View className="flex-1 bg-white rounded-2xl p-4 shadow-sm">
                 <Text className="text-sm font-medium text-gray-600 mb-1">
                   Protein Left
@@ -833,7 +929,7 @@ export default function DashboardScreen() {
                   of {Math.round(dailyStats.totalFats)}g
                 </Text>
               </View>
-            </View>
+            </View> */}
 
             {/* Recently Section */}
             <View className="mb-20">
@@ -1297,7 +1393,12 @@ export default function DashboardScreen() {
                         <TouchableOpacity
                           onPress={() => {
                             hideStreakModal();
-                            openCamera();
+                            try {
+                              openCamera();
+                            } catch (error) {
+                              console.error("Navigation error:", error);
+                              // Fallback: just close the modal if navigation fails
+                            }
                           }}
                           disabled={isNavigatingToCamera}
                           className={`flex-1 rounded-2xl py-3 ${isNavigatingToCamera ? "bg-gray-400" : "bg-green-500"}`}

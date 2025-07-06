@@ -55,6 +55,11 @@ export const useMutateRecentMeals = () => {
     console.log("Removing optimistic meal:", { queryKey, mealId });
 
     queryClient.setQueryData(queryKey, (oldData: any[] = []) => {
+      if (!oldData || !Array.isArray(oldData)) {
+        console.log("No existing data found, returning empty array");
+        return [];
+      }
+
       const newData = oldData.filter((meal) => meal.id !== mealId);
       console.log("Updated recent meals data:", newData);
       return newData;

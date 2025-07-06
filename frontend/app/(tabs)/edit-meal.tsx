@@ -262,6 +262,29 @@ export default function EditMealScreen() {
         queryClient.invalidateQueries({
           queryKey: ["daily-nutrition-summary", session?.user?.id, targetDate],
         });
+      } else {
+        // If API call succeeded, wait a bit for navigation to complete, then force refetch
+        setTimeout(() => {
+          console.log(
+            "Refetching data after successful deletion for date:",
+            targetDate
+          );
+          // Force refetch recent meals
+          queryClient.invalidateQueries({
+            queryKey: ["recent-meals", session?.user?.id, targetDate],
+          });
+          // Also invalidate all recent meals queries to be safe
+          queryClient.invalidateQueries({
+            queryKey: ["recent-meals"],
+          });
+          queryClient.invalidateQueries({
+            queryKey: [
+              "daily-nutrition-summary",
+              session?.user?.id,
+              targetDate,
+            ],
+          });
+        }, 100);
       }
     } catch (error: any) {
       console.error("Delete error:", error);

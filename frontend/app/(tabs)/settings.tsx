@@ -286,10 +286,15 @@ const SettingsScreen = () => {
                   value={formatActivityLevel(userProfile.activity_level)}
                   showArrow={false}
                 />
-                <SettingRow
-                  title="Edit Profile Information"
+                <TouchableOpacity
                   onPress={navigateToEditProfile}
-                />
+                  className="flex-row items-center justify-between py-4 px-6 border-b border-gray-300 bg-gray-50"
+                >
+                  <Text className="text-blue-600 font-medium text-base">
+                    Edit Profile Information
+                  </Text>
+                  <IconSymbol name="chevron.right" size={16} color="#2563EB" />
+                </TouchableOpacity>
               </>
             ) : (
               <View className="px-6 py-4">
@@ -327,10 +332,6 @@ const SettingsScreen = () => {
                   unit="g"
                   showArrow={false}
                 />
-                <SettingRow
-                  title="Recalculate Targets"
-                  onPress={handleRecalculateTargets}
-                />
               </View>
             </>
           )}
@@ -347,18 +348,7 @@ const SettingsScreen = () => {
                 )
               }
             />
-            <SettingRow
-              title="Units"
-              value="Metric"
-              onPress={() =>
-                Alert.alert("Units", "Switch between Metric and Imperial units")
-              }
-            />
-            <SettingRow
-              title="Language"
-              value="English"
-              onPress={() => Alert.alert("Language", "Change app language")}
-            />
+
             <SettingRow
               title="Reminders"
               onPress={() =>
@@ -370,7 +360,7 @@ const SettingsScreen = () => {
             />
           </View>
 
-          {/* Health Integration */}
+          {/* Health Integration
           <SectionHeader title="Health Integration" />
           <View className="bg-white">
             <SettingRow
@@ -391,7 +381,7 @@ const SettingsScreen = () => {
                 Alert.alert("Export Data", "Export your nutrition data")
               }
             />
-          </View>
+          </View> */}
 
           {/* Account */}
           <SectionHeader title="Account" />
@@ -470,7 +460,7 @@ const SettingsScreen = () => {
           <View className="bg-white">
             <SettingRow title="App Version" value="1.0.0" showArrow={false} />
             <SettingRow title="Build Number" value="2024.1" showArrow={false} />
-            <SettingRow title="Clear App Data" onPress={clearAsyncStorage} />
+            {/* <SettingRow title="Clear App Data" onPress={clearAsyncStorage} /> */}
           </View>
 
           {/* Bottom Spacing */}
