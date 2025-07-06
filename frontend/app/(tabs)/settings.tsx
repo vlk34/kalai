@@ -4,7 +4,6 @@ import { View, Text, ScrollView, TouchableOpacity, Alert } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { IconSymbol } from "@/components/ui/IconSymbol";
 import { useAuth } from "@/contexts/AuthContext";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   useUserProfile,
   useRecalculateTargets,
@@ -109,32 +108,6 @@ const SettingsScreen = () => {
         },
       },
     ]);
-  };
-
-  const clearAsyncStorage = async () => {
-    Alert.alert(
-      "Clear App Data",
-      "This will clear all locally stored data including login session. You'll need to sign in again. Are you sure?",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Clear Data",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              await AsyncStorage.clear();
-              Alert.alert(
-                "Success",
-                "App data cleared successfully. Please restart the app."
-              );
-            } catch (error) {
-              Alert.alert("Error", "Failed to clear app data");
-              console.error("AsyncStorage clear error:", error);
-            }
-          },
-        },
-      ]
-    );
   };
 
   const handleRecalculateTargets = async () => {
@@ -515,7 +488,6 @@ const SettingsScreen = () => {
           <View className="bg-white">
             <SettingRow title="App Version" value="1.0.0" showArrow={false} />
             <SettingRow title="Build Number" value="2024.1" showArrow={false} />
-            {/* <SettingRow title="Clear App Data" onPress={clearAsyncStorage} /> */}
           </View>
 
           {/* Bottom Spacing */}

@@ -12,6 +12,7 @@ import {
   Alert,
   BackHandler,
 } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   SafeAreaView,
   useSafeAreaInsets,
@@ -41,7 +42,6 @@ import { CircularProgress } from "@/components/ui/CircularProgress";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
 import { useStreak, useUpdateStreak } from "@/hooks/useStreak";
-import { useGoalTracking } from "@/hooks/useGoalTracking";
 import { MacrosSection } from "@/components/ui/MacrosSection";
 
 export default function DashboardScreen() {
@@ -69,12 +69,6 @@ export default function DashboardScreen() {
   // Streak functionality
   const { data: streakData, isLoading: isLoadingStreak } = useStreak();
   const updateStreakMutation = useUpdateStreak();
-  const {
-    markGoalReached,
-    markCongratulationsShown,
-    hasReachedGoal,
-    shouldShowCongratulations,
-  } = useGoalTracking();
 
   // User profile streak data for day selector icons
   const { data: userProfileData } = useUserProfileStreak();
@@ -83,10 +77,44 @@ export default function DashboardScreen() {
   const [showCongratulationsModal, setShowCongratulationsModal] =
     useState(false);
   const [showStreakModal, setShowStreakModal] = useState(false);
+  const [congratulationsShownForDay, setCongratulationsShownForDay] =
+    useState<string>("");
   const congratsModalAnim = useRef(new Animated.Value(0)).current;
   const congratsBgOpacityAnim = useRef(new Animated.Value(0)).current;
   const streakModalAnim = useRef(new Animated.Value(0)).current;
   const streakBgOpacityAnim = useRef(new Animated.Value(0)).current;
+
+  // Load congratulations tracking from storage
+  useEffect(() => {
+    const loadCongratulationsTracking = async () => {
+      if (!session?.user?.id) return;
+
+      try {
+        const key = `congratulationsShown_${session.user.id}`;
+        const stored = await AsyncStorage.getItem(key);
+        if (stored) {
+          setCongratulationsShownForDay(stored);
+        }
+      } catch (error) {
+        console.error("Error loading congratulations tracking:", error);
+      }
+    };
+
+    loadCongratulationsTracking();
+  }, [session?.user?.id]);
+
+  // Save congratulations tracking to storage
+  const saveCongratulationsTracking = async (day: string) => {
+    if (!session?.user?.id) return;
+
+    try {
+      const key = `congratulationsShown_${session.user.id}`;
+      await AsyncStorage.setItem(key, day);
+      setCongratulationsShownForDay(day);
+    } catch (error) {
+      console.error("Error saving congratulations tracking:", error);
+    }
+  };
 
   const [isNavigatingToCamera, setIsNavigatingToCamera] = useState(false);
   const [isNavigatingToSettings, setIsNavigatingToSettings] = useState(false);
@@ -210,8 +238,6 @@ export default function DashboardScreen() {
       }),
     ]).start(() => {
       setShowCongratulationsModal(false);
-      // Mark congratulations as shown for today
-      markCongratulationsShown(selectedDate);
     });
   };
 
@@ -380,6 +406,7 @@ export default function DashboardScreen() {
     data: recentMeals = [],
     isLoading: isLoadingMeals,
     error,
+    refetch: refetchRecentMeals,
   } = useRecentMeals(selectedDate);
 
   const { invalidateRecentMeals } = useMutateRecentMeals();
@@ -389,7 +416,23 @@ export default function DashboardScreen() {
     data: dailyNutrition,
     isLoading: isLoadingNutrition,
     error: nutritionError,
+    refetch: refetchDailyNutrition,
   } = useDailyNutritionSummary(selectedDate);
+
+  // Manual refetch when session becomes available
+  useEffect(() => {
+    if (session?.access_token && selectedDate) {
+      setTimeout(() => {
+        refetchRecentMeals();
+        refetchDailyNutrition();
+      }, 100);
+    }
+  }, [
+    session?.access_token,
+    selectedDate,
+    refetchRecentMeals,
+    refetchDailyNutrition,
+  ]);
 
   // Turkish day abbreviations
   const turkishDays = ["Paz", "Pzt", "Sal", "Çar", "Per", "Cum", "Cts"];
@@ -562,6 +605,7 @@ export default function DashboardScreen() {
         setIsNavigatingToSettings(false);
         setIsAnalyzingMeal(false);
         setJustReturnedFromCamera(false);
+        setCongratulationsShownForDay("");
 
         // Clear any stale query cache for the previous user
         queryClient.clear();
@@ -570,6 +614,21 @@ export default function DashboardScreen() {
       }
     }
   }, [session?.user?.id, queryClient]);
+
+  // Reset congratulations tracking when day changes
+  useEffect(() => {
+    const today = formatDateForAPI(new Date());
+    if (congratulationsShownForDay && congratulationsShownForDay !== today) {
+      // Clear the stored congratulations tracking for the new day
+      if (session?.user?.id) {
+        const key = `congratulationsShown_${session.user.id}`;
+        AsyncStorage.removeItem(key).catch((error) => {
+          console.error("Error clearing congratulations tracking:", error);
+        });
+      }
+      setCongratulationsShownForDay("");
+    }
+  }, [congratulationsShownForDay, session?.user?.id]);
 
   // Calculate daily stats from daily nutrition summary or fallback to defaults
   const getDailyStats = () => {
@@ -657,9 +716,6 @@ export default function DashboardScreen() {
 
         // Check if goal is reached (consumed >= goal)
         if (consumed >= goal && !hasReachedGoal(selectedDate)) {
-          // Mark goal as reached
-          markGoalReached(selectedDate);
-
           // Optimistically update streak data for immediate UI feedback
           optimisticallyUpdateStreak(selectedDate);
 
@@ -673,11 +729,22 @@ export default function DashboardScreen() {
           queryClient.invalidateQueries({
             queryKey: ["user-profile", session?.user?.id],
           });
+
+          // Refetch user profile data in background to ensure consistency
+          setTimeout(() => {
+            queryClient.refetchQueries({
+              queryKey: ["user-profile-streak", session?.user?.id],
+            });
+            queryClient.refetchQueries({
+              queryKey: ["user-profile", session?.user?.id],
+            });
+          }, 1000);
         }
 
         // Show congratulations if needed (only for today and only once)
         const today = formatDateForAPI(new Date());
         if (selectedDate === today && shouldShowCongratulations(selectedDate)) {
+          saveCongratulationsTracking(today);
           showCongratulationsModalWithAnimation();
         }
       } catch (error) {
@@ -735,6 +802,21 @@ export default function DashboardScreen() {
     return userProfileData.streak_history.includes(dateString);
   };
 
+  // Backend-based goal tracking functions
+  const hasReachedGoal = (dateString: string): boolean => {
+    return hasStreakAchieved(dateString);
+  };
+
+  const shouldShowCongratulations = (dateString: string): boolean => {
+    const today = formatDateForAPI(new Date());
+    // Only show congratulations for today and only if we haven't shown it yet for this day
+    return (
+      dateString === today &&
+      hasReachedGoal(dateString) &&
+      congratulationsShownForDay !== today
+    );
+  };
+
   // Function to optimistically update streak data
   const optimisticallyUpdateStreak = (dateString: string) => {
     if (!userProfileData) return;
@@ -776,6 +858,16 @@ export default function DashboardScreen() {
         };
       }
     );
+
+    // Also update the streak data cache for the top display
+    queryClient.setQueryData(["streak", session?.user?.id], (oldData: any) => {
+      if (!oldData) return oldData;
+
+      return {
+        ...oldData,
+        current_streak: (oldData.current_streak || 0) + 1,
+      };
+    });
   };
 
   return (

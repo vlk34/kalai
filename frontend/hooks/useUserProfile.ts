@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
+import { useEffect } from "react";
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_PRODUCTION_API_URL;
 
@@ -269,8 +270,10 @@ export const useUserProfile = () => {
     queryKey: ["user-profile", session?.user?.id],
     queryFn: () => fetchUserProfile(session!.access_token),
     enabled: !!session?.access_token,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 10 * 60 * 1000, // 10 minutes
+    staleTime: 10 * 60 * 1000, // 10 minutes (user profile doesn't change often)
+    gcTime: 30 * 60 * 1000, // 30 minutes
+    refetchOnWindowFocus: false, // Prevent refetch on window focus
+    refetchOnMount: false, // Prevent refetch on mount if data exists
     retry: (failureCount, error) => {
       // Don't retry on auth errors
       if (error.message.includes("401") || error.message.includes("403")) {
@@ -292,24 +295,9 @@ export const useUserProfileData = () => {
   };
 };
 
-// Hook specifically for getting streak data from user profile
+// Hook specifically for getting streak data from user profile - now uses the same query
 export const useUserProfileStreak = () => {
-  const { session } = useAuth();
-
-  return useQuery({
-    queryKey: ["user-profile-streak", session?.user?.id],
-    queryFn: () => fetchUserProfile(session!.access_token),
-    enabled: !!session?.access_token,
-    staleTime: 2 * 60 * 1000, // 2 minutes (streak data changes more frequently)
-    gcTime: 5 * 60 * 1000, // 5 minutes
-    retry: (failureCount, error) => {
-      // Don't retry on auth errors
-      if (error.message.includes("401") || error.message.includes("403")) {
-        return false;
-      }
-      return failureCount < 3;
-    },
-  });
+  return useUserProfile();
 };
 
 export const useCreateProfile = () => {
@@ -347,8 +335,10 @@ export const useDailyNutritionSummary = (date?: string) => {
     queryKey: ["daily-nutrition-summary", session?.user?.id, date],
     queryFn: () => fetchDailyNutritionSummary(session!.access_token, date),
     enabled: !!session?.access_token,
-    staleTime: 2 * 60 * 1000, // 2 minutes (nutrition data changes more frequently)
+    staleTime: 2 * 60 * 1000, // 2 minutes
     gcTime: 5 * 60 * 1000, // 5 minutes
+    refetchOnWindowFocus: false, // Prevent refetch on window focus
+    refetchOnMount: false, // Prevent refetch on mount if data exists
     retry: (failureCount, error) => {
       // Don't retry on auth errors
       if (error.message.includes("401") || error.message.includes("403")) {

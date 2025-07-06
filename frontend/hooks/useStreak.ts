@@ -109,6 +109,20 @@ export const useUpdateStreak = () => {
           return oldData;
         }
       );
+
+      // Also update the streak data cache for the top display
+      queryClient.setQueryData(
+        ["streak", session?.user?.id],
+        (oldData: any) => {
+          if (oldData) {
+            return {
+              ...oldData,
+              current_streak: newStreak,
+            };
+          }
+          return oldData;
+        }
+      );
     },
     onError: () => {
       // If the API call fails, invalidate queries to revert optimistic updates
@@ -117,6 +131,9 @@ export const useUpdateStreak = () => {
       });
       queryClient.invalidateQueries({
         queryKey: ["user-profile", session?.user?.id],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["streak", session?.user?.id],
       });
     },
   });

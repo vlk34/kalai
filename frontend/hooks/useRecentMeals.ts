@@ -61,7 +61,9 @@ export const useRecentMeals = (date?: string) => {
     queryFn: () => fetchRecentMeals(session!.access_token, date),
     enabled: !!session?.access_token,
     staleTime: 2 * 60 * 1000, // 2 minutes
-    gcTime: 10 * 60 * 1000, // 10 minutes
+    gcTime: 5 * 60 * 1000, // 5 minutes
+    refetchOnWindowFocus: false, // Prevent refetch on window focus
+    refetchOnMount: false, // Prevent refetch on mount if data exists
     retry: (failureCount, error) => {
       // Don't retry on auth errors
       if (error.message.includes("401") || error.message.includes("403")) {
