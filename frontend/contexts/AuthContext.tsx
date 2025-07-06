@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState } from "react";
 import { Session } from "@supabase/supabase-js";
 import { supabase } from "@/scripts/supabase";
 import { router } from "expo-router";
+import { queryClient } from "@/utils/queryClient";
 
 type AuthContextType = {
   session: Session | null;
@@ -80,7 +81,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Listen for auth changes
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log(
+        "Auth state change:",
+        event,
+        session ? "session exists" : "no session"
+      );
+
+      // Clear query cache on sign out to prevent stale data
+      if (event === "SIGNED_OUT") {
+        queryClient.clear();
+      }
+
       setSession(session);
       if (session?.access_token) {
         await checkOnboardingStatus(session.access_token);
@@ -96,16 +108,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!isLoading && !session) {
       // User signed out, navigate to welcome
-      router.replace("/welcome");
+      // Use setTimeout to ensure navigation happens after state updates
+      setTimeout(() => {
+        try {
+          router.replace("/welcome");
+        } catch (error) {
+          console.error("Navigation error on sign out:", error);
+        }
+      }, 100);
     }
   }, [session, isLoading]);
 
   const signOut = async () => {
     try {
+      // Clear all query cache before signing out to prevent stale data
+      queryClient.clear();
+
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
+
       // Clear onboarding status on sign out
       setHasCompletedOnboarding(null);
+
+      // Force navigation to welcome screen to clear any stale navigation state
+      router.replace("/welcome");
     } catch (error) {
       console.error("Sign out error:", error);
       throw error;

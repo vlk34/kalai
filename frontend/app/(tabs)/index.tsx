@@ -434,24 +434,39 @@ export default function DashboardScreen() {
     refetchDailyNutrition,
   ]);
 
-  // Turkish day abbreviations
+  // Turkish day abbreviations (Sunday = 0, Monday = 1, etc.)
   const turkishDays = ["Paz", "Pzt", "Sal", "Çar", "Per", "Cum", "Cts"];
 
   // Get dates for the past 30 days with today on the right
   const getMonthDates = () => {
     const today = new Date();
+    console.log("getMonthDates - Today's date:", {
+      localDate: today.toLocaleDateString(),
+      isoDate: today.toISOString().split("T")[0],
+      utcDate: new Date().toUTCString(),
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    });
+
     const dates = [];
     const dayNames = [];
     // Generate 30 days starting from 30 days ago
     for (let i = 29; i >= 0; i--) {
       const date = new Date(today);
       date.setDate(today.getDate() - i);
-      dates.push({
+      const dateInfo = {
         date: date.getDate(),
         dayIndex: date.getDay(),
         fullDate: date,
-      });
+      };
+      dates.push(dateInfo);
       dayNames.push(turkishDays[date.getDay()]);
+
+      // Debug the last few dates (today and yesterday)
+      if (i <= 1) {
+        console.log(
+          `Date ${i}: ${date.toISOString().split("T")[0]} - ${turkishDays[date.getDay()]} ${date.getDate()}`
+        );
+      }
     }
     return { dates, dayNames };
   };
@@ -467,6 +482,14 @@ export default function DashboardScreen() {
     try {
       const selectedFullDate = dateObj.fullDate;
       const formattedDate = formatDateForAPI(selectedFullDate);
+      console.log("Day selection - Date being sent:", {
+        dateIndex,
+        dayName: monthDayNames[dateIndex],
+        dayNumber: dateObj.date,
+        selectedFullDate: selectedFullDate.toISOString(),
+        formattedDate,
+        localDate: selectedFullDate.toLocaleDateString(),
+      });
       setSelectedDate(formattedDate);
       setSelectedDayIndex(dateObj.dayIndex);
       setSelectedDateIndex(dateIndex);

@@ -61,8 +61,14 @@ export default function SignUp() {
     } else if (!session) {
       Alert.alert("Success", "Please check your inbox for email verification!");
     } else {
-      // Let the index screen handle routing based on onboarding status
-      router.replace("/");
+      // Add a small delay to ensure navigation context is properly reset
+      setTimeout(() => {
+        try {
+          router.replace("/");
+        } catch (error) {
+          console.error("Navigation error on sign up:", error);
+        }
+      }, 100);
     }
     setLoading(false);
   }

@@ -50,6 +50,7 @@ const fetchRecentMeals = async (
   }
 
   const result: RecentMealsResponse = await response.json();
+  console.log("Recent meals result:", result);
   return result.data.foods || [];
 };
 
