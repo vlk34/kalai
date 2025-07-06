@@ -416,11 +416,13 @@ class UpdateStreak(MethodView):
             
             # Check if streak was already updated today (compare dates only)
             streak_update_date = profile_result.data[0].get('streak_update_date')
+            print(f"Streak update date: {streak_update_date}")
             if streak_update_date:
                 # Parse the stored date and compare with today's date
                 stored_date = datetime.fromisoformat(streak_update_date.replace('Z', '+00:00')).date()
                 today_date = datetime.now().date()
-                
+                print(f"Stored date: {stored_date}")
+                print(f"Today date: {today_date}")
                 if stored_date == today_date:
                     return jsonify({
                         'error': 'Streak already updated today',
