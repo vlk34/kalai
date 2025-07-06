@@ -434,17 +434,33 @@ class UpdateStreak(MethodView):
             current_streak = int(user_profile['streak'])
             
             # Update the streak in the database
+            today_iso = datetime.now().isoformat()
+            today_date = datetime.now().date().isoformat()
+            
             update_result = supabase.table('user_profiles') \
                 .update({
                     'streak': current_streak + 1,
-                    'updated_at': datetime.now().isoformat(),
-                    'streak_update_date': datetime.now().isoformat()
+                    'updated_at': today_iso,
+                    'streak_update_date': today_iso
                 }) \
                 .eq('user_id', g.current_user['id']) \
                 .execute()
             
             if not update_result.data:
                 raise Exception("Failed to update streak in database")
+            
+            # Also add a record to the user_streaks table for today
+            streak_record_result = supabase.table('user_streaks') \
+                .insert({
+                    'user_id': g.current_user['id'],
+                    'streak_date': today_date
+                }) \
+                .execute()
+            
+            if not streak_record_result.data:
+                # If inserting streak record fails, we should rollback the profile update
+                # For now, just log the error but don't fail the request since the main streak was updated
+                print(f"Warning: Failed to insert streak record for user {g.current_user['id']} on {today_date}")
             
             updated_profile = update_result.data[0]
             
@@ -488,6 +504,23 @@ class GetStreak(MethodView):
             daily_calorie_goal = float(user_profile['daily_calories']) if user_profile['daily_calories'] else 0
             last_updated = user_profile.get('updated_at')
             
+            # Get last 31 days of streak data
+            thirty_one_days_ago = (datetime.now().date() - timedelta(days=31)).isoformat()
+            today = datetime.now().date().isoformat()
+            
+            streak_history_result = supabase.table('user_streaks') \
+                .select('streak_date') \
+                .eq('user_id', g.current_user['id']) \
+                .gte('streak_date', thirty_one_days_ago) \
+                .lte('streak_date', today) \
+                .order('streak_date', desc=True) \
+                .execute()
+            
+            # Format streak dates
+            streak_dates = []
+            if streak_history_result.data:
+                streak_dates = [record['streak_date'] for record in streak_history_result.data]
+
             return jsonify({
                 'success': True,
                 'message': 'Streak information retrieved successfully',
@@ -495,7 +528,8 @@ class GetStreak(MethodView):
                     'current_streak': current_streak,
                     'daily_calorie_goal': round(daily_calorie_goal, 2),
                     'last_updated': last_updated,
-                    'user_id': g.current_user['id']
+                    'user_id': g.current_user['id'],
+                    'streak_history': streak_dates
                 }
             }), 200
             

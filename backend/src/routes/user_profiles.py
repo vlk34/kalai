@@ -7,7 +7,7 @@ Handles user profile creation, updates, and daily target calculations.
 from flask import jsonify, request, g, current_app
 from flask.views import MethodView
 from flask_smorest import Blueprint
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 import json
 import os
 from supabase import create_client, Client
@@ -170,6 +170,23 @@ class UserProfilesView(MethodView):
                 }), 404
             
             profile = result.data[0]
+
+                        # Get last 31 days of streak data
+            thirty_one_days_ago = (datetime.now().date() - timedelta(days=31)).isoformat()
+            today = datetime.now().date().isoformat()
+            
+            streak_history_result = supabase.table('user_streaks') \
+                .select('streak_date') \
+                .eq('user_id', g.current_user['id']) \
+                .gte('streak_date', thirty_one_days_ago) \
+                .lte('streak_date', today) \
+                .order('streak_date', desc=True) \
+                .execute()
+            
+            # Format streak dates
+            streak_dates = []
+            if streak_history_result.data:
+                streak_dates = [record['streak_date'] for record in streak_history_result.data]
             
             return jsonify({
                 'message': 'Profile retrieved successfully',
@@ -180,7 +197,9 @@ class UserProfilesView(MethodView):
                     'protein_g': profile.get('daily_protein_g'),
                     'carbs_g': profile.get('daily_carbs_g'),
                     'fats_g': profile.get('daily_fats_g')
-                }
+                },
+                'streak': profile.get('streak'),
+                'streak_history': streak_dates
             }), 200
             
         except Exception as e:
