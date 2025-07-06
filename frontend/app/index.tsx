@@ -20,9 +20,14 @@ export default function IndexScreen() {
     }
   }, [session, hasCompletedOnboarding]);
 
+  useEffect(() => {
+    console.log("hasCompletedOnboarding:", hasCompletedOnboarding);
+  }, [hasCompletedOnboarding]);
+
   const checkOnboardingStatus = async () => {
     try {
       const completed = await AsyncStorage.getItem("hasCompletedOnboarding");
+      console.log("Checking onboarding status:", completed);
       setHasCompletedOnboarding(completed === "true");
     } catch (error) {
       console.error("Error checking onboarding status:", error);
@@ -51,6 +56,7 @@ export default function IndexScreen() {
   }
 
   if (!hasCompletedOnboarding) {
+    console.log("Redirecting to welcome");
     return <Redirect href="/welcome" />;
   }
 

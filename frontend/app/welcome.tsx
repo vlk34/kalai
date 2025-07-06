@@ -1,15 +1,13 @@
 "use client";
-
 import { View, Text, TouchableOpacity, Animated } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { FontAwesome5 } from "@expo/vector-icons";
+import { Camera, Target, TrendingUp, Sparkles } from "lucide-react-native";
 import { router } from "expo-router";
 import React, { useState } from "react";
 
 export default function WelcomeScreen() {
   const [fadeAnim] = useState(new Animated.Value(0));
   const [slideAnim] = useState(new Animated.Value(50));
-  const [scaleAnim] = useState(new Animated.Value(0.8));
 
   React.useEffect(() => {
     Animated.parallel([
@@ -23,12 +21,6 @@ export default function WelcomeScreen() {
         duration: 800,
         useNativeDriver: true,
       }),
-      Animated.spring(scaleAnim, {
-        toValue: 1,
-        tension: 50,
-        friction: 7,
-        useNativeDriver: true,
-      }),
     ]).start();
   }, []);
 
@@ -37,107 +29,84 @@ export default function WelcomeScreen() {
   };
 
   return (
-    <View className="flex-1 bg-white">
+    <View className="flex-1 bg-gray-50">
       <SafeAreaView className="flex-1">
+        {/* Top 30% space for image */}
+        <View className="h-[30%] bg-black" />
+
+        {/* Bottom container with content */}
         <Animated.View
           style={{
             opacity: fadeAnim,
             transform: [{ translateY: slideAnim }],
           }}
-          className="flex-1 justify-center items-center px-8"
+          className="flex-1 bg-white rounded-t-3xl px-8 pt-8"
         >
-          {/* Logo/Icon */}
-          <Animated.View
-            style={{
-              transform: [{ scale: scaleAnim }],
-            }}
-            className="bg-gray-100 rounded-2xl p-6 mb-8 shadow-sm"
-          >
-            <FontAwesome5 name="apple-alt" size={48} color="#000" />
-          </Animated.View>
-
           {/* Main Title */}
           <Text className="text-4xl font-bold text-black text-center mb-3 tracking-tight">
             Kal AI
           </Text>
 
           {/* Subtitle */}
-          <Text className="text-lg text-gray-600 text-center mb-12 font-light">
+          <Text className="text-lg text-gray-600 text-center mb-12 font-light leading-6">
             Smart calorie tracking with AI
           </Text>
 
           {/* Features */}
-          <View className="mb-12 w-full max-w-sm">
-            <Animated.View
-              style={{
-                opacity: fadeAnim,
-                transform: [{ translateX: slideAnim }],
-              }}
-              className="flex-row items-center mb-6"
-            >
-              <View className="bg-black rounded-full p-4 mr-5">
-                <FontAwesome5 name="camera" size={22} color="white" />
+          <View className="mb-12 gap-6">
+            <View className="flex-row items-center">
+              <View className="bg-gray-100 rounded-2xl p-4 mr-5">
+                <Camera size={24} color="black" />
               </View>
               <View className="flex-1">
-                <Text className="text-black text-lg font-semibold">
+                <Text className="text-black text-lg font-semibold mb-1">
                   Photo Recognition
                 </Text>
-                <Text className="text-gray-600 text-base">
+                <Text className="text-gray-600 text-base leading-5">
                   Instant nutrition analysis
                 </Text>
               </View>
-            </Animated.View>
+            </View>
 
-            <Animated.View
-              style={{
-                opacity: fadeAnim,
-                transform: [{ translateX: slideAnim }],
-              }}
-              className="flex-row items-center mb-6"
-            >
-              <View className="bg-black rounded-full p-4 mr-5">
-                <FontAwesome5 name="brain" size={22} color="white" />
+            <View className="flex-row items-center">
+              <View className="bg-gray-100 rounded-2xl p-4 mr-5">
+                <Target size={24} color="black" />
               </View>
               <View className="flex-1">
-                <Text className="text-black text-lg font-semibold">
-                  AI-Powered
+                <Text className="text-black text-lg font-semibold mb-1">
+                  Reach Your Goals
                 </Text>
-                <Text className="text-gray-600 text-base">
-                  Accurate calorie counting
+                <Text className="text-gray-600 text-base leading-5">
+                  Personalized daily targets
                 </Text>
               </View>
-            </Animated.View>
+            </View>
 
-            <Animated.View
-              style={{
-                opacity: fadeAnim,
-                transform: [{ translateX: slideAnim }],
-              }}
-              className="flex-row items-center"
-            >
-              <View className="bg-black rounded-full p-4 mr-5">
-                <FontAwesome5 name="chart-line" size={22} color="white" />
+            <View className="flex-row items-center">
+              <View className="bg-gray-100 rounded-2xl p-4 mr-5">
+                <TrendingUp size={24} color="black" />
               </View>
               <View className="flex-1">
-                <Text className="text-black text-lg font-semibold">
-                  Smart Tracking
+                <Text className="text-black text-lg font-semibold mb-1">
+                  Track Progress
                 </Text>
-                <Text className="text-gray-600 text-base">
-                  Personalized insights
+                <Text className="text-gray-600 text-base leading-5">
+                  Monitor your journey
                 </Text>
               </View>
-            </Animated.View>
+            </View>
           </View>
 
           {/* Get Started Button */}
           <TouchableOpacity
             onPress={handleGetStarted}
-            className="bg-black rounded-2xl py-4 px-12 shadow-lg"
+            className="bg-black rounded-2xl py-5 px-12 shadow-lg flex-row items-center justify-center"
             activeOpacity={0.8}
           >
-            <Text className="text-white font-bold text-base text-center">
+            <Text className="text-white font-bold text-lg mr-2">
               Get Started
             </Text>
+            <Sparkles size={20} color="white" />
           </TouchableOpacity>
         </Animated.View>
       </SafeAreaView>

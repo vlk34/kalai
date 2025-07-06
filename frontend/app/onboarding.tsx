@@ -1,5 +1,4 @@
 "use client";
-
 import { useState, useEffect } from "react";
 import {
   View,
@@ -7,28 +6,51 @@ import {
   TouchableOpacity,
   ScrollView,
   Alert,
-  TextInput,
-  Modal,
+  Animated,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
-import { IconSymbol } from "@/components/ui/IconSymbol";
+import {
+  ChevronLeft,
+  ChevronRight,
+  User,
+  Users,
+  Activity,
+  Zap,
+  Battery,
+  BatteryLow,
+  Frown,
+  Meh,
+  Smile,
+  Leaf,
+  BookOpen,
+  Award,
+  Ruler,
+  Weight,
+  Calendar,
+  Target,
+  TrendingDown,
+  TrendingUp,
+  Dumbbell,
+  Utensils,
+  Apple,
+  Carrot,
+  Wheat,
+  Flame,
+  CheckCircle,
+} from "lucide-react-native";
 import { router } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import {
-  AntDesign,
-  Entypo,
-  Feather,
-  FontAwesome,
-  Ionicons,
-  FontAwesome6,
-  MaterialCommunityIcons,
-} from "@expo/vector-icons";
-import React from "react";
+import type React from "react";
 import {
   useCreateProfile,
   type OnboardingData as OnboardingDataType,
 } from "@/hooks/useUserProfile";
+
+// Import selector components
+import HeightSelectorOnboarding from "./(tabs)/height-selector-onboarding";
+import WeightSelectorOnboarding from "./(tabs)/weight-selector-onboarding";
+import DateSelectorOnboarding from "./(tabs)/date-selector-onboarding";
 
 interface OnboardingData {
   gender?: string;
@@ -47,22 +69,20 @@ export default function OnboardingScreen() {
   const [currentStep, setCurrentStep] = useState(0);
   const [data, setData] = useState<OnboardingData>({ unit: "metric" });
   const [canProceed, setCanProceed] = useState(false);
-  const [showHeightPicker, setShowHeightPicker] = useState(false);
-  const [dateInputText, setDateInputText] = useState("");
   const [realTimeTargets, setRealTimeTargets] = useState<any>(null);
+  const [isCalculating, setIsCalculating] = useState(false);
+  const [isSelectorActive, setIsSelectorActive] = useState(false);
+
+  // Animation values
+  const [fadeAnim] = useState(new Animated.Value(1));
+  const [slideAnim] = useState(new Animated.Value(0));
+  const [pulseAnim] = useState(new Animated.Value(1));
 
   // API hooks
   const createProfileMutation = useCreateProfile();
 
   const totalSteps = 9;
   const progress = ((currentStep + 1) / totalSteps) * 100;
-
-  // Initialize date input text when date exists
-  useEffect(() => {
-    if (data.dateOfBirth && !dateInputText) {
-      setDateInputText(formatDateForDisplay(data.dateOfBirth));
-    }
-  }, [data.dateOfBirth]);
 
   // Validation for each step
   useEffect(() => {
@@ -96,9 +116,50 @@ export default function OnboardingScreen() {
     }
   }, [currentStep, data]);
 
+  // Disable main scroll when selectors are active
+  useEffect(() => {
+    setIsSelectorActive(currentStep === 4);
+  }, [currentStep]);
+
+  // Step transition animation
+  const animateStepTransition = () => {
+    // Reset animations to initial state
+    fadeAnim.setValue(1);
+    slideAnim.setValue(0);
+
+    Animated.sequence([
+      Animated.timing(fadeAnim, {
+        toValue: 0,
+        duration: 100,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 20,
+        duration: 0,
+        useNativeDriver: true,
+      }),
+      Animated.parallel([
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+        Animated.timing(slideAnim, {
+          toValue: 0,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+      ]),
+    ]).start();
+  };
+
   const handleNext = () => {
     if (currentStep < totalSteps - 1) {
-      setCurrentStep(currentStep + 1);
+      animateStepTransition();
+      // Delay step change to prevent jitter
+      setTimeout(() => {
+        setCurrentStep(currentStep + 1);
+      }, 100);
     } else {
       handleComplete();
     }
@@ -106,13 +167,16 @@ export default function OnboardingScreen() {
 
   const handleBack = () => {
     if (currentStep > 0) {
-      setCurrentStep(currentStep - 1);
+      animateStepTransition();
+      // Delay step change to prevent jitter
+      setTimeout(() => {
+        setCurrentStep(currentStep - 1);
+      }, 100);
     }
   };
 
   const handleComplete = async () => {
     try {
-      // Validate that we have all required data
       if (
         !data.gender ||
         !data.activityLevel ||
@@ -128,7 +192,6 @@ export default function OnboardingScreen() {
         return;
       }
 
-      // Convert local onboarding data to the format expected by the API
       const profileData: OnboardingDataType = {
         gender: data.gender,
         activityLevel: data.activityLevel,
@@ -142,27 +205,17 @@ export default function OnboardingScreen() {
         diet: data.diet,
       };
 
-      console.log("Attempting to create profile with data:", profileData);
-
-      // Create profile via API and get targets
       const result = await createProfileMutation.mutateAsync(profileData);
       setRealTimeTargets(result.daily_targets);
 
-      // Save onboarding completion to AsyncStorage
       await AsyncStorage.setItem("onboardingData", JSON.stringify(data));
       await AsyncStorage.setItem("hasCompletedOnboarding", "true");
 
-      console.log("Profile created successfully");
-
-      // Navigate to main app
       router.replace("/(tabs)");
     } catch (error) {
       console.error("Error creating profile:", error);
-
-      // Show more detailed error message
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error occurred";
-
       Alert.alert(
         "Profile Creation Failed",
         `Failed to create your profile. Details: ${errorMessage}\n\nYou can continue to the app and try again later from Settings.`,
@@ -172,7 +225,6 @@ export default function OnboardingScreen() {
             text: "Continue Anyway",
             style: "cancel",
             onPress: async () => {
-              // Save as fallback and continue
               await AsyncStorage.setItem(
                 "onboardingData",
                 JSON.stringify(data)
@@ -200,6 +252,8 @@ export default function OnboardingScreen() {
       return;
     }
 
+    setIsCalculating(true);
+
     try {
       const profileData: OnboardingDataType = {
         gender: data.gender,
@@ -218,8 +272,9 @@ export default function OnboardingScreen() {
       setRealTimeTargets(result.daily_targets);
     } catch (error) {
       console.error("Error calculating targets:", error);
-      // Fall back to simple calculation
       setRealTimeTargets(calculateFallbackRecommendations(data));
+    } finally {
+      setIsCalculating(false);
     }
   };
 
@@ -229,7 +284,6 @@ export default function OnboardingScreen() {
     const carbs = 250;
     const fats = 65;
 
-    // Adjust based on user data
     if (userData.gender === "male") baseCalories += 200;
     if (userData.activityLevel === "high") baseCalories += 300;
     if (userData.goal === "lose") baseCalories -= 300;
@@ -245,82 +299,62 @@ export default function OnboardingScreen() {
 
   const handleUnitChange = (newUnit: "metric" | "imperial") => {
     try {
-      console.log("Changing unit from", data.unit, "to", newUnit);
-
       let newHeight = data.height;
       let newWeight = data.weight;
 
       if (data.unit === "metric" && newUnit === "imperial") {
-        // Convert cm to inches, kg to lbs
         if (data.height) newHeight = Math.round(data.height / 2.54);
         if (data.weight) newWeight = Math.round(data.weight * 2.205);
       } else if (data.unit === "imperial" && newUnit === "metric") {
-        // Convert inches to cm, lbs to kg
         if (data.height) newHeight = Math.round(data.height * 2.54);
         if (data.weight) newWeight = Math.round(data.weight / 2.205);
       }
 
       setData({ ...data, unit: newUnit, height: newHeight, weight: newWeight });
-      console.log("Unit change completed successfully");
     } catch (error) {
       console.error("Error in handleUnitChange:", error);
     }
   };
 
-  const parseDateString = (dateStr: string) => {
-    // Parse DD.MM.YYYY format
-    const parts = dateStr.split(".");
-    if (parts.length === 3) {
-      const day = parseInt(parts[0], 10);
-      const month = parseInt(parts[1], 10) - 1; // Month is 0-based in Date
-      const year = parseInt(parts[2], 10);
-
-      const date = new Date(year, month, day);
-      // Validate the date
-      if (
-        date.getDate() === day &&
-        date.getMonth() === month &&
-        date.getFullYear() === year
-      ) {
-        return date;
-      }
-    }
-    return null;
-  };
-
-  const formatDateForDisplay = (date: Date) => {
-    const day = date.getDate().toString().padStart(2, "0");
-    const month = (date.getMonth() + 1).toString().padStart(2, "0");
-    const year = date.getFullYear();
-    return `${day}.${month}.${year}`;
-  };
-
   const OptionButton = ({
     icon,
     title,
+    subtitle,
     selected,
     onPress,
+    twoLines = false,
   }: {
-    icon: string | React.ReactNode;
+    icon: React.ReactNode;
     title: string;
+    subtitle?: string;
     selected: boolean;
     onPress: () => void;
+    twoLines?: boolean;
   }) => (
     <TouchableOpacity
       onPress={onPress}
       className={`flex-row items-center p-4 rounded-2xl mb-3 border-2 ${
         selected ? "border-green-500 bg-green-50" : "border-gray-200 bg-white"
-      }`}
+      } ${twoLines ? "min-h-[72px]" : ""}`}
     >
-      <Text className="text-2xl mr-4">{icon}</Text>
-      <Text
-        className={`text-lg font-medium flex-1 ${selected ? "text-green-700" : "text-gray-700"}`}
-      >
-        {title}
-      </Text>
+      <View className="mr-4">{icon}</View>
+      <View className="flex-1">
+        <Text
+          className={`text-lg font-medium ${selected ? "text-green-700" : "text-gray-700"}`}
+        >
+          {title}
+        </Text>
+        {subtitle && (
+          <Text
+            className={`text-sm ${selected ? "text-green-600" : "text-gray-500"}`}
+          >
+            {subtitle}
+          </Text>
+        )}
+      </View>
       {selected && (
         <View className="w-6 h-6 bg-green-500 rounded-full items-center justify-center">
-          <Text className="text-white text-xs font-bold">✓</Text>
+          <CheckCircle size={16} color="white" />
         </View>
       )}
     </TouchableOpacity>
@@ -334,24 +368,28 @@ export default function OnboardingScreen() {
             <Text className="text-2xl font-bold text-gray-900 mb-2">
               What's your gender?
             </Text>
-            <Text className="text-gray-600 mb-8">
+            <Text className="text-gray-600 mb-2">
               This helps us calculate your daily needs
+            </Text>
+            <Text className="text-sm text-gray-500 mb-8 leading-5">
+              Gender affects your metabolic rate for accurate calorie
+              calculations.
             </Text>
 
             <OptionButton
-              icon={<FontAwesome name="male" size={24} color="black" />}
+              icon={<User size={24} color="#374151" />}
               title="Male"
               selected={data.gender === "male"}
               onPress={() => setData({ ...data, gender: "male" })}
             />
             <OptionButton
-              icon={<FontAwesome name="female" size={24} color="black" />}
+              icon={<Users size={24} color="#374151" />}
               title="Female"
               selected={data.gender === "female"}
               onPress={() => setData({ ...data, gender: "female" })}
             />
             <OptionButton
-              icon={<FontAwesome name="question" size={24} color="black" />}
+              icon={<User size={24} color="#374151" />}
               title="I prefer not to say"
               selected={data.gender === "other"}
               onPress={() => setData({ ...data, gender: "other" })}
@@ -365,27 +403,36 @@ export default function OnboardingScreen() {
             <Text className="text-2xl font-bold text-gray-900 mb-2">
               How active are you?
             </Text>
-            <Text className="text-gray-600 mb-8">
+            <Text className="text-gray-600 mb-2">
               This affects your calorie requirements
+            </Text>
+            <Text className="text-sm text-gray-500 mb-8 leading-5">
+              Activity level determines your daily calorie needs.
             </Text>
 
             <OptionButton
-              icon={<FontAwesome name="battery-1" size={24} color="black" />}
-              title="Sedentary (Little to no exercise)"
+              icon={<BatteryLow size={24} color="#374151" />}
+              title="Sedentary"
+              subtitle="Little to no exercise"
               selected={data.activityLevel === "low"}
               onPress={() => setData({ ...data, activityLevel: "low" })}
+              twoLines={true}
             />
             <OptionButton
-              icon={<FontAwesome name="battery-2" size={24} color="black" />}
-              title="Lightly Active (Light exercise 1-3 days/week)"
+              icon={<Battery size={24} color="#374151" />}
+              title="Lightly Active"
+              subtitle="Light exercise 1-3 days/week"
               selected={data.activityLevel === "moderate"}
               onPress={() => setData({ ...data, activityLevel: "moderate" })}
+              twoLines={true}
             />
             <OptionButton
-              icon={<FontAwesome name="battery-full" size={24} color="black" />}
-              title="Very Active (Hard exercise 6-7 days/week)"
+              icon={<Zap size={24} color="#374151" />}
+              title="Very Active"
+              subtitle="Hard exercise 6-7 days/week"
               selected={data.activityLevel === "high"}
               onPress={() => setData({ ...data, activityLevel: "high" })}
+              twoLines={true}
             />
           </View>
         );
@@ -396,18 +443,21 @@ export default function OnboardingScreen() {
             <Text className="text-2xl font-bold text-gray-900 mb-2">
               Have you had difficulty tracking calories?
             </Text>
-            <Text className="text-gray-600 mb-8">
+            <Text className="text-gray-600 mb-2">
               We'll customize your experience accordingly
+            </Text>
+            <Text className="text-sm text-gray-500 mb-8 leading-5">
+              We'll customize the app based on your experience.
             </Text>
 
             <OptionButton
-              icon={<Entypo name="emoji-sad" size={24} color="black" />}
+              icon={<Frown size={24} color="#374151" />}
               title="Yes, it's been challenging"
               selected={data.trackingDifficulty === "yes"}
               onPress={() => setData({ ...data, trackingDifficulty: "yes" })}
             />
             <OptionButton
-              icon={<Entypo name="emoji-neutral" size={24} color="black" />}
+              icon={<Meh size={24} color="#374151" />}
               title="Sometimes, but manageable"
               selected={data.trackingDifficulty === "sometimes"}
               onPress={() =>
@@ -415,7 +465,7 @@ export default function OnboardingScreen() {
               }
             />
             <OptionButton
-              icon={<Entypo name="emoji-flirt" size={24} color="black" />}
+              icon={<Smile size={24} color="#374151" />}
               title="No, I find it easy"
               selected={data.trackingDifficulty === "no"}
               onPress={() => setData({ ...data, trackingDifficulty: "no" })}
@@ -429,24 +479,27 @@ export default function OnboardingScreen() {
             <Text className="text-2xl font-bold text-gray-900 mb-2">
               What's your nutrition tracking experience?
             </Text>
-            <Text className="text-gray-600 mb-8">
+            <Text className="text-gray-600 mb-2">
               This helps us tailor the app for you
+            </Text>
+            <Text className="text-sm text-gray-500 mb-8 leading-5">
+              Your experience level helps us show appropriate guidance.
             </Text>
 
             <OptionButton
-              icon={<Ionicons name="leaf-outline" size={24} color="black" />}
+              icon={<Leaf size={24} color="#374151" />}
               title="Complete beginner"
               selected={data.experience === "beginner"}
               onPress={() => setData({ ...data, experience: "beginner" })}
             />
             <OptionButton
-              icon={<Feather name="book-open" size={24} color="black" />}
+              icon={<BookOpen size={24} color="#374151" />}
               title="Some experience"
               selected={data.experience === "intermediate"}
               onPress={() => setData({ ...data, experience: "intermediate" })}
             />
             <OptionButton
-              icon={<Feather name="award" size={24} color="black" />}
+              icon={<Award size={24} color="#374151" />}
               title="Very experienced"
               selected={data.experience === "expert"}
               onPress={() => setData({ ...data, experience: "expert" })}
@@ -460,142 +513,51 @@ export default function OnboardingScreen() {
             <Text className="text-2xl font-bold text-gray-900 mb-2">
               Your measurements
             </Text>
-            <Text className="text-gray-600 mb-8">
+            <Text className="text-gray-600 mb-2">
               We need this to calculate your daily needs
             </Text>
-
-            {/* Unit Toggle */}
-            <View className="flex-row bg-gray-100 rounded-2xl p-1 mb-6">
-              <TouchableOpacity
-                onPress={() => handleUnitChange("metric")}
-                className={`flex-1 py-3 rounded-xl ${data.unit === "metric" ? "bg-white shadow-sm" : ""}`}
-              >
-                <Text
-                  className={`text-center font-medium ${data.unit === "metric" ? "text-gray-900" : "text-gray-500"}`}
-                >
-                  Metric
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => handleUnitChange("imperial")}
-                className={`flex-1 py-3 rounded-xl ${data.unit === "imperial" ? "bg-white shadow-sm" : ""}`}
-              >
-                <Text
-                  className={`text-center font-medium ${data.unit === "imperial" ? "text-gray-900" : "text-gray-500"}`}
-                >
-                  Imperial
-                </Text>
-              </TouchableOpacity>
-            </View>
-
-            {/* Height Input */}
+            <Text className="text-sm text-gray-500 mb-6 leading-5">
+              Height and weight are needed for accurate daily targets.
+            </Text>
+            {/* Height Selector */}
             <View className="mb-6">
-              <Text className="text-lg font-semibold text-gray-900 mb-3">
-                Height ({data.unit === "metric" ? "cm" : "ft/in"})
-              </Text>
-              {data.unit === "metric" ? (
-                <TextInput
-                  className="bg-white border border-gray-200 rounded-2xl p-4 text-lg text-gray-700"
-                  placeholder="Enter height in cm (e.g. 170)"
-                  placeholderTextColor="#9CA3AF"
-                  value={data.height?.toString() || ""}
-                  onChangeText={(text) => {
-                    const height = parseFloat(text);
-                    if (!isNaN(height) && height > 0) {
-                      setData({ ...data, height });
-                    } else if (text === "") {
-                      setData({ ...data, height: undefined });
-                    }
-                  }}
-                  keyboardType="numeric"
-                />
-              ) : (
-                <TouchableOpacity
-                  onPress={() => setShowHeightPicker(true)}
-                  className="bg-white border border-gray-200 rounded-2xl p-4"
-                >
-                  <Text className="text-lg text-gray-700">
-                    {data.height
-                      ? `${Math.floor(data.height / 12)}' ${data.height % 12}"`
-                      : "Select height (e.g. 5' 7\")"}
-                  </Text>
-                </TouchableOpacity>
-              )}
-            </View>
-
-            {/* Weight Input */}
-            <View>
-              <Text className="text-lg font-semibold text-gray-900 mb-3">
-                Weight ({data.unit === "metric" ? "kg" : "lbs"})
-              </Text>
-              <TextInput
-                className="bg-white border border-gray-200 rounded-2xl p-4 text-lg text-gray-700"
-                placeholder={
-                  data.unit === "metric"
-                    ? "Enter weight in kg (e.g. 70)"
-                    : "Enter weight in lbs (e.g. 154)"
-                }
-                placeholderTextColor="#9CA3AF"
-                value={data.weight?.toString() || ""}
-                onChangeText={(text) => {
-                  const weight = parseFloat(text);
-                  if (!isNaN(weight) && weight > 0) {
-                    setData({ ...data, weight });
-                  } else if (text === "") {
-                    setData({ ...data, weight: undefined });
-                  }
+              <View className="flex-row gap-2">
+                <Ruler size={20} color="#374151" className="mr-2" />
+                <Text className="text-lg font-semibold text-gray-900 mb-2 flex-row items-center">
+                  Height (cm)
+                </Text>
+              </View>
+              <HeightSelectorOnboarding
+                currentValue={data.height}
+                onValueChange={(height) => {
+                  console.log("Height changed to:", height);
+                  setData({ ...data, height });
                 }}
-                keyboardType="numeric"
               />
             </View>
-
-            {/* Height Picker Modal for Imperial */}
-            <Modal visible={showHeightPicker} transparent animationType="slide">
-              <View className="flex-1 justify-center items-center bg-black/50">
-                <View className="bg-white rounded-3xl p-6 w-80 max-h-96">
-                  <Text className="text-xl font-bold text-center mb-4">
-                    Select Height
-                  </Text>
-                  <ScrollView className="max-h-64">
-                    {Array.from({ length: 36 }, (_, i) => {
-                      const feet = Math.floor((i + 48) / 12);
-                      const inches = (i + 48) % 12;
-                      const totalInches = i + 48;
-                      return (
-                        <TouchableOpacity
-                          key={totalInches}
-                          onPress={() => {
-                            setData({ ...data, height: totalInches });
-                            setShowHeightPicker(false);
-                          }}
-                          className={`py-3 px-4 rounded-xl mb-2 ${
-                            data.height === totalInches
-                              ? "bg-green-500"
-                              : "bg-gray-100"
-                          }`}
-                        >
-                          <Text
-                            className={`text-center font-medium ${
-                              data.height === totalInches
-                                ? "text-white"
-                                : "text-gray-700"
-                            }`}
-                          >
-                            {feet}' {inches}"
-                          </Text>
-                        </TouchableOpacity>
-                      );
-                    })}
-                  </ScrollView>
-                  <TouchableOpacity
-                    onPress={() => setShowHeightPicker(false)}
-                    className="bg-gray-200 rounded-xl py-3 mt-4"
-                  >
-                    <Text className="text-center font-medium">Cancel</Text>
-                  </TouchableOpacity>
-                </View>
+            {/* Weight Selector */}
+            <View className="mb-4">
+              <View className="flex-row gap-2">
+                <Weight size={20} color="#374151" className="mr-2" />
+                <Text className="text-lg font-semibold text-gray-900 mb-2 flex-row items-center">
+                  Weight (kg)
+                </Text>
               </View>
-            </Modal>
+              <WeightSelectorOnboarding
+                currentValue={data.weight}
+                onValueChange={(weight) => {
+                  console.log("Weight changed to:", weight);
+                  setData({ ...data, weight });
+                }}
+              />
+            </View>
+            {/* Debug info
+            <View className="mt-4 p-3 bg-gray-100 rounded-lg">
+              <Text className="text-xs text-gray-600">
+                Debug: Height={data.height}, Weight={data.weight}, CanProceed=
+                {canProceed.toString()}
+              </Text>
+            </View> */}
           </View>
         );
 
@@ -605,33 +567,22 @@ export default function OnboardingScreen() {
             <Text className="text-2xl font-bold text-gray-900 mb-2">
               When were you born?
             </Text>
-            <Text className="text-gray-600 mb-8">
+            <Text className="text-gray-600 mb-2">
               This helps calculate your metabolic rate
             </Text>
+            <Text className="text-sm text-gray-500 mb-6 leading-5">
+              Age affects your metabolic rate and calorie needs.
+            </Text>
 
-            <TextInput
-              className="bg-white border border-gray-200 rounded-2xl p-4 text-lg text-gray-700"
-              placeholder="Enter birth date (e.g. 13.06.2004)"
-              placeholderTextColor="#9CA3AF"
-              value={dateInputText}
-              onChangeText={(text) => {
-                setDateInputText(text);
-
-                if (text === "") {
-                  setData({ ...data, dateOfBirth: undefined });
-                } else {
-                  // Only try to parse if the text looks complete (has 2 dots)
-                  const dotCount = (text.match(/\./g) || []).length;
-                  if (dotCount === 2 && text.length >= 8) {
-                    const parsedDate = parseDateString(text);
-                    if (parsedDate) {
-                      setData({ ...data, dateOfBirth: parsedDate });
-                    }
-                  }
-                }
-              }}
-              keyboardType="default"
-              maxLength={10} // DD.MM.YYYY = 10 characters
+            <View className="flex-row gap-2">
+              <Calendar size={20} color="#374151" className="mr-2" />
+              <Text className="text-lg font-semibold text-gray-900 mb-3 flex-row items-center">
+                Date of Birth
+              </Text>
+            </View>
+            <DateSelectorOnboarding
+              currentDate={data.dateOfBirth}
+              onDateChange={(date) => setData({ ...data, dateOfBirth: date })}
             />
           </View>
         );
@@ -642,32 +593,33 @@ export default function OnboardingScreen() {
             <Text className="text-2xl font-bold text-gray-900 mb-2">
               What's your main goal?
             </Text>
-            <Text className="text-gray-600 mb-8">
+            <Text className="text-gray-600 mb-2">
               We'll customize your plan accordingly
+            </Text>
+            <Text className="text-sm text-gray-500 mb-8 leading-5">
+              Your goal determines your personalized calorie targets.
             </Text>
 
             <OptionButton
-              icon={<AntDesign name="arrowdown" size={24} color="black" />}
+              icon={<TrendingDown size={24} color="#374151" />}
               title="Lose weight"
               selected={data.goal === "lose"}
               onPress={() => setData({ ...data, goal: "lose" })}
             />
             <OptionButton
-              icon={
-                <FontAwesome name="balance-scale" size={24} color="black" />
-              }
+              icon={<Target size={24} color="#374151" />}
               title="Maintain weight"
               selected={data.goal === "maintain"}
               onPress={() => setData({ ...data, goal: "maintain" })}
             />
             <OptionButton
-              icon={<AntDesign name="arrowup" size={24} color="black" />}
+              icon={<TrendingUp size={24} color="#374151" />}
               title="Gain weight"
               selected={data.goal === "gain"}
               onPress={() => setData({ ...data, goal: "gain" })}
             />
             <OptionButton
-              icon={<FontAwesome6 name="dumbbell" size={24} color="black" />}
+              icon={<Dumbbell size={24} color="#374151" />}
               title="Build muscle"
               selected={data.goal === "muscle"}
               onPress={() => setData({ ...data, goal: "muscle" })}
@@ -681,42 +633,33 @@ export default function OnboardingScreen() {
             <Text className="text-2xl font-bold text-gray-900 mb-2">
               Any dietary preferences?
             </Text>
-            <Text className="text-gray-600 mb-8">
+            <Text className="text-gray-600 mb-2">
               This helps with food recommendations
+            </Text>
+            <Text className="text-sm text-gray-500 mb-8 leading-5">
+              Dietary preferences help with food recommendations.
             </Text>
 
             <OptionButton
-              icon={<FontAwesome6 name="burger" size={24} color="black" />}
+              icon={<Utensils size={24} color="#374151" />}
               title="No restrictions"
               selected={data.diet === "none"}
               onPress={() => setData({ ...data, diet: "none" })}
             />
             <OptionButton
-              icon={
-                <MaterialCommunityIcons
-                  name="food-drumstick-off"
-                  size={24}
-                  color="black"
-                />
-              }
+              icon={<Apple size={24} color="#374151" />}
               title="Vegetarian"
               selected={data.diet === "vegetarian"}
               onPress={() => setData({ ...data, diet: "vegetarian" })}
             />
             <OptionButton
-              icon={<FontAwesome6 name="leaf" size={24} color="black" />}
+              icon={<Carrot size={24} color="#374151" />}
               title="Vegan"
               selected={data.diet === "vegan"}
               onPress={() => setData({ ...data, diet: "vegan" })}
             />
             <OptionButton
-              icon={
-                <MaterialCommunityIcons
-                  name="food-drumstick"
-                  size={24}
-                  color="black"
-                />
-              }
+              icon={<Wheat size={24} color="#374151" />}
               title="Keto"
               selected={data.diet === "keto"}
               onPress={() => setData({ ...data, diet: "keto" })}
@@ -726,25 +669,24 @@ export default function OnboardingScreen() {
 
       case 8: // Final Summary
         // Calculate targets when we reach the final step
-        if (
-          currentStep === 8 &&
-          !realTimeTargets &&
-          !createProfileMutation.isPending
-        ) {
+        if (currentStep === 8 && !realTimeTargets && !isCalculating) {
           calculateRealtimeTargets();
         }
 
-        const recommendations =
-          realTimeTargets || calculateFallbackRecommendations(data);
         return (
-          <View className="flex-1 px-6 justify-center mt-24">
+          <View
+            className="flex-1 px-6 justify-center"
+            style={{ paddingTop: 100 }}
+          >
             {/* Header */}
             <View className="mb-8">
               <Text className="text-3xl font-bold text-black text-center mb-3">
-                You're All Set
+                You're All Set! 🎉
               </Text>
               <Text className="text-gray-600 text-center text-base leading-6">
-                Based on your profile, here are your personalized daily targets
+                {isCalculating
+                  ? "Calculating your personalized daily targets..."
+                  : "Based on your profile, here are your personalized daily targets"}
               </Text>
             </View>
 
@@ -757,18 +699,23 @@ export default function OnboardingScreen() {
                     <Text className="text-gray-600 text-sm font-medium">
                       Daily Calories
                     </Text>
-                    {createProfileMutation.isPending ? (
-                      <Text className="text-2xl font-bold text-green-600 mt-1">
-                        Calculating...
-                      </Text>
+                    {isCalculating ? (
+                      <View className="flex-row items-center mt-1">
+                        <Text className="text-2xl font-bold text-gray-400">
+                          ---
+                        </Text>
+                        <View className="ml-2">
+                          <Activity size={20} color="#9CA3AF" />
+                        </View>
+                      </View>
                     ) : (
                       <Text className="text-2xl font-bold text-green-600 mt-1">
-                        {recommendations.calories}
+                        {realTimeTargets?.calories || "---"}
                       </Text>
                     )}
                   </View>
-                  <View className="w-12 h-12 bg-gray-100 rounded-full items-center justify-center">
-                    <FontAwesome6 name="fire" size={24} color="orange" />
+                  <View className="w-12 h-12 bg-green-100 rounded-full items-center justify-center">
+                    <Flame size={24} color="green" />
                   </View>
                 </View>
               </View>
@@ -779,35 +726,30 @@ export default function OnboardingScreen() {
                   <Text className="text-gray-600 text-xs font-medium mb-1">
                     PROTEIN
                   </Text>
-                  <Text className="text-xl font-bold text-blue-500">
-                    {Math.round(
-                      recommendations.protein_g || recommendations.protein || 0
-                    )}
-                    g
+                  <Text className="text-xl font-bold text-rose-600">
+                    {isCalculating
+                      ? "---"
+                      : `${Math.round(realTimeTargets?.protein_g || realTimeTargets?.protein || 0)}g`}
                   </Text>
                 </View>
-
+                <View className="flex-1 bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+                  <Text className="text-gray-600 text-xs font-medium mb-1">
+                    FATS
+                  </Text>
+                  <Text className="text-xl font-bold text-sky-600">
+                    {isCalculating
+                      ? "---"
+                      : `${Math.round(realTimeTargets?.fats_g || realTimeTargets?.fats || 0)}g`}
+                  </Text>
+                </View>
                 <View className="flex-1 bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
                   <Text className="text-gray-600 text-xs font-medium mb-1">
                     CARBS
                   </Text>
                   <Text className="text-xl font-bold text-orange-500">
-                    {Math.round(
-                      recommendations.carbs_g || recommendations.carbs || 0
-                    )}
-                    g
-                  </Text>
-                </View>
-
-                <View className="flex-1 bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
-                  <Text className="text-gray-600 text-xs font-medium mb-1">
-                    FATS
-                  </Text>
-                  <Text className="text-xl font-bold text-purple-500">
-                    {Math.round(
-                      recommendations.fats_g || recommendations.fats || 0
-                    )}
-                    g
+                    {isCalculating
+                      ? "---"
+                      : `${Math.round(realTimeTargets?.carbs_g || realTimeTargets?.carbs || 0)}g`}
                   </Text>
                 </View>
               </View>
@@ -842,16 +784,29 @@ export default function OnboardingScreen() {
             </Text>
           </View>
           <View className="h-2 bg-gray-200 rounded-full">
-            <View
-              className="h-2 bg-green-500 rounded-full transition-all duration-300"
-              style={{ width: `${progress}%` }}
+            <Animated.View
+              className="h-2 bg-green-500 rounded-full"
+              style={{
+                width: `${progress}%`,
+              }}
             />
           </View>
         </View>
 
         {/* Content */}
-        <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
-          {renderStep()}
+        <ScrollView
+          className="flex-1"
+          showsVerticalScrollIndicator={false}
+          scrollEnabled={true}
+        >
+          <Animated.View
+            style={{
+              opacity: fadeAnim,
+              transform: [{ translateY: slideAnim }],
+            }}
+          >
+            {renderStep()}
+          </Animated.View>
         </ScrollView>
 
         {/* Navigation Buttons */}
@@ -861,20 +816,26 @@ export default function OnboardingScreen() {
             className={`flex-row items-center px-4 py-2 rounded-xl ${currentStep === 0 ? "opacity-50" : ""}`}
             disabled={currentStep === 0}
           >
-            <IconSymbol name="chevron.left" size={20} color="#6B7280" />
+            <ChevronLeft size={20} color="#6B7280" />
             <Text className="text-gray-600 ml-1">Back</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             onPress={handleNext}
-            className={`px-8 py-3 rounded-xl ${canProceed ? "bg-green-500" : "bg-gray-300"}`}
+            className={`px-8 py-3 rounded-xl flex-row items-center ${canProceed ? "bg-green-500" : "bg-gray-300"}`}
             disabled={!canProceed}
           >
             <Text
-              className={`font-semibold ${canProceed ? "text-white" : "text-gray-500"}`}
+              className={`font-semibold mr-2 ${canProceed ? "text-white" : "text-gray-500"}`}
             >
               {currentStep === totalSteps - 1 ? "Let's Get Started!" : "Next"}
             </Text>
+            {currentStep !== totalSteps - 1 && (
+              <ChevronRight
+                size={16}
+                color={canProceed ? "white" : "#6B7280"}
+              />
+            )}
           </TouchableOpacity>
         </View>
       </SafeAreaView>
