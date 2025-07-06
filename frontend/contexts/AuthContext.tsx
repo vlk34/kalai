@@ -1,7 +1,6 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { Session } from "@supabase/supabase-js";
 import { supabase } from "@/scripts/supabase";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router } from "expo-router";
 
 type AuthContextType = {
@@ -27,37 +26,48 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     boolean | null
   >(null);
 
-  // Check onboarding status for current user
-  const checkOnboardingStatus = async (userId: string) => {
+  // Check onboarding status by fetching user profile from backend
+  const checkOnboardingStatus = async (accessToken: string) => {
     try {
-      const key = `onboarding_completed_${userId}`;
-      const completed = await AsyncStorage.getItem(key);
-      setHasCompletedOnboarding(completed === "true");
+      const response = await fetch(
+        `${process.env.EXPO_PUBLIC_PRODUCTION_API_URL}/user_profiles`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (response.ok) {
+        // Profile exists, user has completed onboarding
+        setHasCompletedOnboarding(true);
+      } else if (response.status === 404) {
+        // No profile found, user hasn't completed onboarding
+        setHasCompletedOnboarding(false);
+      } else {
+        // Other error, assume not completed
+        console.error("Error checking onboarding status:", response.status);
+        setHasCompletedOnboarding(false);
+      }
     } catch (error) {
       console.error("Error checking onboarding status:", error);
       setHasCompletedOnboarding(false);
     }
   };
 
-  // Set onboarding completion status for current user
+  // Set onboarding completion status (now just updates local state since backend handles persistence)
   const setOnboardingCompleted = async (completed: boolean) => {
-    if (!session?.user?.id) return;
-
-    try {
-      const key = `onboarding_completed_${session.user.id}`;
-      await AsyncStorage.setItem(key, completed.toString());
-      setHasCompletedOnboarding(completed);
-    } catch (error) {
-      console.error("Error setting onboarding status:", error);
-    }
+    setHasCompletedOnboarding(completed);
   };
 
   useEffect(() => {
     // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
-      if (session?.user?.id) {
-        checkOnboardingStatus(session.user.id);
+      if (session?.access_token) {
+        checkOnboardingStatus(session.access_token);
       } else {
         setHasCompletedOnboarding(null);
       }
@@ -69,8 +79,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setSession(session);
-      if (session?.user?.id) {
-        await checkOnboardingStatus(session.user.id);
+      if (session?.access_token) {
+        await checkOnboardingStatus(session.access_token);
       } else {
         setHasCompletedOnboarding(null);
       }

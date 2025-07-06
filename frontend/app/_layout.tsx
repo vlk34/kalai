@@ -14,7 +14,7 @@ import "../global.css";
 function LoadingScreen() {
   return (
     <View className="flex-1 bg-white items-center justify-center">
-      <ActivityIndicator size="large" color="#10b981" />
+      <ActivityIndicator size="large" color="black" />
     </View>
   );
 }

@@ -10,24 +10,16 @@ import { View, ActivityIndicator } from "react-native";
 export default function IndexScreen() {
   const { session, isLoading, hasCompletedOnboarding } = useAuth();
 
-  if (isLoading) {
+  if (hasCompletedOnboarding === null || isLoading) {
     return (
       <View className="flex-1 bg-white items-center justify-center">
-        <ActivityIndicator size="large" color="#10b981" />
+        <ActivityIndicator size="large" color="black" />
       </View>
     );
   }
 
   if (!session) {
     return <Redirect href="/welcome" />;
-  }
-
-  if (hasCompletedOnboarding === null) {
-    return (
-      <View className="flex-1 bg-white items-center justify-center">
-        <ActivityIndicator size="large" color="#10b981" />
-      </View>
-    );
   }
 
   if (!hasCompletedOnboarding) {

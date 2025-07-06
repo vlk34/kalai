@@ -40,7 +40,6 @@ import {
   CheckCircle,
 } from "lucide-react-native";
 import { router } from "expo-router";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import type React from "react";
 import {
   useCreateProfile,
@@ -210,7 +209,7 @@ export default function OnboardingScreen() {
       const result = await createProfileMutation.mutateAsync(profileData);
       setRealTimeTargets(result.daily_targets);
 
-      await AsyncStorage.setItem("onboardingData", JSON.stringify(data));
+      // Profile is now persisted in backend, just update local state
       await setOnboardingCompleted(true);
 
       router.replace("/(tabs)");
@@ -227,10 +226,7 @@ export default function OnboardingScreen() {
             text: "Continue Anyway",
             style: "cancel",
             onPress: async () => {
-              await AsyncStorage.setItem(
-                "onboardingData",
-                JSON.stringify(data)
-              );
+              // Just update local state since backend persistence is handled by profile creation
               await setOnboardingCompleted(true);
               router.replace("/(tabs)");
             },

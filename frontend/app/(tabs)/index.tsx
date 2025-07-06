@@ -66,7 +66,7 @@ export default function DashboardScreen() {
   const bgOpacityAnim = useRef(new Animated.Value(0)).current;
 
   // Streak functionality
-  const { data: streakData } = useStreak();
+  const { data: streakData, isLoading: isLoadingStreak } = useStreak();
   const updateStreakMutation = useUpdateStreak();
   const {
     markGoalReached,
@@ -734,7 +734,9 @@ export default function DashboardScreen() {
               >
                 <FontAwesome6 name="fire" size={24} color="orange" />
                 <Text className="text-lg font-bold text-orange-600">
-                  {streakData?.current_streak || 0} days
+                  {isLoadingStreak
+                    ? "..."
+                    : `${streakData?.current_streak || 0} days`}
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -986,7 +988,7 @@ export default function DashboardScreen() {
                             <Text
                               className={`font-semibold text-base w-[70%] ${
                                 meal.name === "Analyzing..."
-                                  ? "text-gray-400 italic"
+                                  ? "text-gray-400"
                                   : meal.name === "Analysis Failed"
                                     ? "text-red-500"
                                     : "text-gray-900"
@@ -1003,7 +1005,7 @@ export default function DashboardScreen() {
                           <Text
                             className={`text-md mb-2 ${
                               meal.name === "Analyzing..."
-                                ? "text-gray-400 italic"
+                                ? "text-gray-400"
                                 : meal.name === "Analysis Failed"
                                   ? "text-red-500"
                                   : "text-gray-600"
@@ -1031,20 +1033,6 @@ export default function DashboardScreen() {
                               </Text>
                             </View>
                             <View className="rounded-full flex-row items-center gap-1 pr-2 py-1 mr-2">
-                              <View className="bg-sky-100 rounded-full flex-row items-center gap-1 px-2 py-1">
-                                <Text className="text-xs font-medium text-sky-600">
-                                  F
-                                </Text>
-                              </View>
-                              <Text
-                                className={`text-xs font-medium ${meal.name === "Analyzing..." ? "text-gray-400" : ""}`}
-                              >
-                                {meal.name === "Analyzing..."
-                                  ? "--"
-                                  : `${Math.round(meal.fats)}g`}
-                              </Text>
-                            </View>
-                            <View className="rounded-full flex-row items-center gap-1 pr-2 py-1 mr-2">
                               <View className="bg-orange-100 rounded-full flex-row items-center gap-1 px-2 py-1">
                                 <Text className="text-xs font-medium text-orange-600">
                                   C
@@ -1056,6 +1044,20 @@ export default function DashboardScreen() {
                                 {meal.name === "Analyzing..."
                                   ? "--"
                                   : `${Math.round(meal.carbs)}g`}
+                              </Text>
+                            </View>
+                            <View className="rounded-full flex-row items-center gap-1 pr-2 py-1 mr-2">
+                              <View className="bg-sky-100 rounded-full flex-row items-center gap-1 px-2 py-1">
+                                <Text className="text-xs font-medium text-sky-600">
+                                  F
+                                </Text>
+                              </View>
+                              <Text
+                                className={`text-xs font-medium ${meal.name === "Analyzing..." ? "text-gray-400" : ""}`}
+                              >
+                                {meal.name === "Analyzing..."
+                                  ? "--"
+                                  : `${Math.round(meal.fats)}g`}
                               </Text>
                             </View>
                           </View>
@@ -1370,7 +1372,10 @@ export default function DashboardScreen() {
                         <FontAwesome6 name="fire" size={48} color="orange" />
                       </View>
                       <Text className="text-2xl font-bold text-gray-900 text-center mb-3">
-                        🔥 {streakData?.current_streak || 0} Day Streak!
+                        🔥{" "}
+                        {isLoadingStreak
+                          ? "..."
+                          : `${streakData?.current_streak || 0} Day Streak!`}
                       </Text>
                       <Text className="text-lg text-gray-700 text-center mb-2 leading-6">
                         You're on fire! Keep reaching your daily calorie goals
@@ -1378,8 +1383,9 @@ export default function DashboardScreen() {
                       </Text>
                       <Text className="text-sm text-gray-500 text-center mb-6">
                         Daily Goal:{" "}
-                        {Math.round(streakData?.daily_calorie_goal || 0)}{" "}
-                        calories
+                        {isLoadingStreak
+                          ? "..."
+                          : `${Math.round(streakData?.daily_calorie_goal || 0)} calories`}
                       </Text>
                       <View className="flex-row gap-2 space-x-3 w-full">
                         <TouchableOpacity
