@@ -121,16 +121,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = async () => {
     try {
-      // Clear all query cache before signing out to prevent stale data
       queryClient.clear();
-
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
-
-      // Clear onboarding status on sign out
       setHasCompletedOnboarding(null);
-
-      // Force navigation to welcome screen to clear any stale navigation state
       router.replace("/welcome");
     } catch (error) {
       console.error("Sign out error:", error);

@@ -7,6 +7,8 @@ import React, { useState } from "react";
 export default function AuthSelectionScreen() {
   const [fadeAnim] = useState(new Animated.Value(0));
   const [slideAnim] = useState(new Animated.Value(50));
+  const [isNavigatingToSignup, setIsNavigatingToSignup] = useState(false);
+  const [isNavigatingToSignin, setIsNavigatingToSignin] = useState(false);
 
   React.useEffect(() => {
     Animated.timing(slideAnim, {
@@ -17,7 +19,10 @@ export default function AuthSelectionScreen() {
   }, []);
 
   const handleEmailSignup = () => {
+    if (isNavigatingToSignup) return;
+    setIsNavigatingToSignup(true);
     router.push("/(auth)/signup");
+    setTimeout(() => setIsNavigatingToSignup(false), 1000);
   };
 
   const handleGoogleSignup = () => {
@@ -26,7 +31,10 @@ export default function AuthSelectionScreen() {
   };
 
   const handleSignIn = () => {
+    if (isNavigatingToSignin) return;
+    setIsNavigatingToSignin(true);
     router.push("/(auth)/signin");
+    setTimeout(() => setIsNavigatingToSignin(false), 1000);
   };
 
   return (
@@ -85,8 +93,9 @@ export default function AuthSelectionScreen() {
             {/* Continue with Email Button */}
             <TouchableOpacity
               onPress={handleEmailSignup}
-              className="bg-black rounded-2xl py-4 mb-4"
+              className={`bg-black rounded-2xl py-4 mb-4 ${isNavigatingToSignup ? "opacity-50" : ""}`}
               activeOpacity={0.8}
+              disabled={isNavigatingToSignup}
             >
               <Text className="text-white font-semibold text-base text-center">
                 Sign up with Email
@@ -106,8 +115,9 @@ export default function AuthSelectionScreen() {
             {/* Already have account */}
             <TouchableOpacity
               onPress={handleSignIn}
-              className="mb-4"
+              className={`mb-4 ${isNavigatingToSignin ? "opacity-50" : ""}`}
               activeOpacity={0.7}
+              disabled={isNavigatingToSignin}
             >
               <Text className="text-center text-gray-600 text-sm">
                 Already have an account?{" "}

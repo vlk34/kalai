@@ -1,12 +1,23 @@
 "use client";
-import { View, Text, TouchableOpacity, Animated, Image } from "react-native";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  Animated,
+  Image,
+  Alert,
+  BackHandler,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import React, { useState } from "react";
+import { useNavigation } from "@react-navigation/native";
 
 export default function WelcomeScreen() {
   const [fadeAnim] = useState(new Animated.Value(0));
   const [slideAnim] = useState(new Animated.Value(50));
+  const navigation = useNavigation();
+  const [isNavigating, setIsNavigating] = useState(false);
 
   React.useEffect(() => {
     Animated.timing(slideAnim, {
@@ -16,8 +27,39 @@ export default function WelcomeScreen() {
     }).start();
   }, []);
 
+  // Intercept Android/iOS back button to show exit confirmation ONLY if root
+  React.useEffect(() => {
+    const backAction = () => {
+      if (navigation.canGoBack && navigation.canGoBack()) {
+        // Allow normal back navigation
+        return false;
+      }
+      Alert.alert("Exit App", "Are you sure you want to exit?", [
+        {
+          text: "Cancel",
+          style: "cancel",
+          onPress: () => null,
+        },
+        {
+          text: "Exit",
+          style: "destructive",
+          onPress: () => BackHandler.exitApp(),
+        },
+      ]);
+      return true; // Prevent default back behavior
+    };
+    const backHandler = BackHandler.addEventListener(
+      "hardwareBackPress",
+      backAction
+    );
+    return () => backHandler.remove();
+  }, [navigation]);
+
   const handleGetStarted = () => {
+    if (isNavigating) return;
+    setIsNavigating(true);
     router.push("/auth-selection");
+    setTimeout(() => setIsNavigating(false), 1000); // Fallback in case navigation fails
   };
 
   return (
@@ -56,8 +98,9 @@ export default function WelcomeScreen() {
             {/* Get Started Button */}
             <TouchableOpacity
               onPress={handleGetStarted}
-              className="bg-black rounded-2xl py-4 px-8 shadow-sm"
+              className={`bg-black rounded-2xl py-4 px-8 shadow-sm ${isNavigating ? "opacity-50" : ""}`}
               activeOpacity={0.8}
+              disabled={isNavigating}
             >
               <Text className="text-white font-semibold text-lg text-center">
                 Get started

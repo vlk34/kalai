@@ -21,6 +21,7 @@ export default function SignUp() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [slideAnim] = useState(new Animated.Value(30));
+  const [isNavigatingToSignin, setIsNavigatingToSignin] = useState(false);
 
   React.useEffect(() => {
     // Delay the animation slightly to avoid transition conflicts
@@ -179,8 +180,14 @@ export default function SignUp() {
               {/* Sign In Link */}
               <TouchableOpacity
                 className="mt-6"
-                onPress={() => router.push("/(auth)/signin")}
+                onPress={() => {
+                  if (isNavigatingToSignin) return;
+                  setIsNavigatingToSignin(true);
+                  router.replace("/(auth)/signin");
+                  setTimeout(() => setIsNavigatingToSignin(false), 1000);
+                }}
                 activeOpacity={0.7}
+                disabled={isNavigatingToSignin}
               >
                 <Text className="text-center text-gray-500 text-sm">
                   Already have an account?{" "}

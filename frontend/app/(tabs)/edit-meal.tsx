@@ -31,6 +31,7 @@ const editConsumedFood = async (
     protein?: number;
     carbs?: number;
     fats?: number;
+    portion?: number;
   }
 ) => {
   const API_BASE_URL = process.env.EXPO_PUBLIC_PRODUCTION_API_URL;
@@ -371,6 +372,12 @@ export default function EditMealScreen() {
         saveData.fats = fatsValue;
       }
 
+      // Validate and add portion
+      const portionValue = parseFloat(editedPortions);
+      if (!isNaN(portionValue) && portionValue > 0) {
+        saveData.portion = portionValue;
+      }
+
       // Check if there are any validation errors
       const hasErrors = Object.values(validationErrors).some((error) => error);
       if (hasErrors) {
@@ -415,7 +422,7 @@ export default function EditMealScreen() {
 
       // Apply optimistic updates FIRST
       console.log("Applying optimistic save updates for meal:", id, saveData);
-      updateOptimisticMeal(id as string, saveData, targetDate);
+      updateOptimisticMeal(id as string, { ...saveData }, targetDate);
       updateOptimisticNutrition(nutritionDiff, targetDate);
 
       // Then navigate back
