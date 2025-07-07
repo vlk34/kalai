@@ -76,22 +76,26 @@ class Consumed(MethodView):
             # Read original file bytes
             original_content = file.read()
 
-            # Load the image using Pillow
-            image = Image.open(io.BytesIO(original_content))
+            # Check if the image is already in WebP format (frontend optimization)
+            if filename.lower().endswith('.webp'):
+                # Image is already optimized by frontend, use as-is
+                file_content = original_content
+                file_size = len(file_content)
+                # Still need to create image object for AI analysis
+                image = Image.open(io.BytesIO(original_content))
+            else:
+                # Convert to WebP format for backward compatibility
+                image = Image.open(io.BytesIO(original_content))
+                webp_io = io.BytesIO()
+                # Ensure compatibility (e.g. remove alpha channel) before saving as WEBP
+                if image.mode in ("RGBA", "P"):
+                    image = image.convert("RGB")
+                image.save(webp_io, format="WEBP", quality=50)
+                webp_io.seek(0)
 
-            # Convert and compress the image to WEBP format in-memory
-            webp_io = io.BytesIO()
-            # Ensure compatibility (e.g. remove alpha channel) before saving as WEBP
-            if image.mode in ("RGBA", "P"):
-                image = image.convert("RGB")
-            image.save(webp_io, format="WEBP", quality=50)
-            webp_io.seek(0)
-
-            # Final bytes to upload
-            file_content = webp_io.getvalue()
-
-            # Update file size to reflect the WEBP payload
-            file_size = len(file_content)
+                # Final bytes to upload
+                file_content = webp_io.getvalue()
+                file_size = len(file_content)
             
             # Initialize Supabase client
             supabase_url = current_app.config['SUPABASE_URL']

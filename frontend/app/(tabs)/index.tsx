@@ -304,14 +304,11 @@ export default function DashboardScreen() {
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ["images"],
         aspect: [9, 16],
-        quality: 0.8, // Initial compression to reduce size
+        quality: 1.0, // Use full quality since we'll process it ourselves
       });
 
       if (!result.canceled) {
         const photoUri = result.assets[0].uri;
-
-        // Use the original photo for now - compression handled by ImagePicker quality setting
-        const compressedImage = { uri: photoUri };
 
         // Create optimistic meal entry
         const optimisticMeal = {
@@ -323,7 +320,7 @@ export default function DashboardScreen() {
           fats: 0,
           calories: 0,
           created_at: new Date().toISOString(),
-          photo_url: compressedImage.uri, // Use compressed image URI
+          photo_url: photoUri,
           isAnalyzing: true,
         };
 
@@ -334,9 +331,9 @@ export default function DashboardScreen() {
         // Set analyzing state to trigger auto-switch
         setIsAnalyzingMeal(true);
 
-        // Start analysis in background with compressed image
+        // Start analysis in background with optimized image
         try {
-          const result = await analyzeFood(compressedImage.uri);
+          const result = await analyzeFood(photoUri, "gallery");
           // Extract the real data from server response
           const serverData = result.data;
           const databaseRecord = serverData.database_record;
@@ -440,12 +437,12 @@ export default function DashboardScreen() {
   // Get dates for the past 30 days with today on the right
   const getMonthDates = () => {
     const today = new Date();
-    console.log("getMonthDates - Today's date:", {
-      localDate: today.toLocaleDateString(),
-      isoDate: today.toISOString().split("T")[0],
-      utcDate: new Date().toUTCString(),
-      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-    });
+    // console.log("getMonthDates - Today's date:", {
+    //   localDate: today.toLocaleDateString(),
+    //   isoDate: today.toISOString().split("T")[0],
+    //   utcDate: new Date().toUTCString(),
+    //   timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    // });
 
     const dates = [];
     const dayNames = [];
@@ -461,12 +458,12 @@ export default function DashboardScreen() {
       dates.push(dateInfo);
       dayNames.push(turkishDays[date.getDay()]);
 
-      // Debug the last few dates (today and yesterday)
-      if (i <= 1) {
-        console.log(
-          `Date ${i}: ${date.toISOString().split("T")[0]} - ${turkishDays[date.getDay()]} ${date.getDate()}`
-        );
-      }
+      // // Debug the last few dates (today and yesterday)
+      // if (i <= 1) {
+      //   console.log(
+      //     `Date ${i}: ${date.toISOString().split("T")[0]} - ${turkishDays[date.getDay()]} ${date.getDate()}`
+      //   );
+      // }
     }
     return { dates, dayNames };
   };
@@ -482,14 +479,14 @@ export default function DashboardScreen() {
     try {
       const selectedFullDate = dateObj.fullDate;
       const formattedDate = formatDateForAPI(selectedFullDate);
-      console.log("Day selection - Date being sent:", {
-        dateIndex,
-        dayName: monthDayNames[dateIndex],
-        dayNumber: dateObj.date,
-        selectedFullDate: selectedFullDate.toISOString(),
-        formattedDate,
-        localDate: selectedFullDate.toLocaleDateString(),
-      });
+      // console.log("Day selection - Date being sent:", {
+      //   dateIndex,
+      //   dayName: monthDayNames[dateIndex],
+      //   dayNumber: dateObj.date,
+      //   selectedFullDate: selectedFullDate.toISOString(),
+      //   formattedDate,
+      //   localDate: selectedFullDate.toLocaleDateString(),
+      // });
       setSelectedDate(formattedDate);
       setSelectedDayIndex(dateObj.dayIndex);
       setSelectedDateIndex(dateIndex);

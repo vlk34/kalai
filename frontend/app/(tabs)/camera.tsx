@@ -104,13 +104,10 @@ export default function CameraScreen() {
     if (cameraRef.current && isCameraReady) {
       try {
         const photo = await cameraRef.current.takePictureAsync({
-          quality: 0.8, // Initial compression to reduce size
+          quality: 1.0, // Use full quality since we'll process it ourselves
         });
         if (photo?.uri) {
           setCapturedPhoto(photo.uri);
-
-          // Use the original photo for now - compression handled by camera quality setting
-          const compressedImage = { uri: photo.uri };
 
           // Create optimistic meal entry
           const optimisticMeal = {
@@ -122,7 +119,7 @@ export default function CameraScreen() {
             fats: 0,
             calories: 0,
             created_at: new Date().toISOString(),
-            photo_url: compressedImage.uri, // Use compressed image URI
+            photo_url: photo.uri,
             isAnalyzing: true,
           };
 
@@ -133,9 +130,9 @@ export default function CameraScreen() {
           // Navigate back to main screen immediately
           router.back();
 
-          // Start analysis in background with compressed image
+          // Start analysis in background with optimized image
           try {
-            const result = await analyzeFood(compressedImage.uri);
+            const result = await analyzeFood(photo.uri, "camera");
 
             // Extract the real data from server response
             const serverData = result.data;
