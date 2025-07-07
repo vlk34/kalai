@@ -42,6 +42,7 @@ class PromptGenerator:
         }
 
         IMPORTANT RULES:
+        - You should return only one json object not a list of objects. That object could have total calories, total protein, total carbs, total fats, and total portion size if the image contains multiple food items.
         - If the image contains recognizable food items (fruits, vegetables, cooked meals, snacks, beverages, etc.), provide reasonable nutritional estimates for a typical serving size
         - If the image does NOT contain food (animals, people, objects, non-food items, etc.), set ALL nutritional values to 0 and name the item you see
         - Use only numbers for nutritional values (no units in the values)
