@@ -156,7 +156,8 @@ class Consumed(MethodView):
                     'carbs': float(nutritional_data.get('carbs', 0)),
                     'fats': float(nutritional_data.get('fats', 0)),
                     'calories': float(nutritional_data.get('calories', 0)),
-                    'photo_path': storage_path
+                    'photo_path': storage_path,
+                    'portion': 1
                 }
                 
                 # Insert into Foods_consumed table
@@ -331,7 +332,7 @@ class EditWithAI(MethodView):
                     'protein': float(nutritional_data.get('protein', 0)),
                     'carbs': float(nutritional_data.get('carbs', 0)),
                     'fats': float(nutritional_data.get('fats', 0)),
-                    'calories': float(nutritional_data.get('calories', 0))
+                    'calories': float(nutritional_data.get('calories', 0)),
                 }
                 
                 result = supabase.table('foods_consumed').update(update_data).eq('id', food_id).eq('user_id', g.current_user['id']).execute()
