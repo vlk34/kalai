@@ -1,8 +1,27 @@
 "use client";
-import { View, Text, TouchableOpacity, Animated, Image } from "react-native";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  Animated,
+  Image,
+  Alert,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import React, { useState } from "react";
+import { supabase } from "@/scripts/supabase";
+import {
+  GoogleSignin,
+  statusCodes,
+  GoogleSigninButton,
+} from "@react-native-google-signin/google-signin";
+
+// Configure Google Sign-In at the top level of the component or in a useEffect
+GoogleSignin.configure({
+  webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID, // <-- Replace with your actual Web client ID
+  scopes: ["profile", "email"],
+});
 
 export default function AuthSelectionScreen() {
   const [fadeAnim] = useState(new Animated.Value(0));
@@ -25,9 +44,33 @@ export default function AuthSelectionScreen() {
     setTimeout(() => setIsNavigatingToSignup(false), 1000);
   };
 
-  const handleGoogleSignup = () => {
-    // Handle Google signup
-    console.log("Google signup");
+  const handleGoogleSignup = async () => {
+    try {
+      await GoogleSignin.hasPlayServices();
+      const userInfo = await GoogleSignin.signIn();
+      const idToken =
+        (userInfo as any).idToken || (userInfo as any).user?.idToken;
+      if (idToken) {
+        const { data, error } = await supabase.auth.signInWithIdToken({
+          provider: "google",
+          token: idToken,
+        });
+        if (error) Alert.alert("Error", error.message);
+        // handle success (e.g., navigate to main app)
+      } else {
+        throw new Error("No ID token present!");
+      }
+    } catch (error: any) {
+      if (error.code === statusCodes.SIGN_IN_CANCELLED) {
+        // user cancelled the login flow
+      } else if (error.code === statusCodes.IN_PROGRESS) {
+        // operation (e.g. sign in) is in progress already
+      } else if (error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
+        // play services not available or outdated
+      } else {
+        Alert.alert("Error", error.message || "Google sign-in failed");
+      }
+    }
   };
 
   const handleSignIn = () => {
@@ -102,16 +145,12 @@ export default function AuthSelectionScreen() {
               </Text>
             </TouchableOpacity>
             {/* Google Button */}
-            <TouchableOpacity
+            <GoogleSigninButton
+              style={{ width: "100%", height: 48, marginBottom: 24 }}
+              size={GoogleSigninButton.Size.Wide}
+              color={GoogleSigninButton.Color.Dark}
               onPress={handleGoogleSignup}
-              className="bg-white border border-gray-200 rounded-2xl py-4 mb-6 flex-row justify-center items-center"
-              activeOpacity={0.8}
-            >
-              <Text className="text-lg mr-2">G</Text>
-              <Text className="text-gray-900 font-medium text-base">
-                Sign in with Google
-              </Text>
-            </TouchableOpacity>
+            />
             {/* Already have account */}
             <TouchableOpacity
               onPress={handleSignIn}
