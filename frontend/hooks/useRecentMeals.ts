@@ -14,6 +14,7 @@ interface FoodItem {
   created_at: string;
   photo_url: string;
   isAnalyzing?: boolean;
+  portion: number;
 }
 
 interface RecentMealsResponse {

@@ -526,7 +526,7 @@ export default function DashboardScreen() {
           protein: meal.protein.toString(),
           carbs: meal.carbs.toString(),
           fats: meal.fats.toString(),
-          portions: "1", // Default portions
+          portions: meal.portion ? meal.portion.toString() : "1",
           selectedDate: selectedDate, // Pass the current selected date
         },
       });

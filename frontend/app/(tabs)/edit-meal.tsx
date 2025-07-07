@@ -112,6 +112,14 @@ export default function EditMealScreen() {
     };
   }, []);
 
+  // Store the original total values and original portion as base values
+  const originalPortion = Number.parseFloat(portions as string) || 1;
+  const originalCalories = Number.parseFloat(calories as string) || 0;
+  const originalProtein = Number.parseFloat(protein as string) || 0;
+  const originalCarbs = Number.parseFloat(carbs as string) || 0;
+  const originalFats = Number.parseFloat(fats as string) || 0;
+
+  // State for edited values
   const [editedName, setEditedName] = useState(name as string);
   const [editedCalories, setEditedCalories] = useState(calories as string);
   const [editedPortions, setEditedPortions] = useState(
@@ -122,21 +130,6 @@ export default function EditMealScreen() {
   const [editedFats, setEditedFats] = useState(fats as string);
   const [isSaving, setIsSaving] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-
-  // Base values for portion calculations
-  const [basePortion, setBasePortion] = useState(1.0);
-  const [baseCalories, setBaseCalories] = useState(
-    Number.parseFloat(calories as string) || 0
-  );
-  const [baseProtein, setBaseProtein] = useState(
-    Number.parseFloat(protein as string) || 0
-  );
-  const [baseCarbs, setBaseCarbs] = useState(
-    Number.parseFloat(carbs as string) || 0
-  );
-  const [baseFats, setBaseFats] = useState(
-    Number.parseFloat(fats as string) || 0
-  );
 
   // Error states for validation feedback
   const [errors, setErrors] = useState({
@@ -188,20 +181,19 @@ export default function EditMealScreen() {
     }
   };
 
+  // When portion changes, recalculate nutrition values proportionally
   const updatePortionValues = (newPortion: number) => {
-    const currentPortion = Number.parseFloat(editedPortions) || 1.0;
-    const multiplier = newPortion / currentPortion;
-
-    // Use current edited values as base for calculations
-    const currentCalories = Number.parseFloat(editedCalories) || 0;
-    const currentProtein = Number.parseFloat(editedProtein) || 0;
-    const currentCarbs = Number.parseFloat(editedCarbs) || 0;
-    const currentFats = Number.parseFloat(editedFats) || 0;
-
-    setEditedCalories((currentCalories * multiplier).toFixed(0));
-    setEditedProtein((currentProtein * multiplier).toFixed(1));
-    setEditedCarbs((currentCarbs * multiplier).toFixed(1));
-    setEditedFats((currentFats * multiplier).toFixed(1));
+    if (!newPortion || newPortion <= 0) return;
+    // Calculate per-portion values from the original base
+    const perPortionCalories = originalCalories / originalPortion;
+    const perPortionProtein = originalProtein / originalPortion;
+    const perPortionCarbs = originalCarbs / originalPortion;
+    const perPortionFats = originalFats / originalPortion;
+    // Set new total values
+    setEditedCalories((perPortionCalories * newPortion).toFixed(0));
+    setEditedProtein((perPortionProtein * newPortion).toFixed(1));
+    setEditedCarbs((perPortionCarbs * newPortion).toFixed(1));
+    setEditedFats((perPortionFats * newPortion).toFixed(1));
     setEditedPortions(newPortion.toFixed(2));
   };
 

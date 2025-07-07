@@ -110,7 +110,7 @@ class RecentlyEaten(MethodView):
                     except Exception as e:
                         print(f"Warning: Could not generate signed URL for photo {food['photo_path']}: {str(e)}")
                 
-                # Calculate nutritional values multiplied by portion
+                # Use stored nutritional values (do not multiply by portion)
                 base_protein = float(food['protein']) if food['protein'] else 0
                 base_carbs = float(food['carbs']) if food['carbs'] else 0
                 base_fats = float(food['fats']) if food['fats'] else 0
@@ -120,10 +120,10 @@ class RecentlyEaten(MethodView):
                     'id': food['id'],
                     'name': food['name'],
                     'emoji': food['emoji'],
-                    'protein': round(base_protein * portion, 2),
-                    'carbs': round(base_carbs * portion, 2),
-                    'fats': round(base_fats * portion, 2),
-                    'calories': round(base_calories * portion, 2),
+                    'protein': round(base_protein, 2),
+                    'carbs': round(base_carbs, 2),
+                    'fats': round(base_fats, 2),
+                    'calories': round(base_calories, 2),
                     'portion': portion,
                     'photo_url': photo_url,
                     'created_at': food['created_at']
@@ -225,7 +225,7 @@ class FullHistory(MethodView):
                     except Exception as e:
                         print(f"Warning: Could not generate signed URL for photo {food['photo_path']}: {str(e)}")
                 
-                # Calculate nutritional values multiplied by portion
+                # Use stored nutritional values (do not multiply by portion)
                 base_protein = float(food['protein']) if food['protein'] else 0
                 base_carbs = float(food['carbs']) if food['carbs'] else 0
                 base_fats = float(food['fats']) if food['fats'] else 0
@@ -235,10 +235,10 @@ class FullHistory(MethodView):
                     'id': food['id'],
                     'name': food['name'],
                     'emoji': food['emoji'],
-                    'protein': round(base_protein * portion, 2),
-                    'carbs': round(base_carbs * portion, 2),
-                    'fats': round(base_fats * portion, 2),
-                    'calories': round(base_calories * portion, 2),
+                    'protein': round(base_protein, 2),
+                    'carbs': round(base_carbs, 2),
+                    'fats': round(base_fats, 2),
+                    'calories': round(base_calories, 2),
                     'portion': portion,
                     'photo_url': photo_url,
                     'created_at': food['created_at']
@@ -343,13 +343,12 @@ class DailyNutritionSummary(MethodView):
             
             for food in foods_result.data:
                 # Get portion size (default to 1 if not set)
-                portion = float(food.get('portion'))
-                
-                # Multiply base nutritional values by portion
-                consumed_calories += (float(food['calories']) if food['calories'] else 0) * portion
-                consumed_protein += (float(food['protein']) if food['protein'] else 0) * portion
-                consumed_carbs += (float(food['carbs']) if food['carbs'] else 0) * portion
-                consumed_fats += (float(food['fats']) if food['fats'] else 0) * portion
+                # portion = float(food.get('portion'))
+                # Do NOT multiply by portion; just sum the stored values
+                consumed_calories += float(food['calories']) if food['calories'] else 0
+                consumed_protein += float(food['protein']) if food['protein'] else 0
+                consumed_carbs += float(food['carbs']) if food['carbs'] else 0
+                consumed_fats += float(food['fats']) if food['fats'] else 0
             
             # Get daily goals (handle None values)
             goal_calories = float(user_goals['daily_calories']) if user_goals['daily_calories'] else 0
