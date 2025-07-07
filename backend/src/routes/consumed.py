@@ -84,7 +84,7 @@ class Consumed(MethodView):
             # Ensure compatibility (e.g. remove alpha channel) before saving as WEBP
             if image.mode in ("RGBA", "P"):
                 image = image.convert("RGB")
-            image.save(webp_io, format="WEBP", quality=80)
+            image.save(webp_io, format="WEBP", quality=50)
             webp_io.seek(0)
 
             # Final bytes to upload
@@ -413,12 +413,12 @@ class EditConsumedFood(MethodView):
                 }), 400
 
             # Build update payload – only include provided fields
-            updatable_fields = ['name', 'protein', 'carbs', 'fats', 'calories']
+            updatable_fields = ['name', 'protein', 'carbs', 'fats', 'calories', 'portion']
             update_payload = {}
             for field in updatable_fields:
                 if field in data and data[field] is not None:
                     # Convert numeric fields to float, keep name as-is
-                    if field in ['protein', 'carbs', 'fats', 'calories']:
+                    if field in ['protein', 'carbs', 'fats', 'calories', 'portion']:
                         try:
                             update_payload[field] = float(data[field])
                         except (TypeError, ValueError):
