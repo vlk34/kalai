@@ -256,19 +256,15 @@ export default function EditMealScreen() {
           queryKey: ["daily-nutrition-summary", session?.user?.id, targetDate],
         });
       } else {
-        // If API call succeeded, wait a bit for navigation to complete, then force refetch
+        // If API call succeeded, wait a bit for navigation to complete, then force refetch for the specific day only
         setTimeout(() => {
           console.log(
             "Refetching data after successful deletion for date:",
             targetDate
           );
-          // Force refetch recent meals
+          // Force refetch recent meals for the specific day only
           queryClient.invalidateQueries({
             queryKey: ["recent-meals", session?.user?.id, targetDate],
-          });
-          // Also invalidate all recent meals queries to be safe
-          queryClient.invalidateQueries({
-            queryKey: ["recent-meals"],
           });
           queryClient.invalidateQueries({
             queryKey: [
@@ -430,7 +426,7 @@ export default function EditMealScreen() {
       );
 
       if (!result.success) {
-        // If API call failed, invalidate to revert optimistic updates
+        // If API call failed, invalidate to revert optimistic updates for the specific day only
         invalidateRecentMeals(targetDate);
         queryClient.invalidateQueries({
           queryKey: ["daily-nutrition-summary", session?.user?.id, targetDate],
@@ -438,7 +434,7 @@ export default function EditMealScreen() {
       }
     } catch (error: any) {
       console.error("Save error:", error);
-      // If there was an error, invalidate to revert optimistic updates
+      // If there was an error, invalidate to revert optimistic updates for the specific day only
       const targetDate =
         (selectedDate as string) || formatDateForAPI(new Date());
       invalidateRecentMeals(targetDate);

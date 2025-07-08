@@ -11,6 +11,7 @@ import {
 } from "@/hooks/useUserProfile";
 import { useRouter } from "expo-router";
 import { GoogleSignin } from "@react-native-google-signin/google-signin";
+import { useQueryClient } from "@tanstack/react-query";
 
 const SettingsScreen = () => {
   const router = useRouter();
@@ -18,6 +19,7 @@ const SettingsScreen = () => {
   const { data: userProfile, isLoading: isLoadingProfile } =
     useUserProfileData();
   const recalculateTargetsMutation = useRecalculateTargets();
+  const queryClient = useQueryClient();
 
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
   const [isNavigatingToEditProfile, setIsNavigatingToEditProfile] =
@@ -96,6 +98,9 @@ const SettingsScreen = () => {
           onPress: async () => {
             try {
               await recalculateTargetsMutation.mutateAsync();
+              queryClient.invalidateQueries({
+                queryKey: ["daily-nutrition-summary"],
+              });
               Alert.alert(
                 "Success",
                 "Your daily targets have been recalculated!"

@@ -232,7 +232,7 @@ const recalculateTargets = async (accessToken: string) => {
 };
 
 // API function for daily nutrition summary
-const fetchDailyNutritionSummary = async (
+export const fetchDailyNutritionSummary = async (
   accessToken: string,
   date?: string
 ): Promise<DailyNutritionSummary> => {
@@ -335,8 +335,8 @@ export const useDailyNutritionSummary = (date?: string) => {
     queryKey: ["daily-nutrition-summary", session?.user?.id, date],
     queryFn: () => fetchDailyNutritionSummary(session!.access_token, date),
     enabled: !!session?.access_token,
-    staleTime: 2 * 60 * 1000, // 2 minutes
-    gcTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000, // 2 minutes
+    gcTime: 10 * 60 * 1000, // 5 minutes
     refetchOnWindowFocus: false, // Prevent refetch on window focus
     refetchOnMount: false, // Prevent refetch on mount if data exists
     retry: (failureCount, error) => {

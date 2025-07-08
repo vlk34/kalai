@@ -122,7 +122,7 @@ export default function DashboardScreen() {
   const [isNavigatingToCamera, setIsNavigatingToCamera] = useState(false);
   const [isNavigatingToSettings, setIsNavigatingToSettings] = useState(false);
   const [isAnalyzingMeal, setIsAnalyzingMeal] = useState(false);
-  const [justReturnedFromCamera, setJustReturnedFromCamera] = useState(false);
+  const [returnedFromCamera, setReturnedFromCamera] = useState(false);
 
   const { analyzeFood } = useAnalyzeFood();
   const { addOptimisticMeal, updateOptimisticMeal } = useMutateRecentMeals();
@@ -283,6 +283,7 @@ export default function DashboardScreen() {
   const handleCameraPress = useCallback(() => {
     if (isNavigatingToCamera) return; // Prevent multiple rapid clicks
     setIsNavigatingToCamera(true);
+    setReturnedFromCamera(true); // Mark that we're going to camera
     hideModal();
     // Add a small delay to prevent rapid navigation
     setTimeout(() => {
@@ -295,6 +296,7 @@ export default function DashboardScreen() {
         console.error("Navigation error in handleCameraPress:", error);
         // Reset the flag if navigation fails
         setIsNavigatingToCamera(false);
+        setReturnedFromCamera(false);
       }
       // Reset the flag after navigation
       setTimeout(() => setIsNavigatingToCamera(false), 500);
@@ -303,6 +305,7 @@ export default function DashboardScreen() {
 
   const handleGalleryPress = async () => {
     hideModal();
+    setReturnedFromCamera(true); // Mark that we're going to gallery for analysis
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ["images"],
@@ -392,8 +395,13 @@ export default function DashboardScreen() {
             today
           );
         }
+      } else {
+        // If user canceled, reset the flag
+        setReturnedFromCamera(false);
       }
     } catch (error) {
+      // If there was an error, reset the flag
+      setReturnedFromCamera(false);
       Alert.alert(
         "Error",
         "Failed to pick an image from gallery. Please try again."
@@ -420,21 +428,6 @@ export default function DashboardScreen() {
     error: nutritionError,
     refetch: refetchDailyNutrition,
   } = useDailyNutritionSummary(selectedDate);
-
-  // // Manual refetch when session becomes available
-  // useEffect(() => {
-  //   if (session?.access_token && selectedDate) {
-  //     setTimeout(() => {
-  //       refetchRecentMeals();
-  //       refetchDailyNutrition();
-  //     }, 100);
-  //   }
-  // }, [
-  //   session?.access_token,
-  //   selectedDate,
-  //   refetchRecentMeals,
-  //   refetchDailyNutrition,
-  // ]);
 
   // Turkish day abbreviations (Sunday = 0, Monday = 1, etc.)
   const turkishDays = ["Paz", "Pzt", "Sal", "Çar", "Per", "Cum", "Cts"];
@@ -545,21 +538,6 @@ export default function DashboardScreen() {
     return () => clearTimeout(timer);
   }, []);
 
-  // Refresh data when screen comes into focus (e.g., returning from camera)
-  useEffect(() => {
-    // Only run if we have a session and the component is properly mounted
-    if (session?.user?.id && selectedDate) {
-      try {
-        // Only invalidate nutrition data for the current selected date
-        queryClient.invalidateQueries({
-          queryKey: ["daily-nutrition-summary", session.user.id, selectedDate],
-        });
-      } catch (error) {
-        console.error("Error invalidating queries:", error);
-      }
-    }
-  }, [queryClient, selectedDate, session?.user?.id]);
-
   // Auto-switch to today's date when a meal is being analyzed (only once)
   useEffect(() => {
     if (isAnalyzingMeal) {
@@ -585,9 +563,9 @@ export default function DashboardScreen() {
     }
   }, [isAnalyzingMeal, selectedDate, monthDates]);
 
-  // Check for analyzing meals when returning from camera (only once)
+  // Check for analyzing meals when returning from camera/gallery (only once)
   useEffect(() => {
-    if (justReturnedFromCamera) {
+    if (returnedFromCamera) {
       try {
         // Switch to today's date to show the analysis progress (only once)
         const today = formatDateForAPI(new Date());
@@ -602,24 +580,13 @@ export default function DashboardScreen() {
         }
 
         // Reset the flag when the effect is cleaned up
-        setJustReturnedFromCamera(false);
+        setReturnedFromCamera(false);
       } catch (error) {
-        console.error("Error in justReturnedFromCamera effect:", error);
-        setJustReturnedFromCamera(false);
+        console.error("Error in returnedFromCamera effect:", error);
+        setReturnedFromCamera(false);
       }
     }
-  }, [justReturnedFromCamera, selectedDate, monthDates]);
-
-  // Set flag when returning from camera
-  useFocusEffect(
-    useCallback(() => {
-      try {
-        setJustReturnedFromCamera(true);
-      } catch (error) {
-        console.error("Error in useFocusEffect:", error);
-      }
-    }, [])
-  );
+  }, [returnedFromCamera, selectedDate, monthDates]);
 
   // Clear state when user changes
   useEffect(() => {
@@ -629,7 +596,7 @@ export default function DashboardScreen() {
         setIsNavigatingToCamera(false);
         setIsNavigatingToSettings(false);
         setIsAnalyzingMeal(false);
-        setJustReturnedFromCamera(false);
+        setReturnedFromCamera(false);
         setCongratulationsShownForDay("");
 
         // Clear any stale query cache for the previous user
@@ -781,6 +748,7 @@ export default function DashboardScreen() {
   const openCamera = useCallback(() => {
     if (isNavigatingToCamera) return; // Prevent multiple rapid clicks
     setIsNavigatingToCamera(true);
+    setReturnedFromCamera(true); // Mark that we're going to camera
     // Add a small delay to prevent rapid navigation
     setTimeout(() => {
       try {
@@ -792,6 +760,7 @@ export default function DashboardScreen() {
         console.error("Navigation error in openCamera:", error);
         // Reset the flag if navigation fails
         setIsNavigatingToCamera(false);
+        setReturnedFromCamera(false);
       }
       // Reset the flag after navigation
       setTimeout(() => setIsNavigatingToCamera(false), 500);
