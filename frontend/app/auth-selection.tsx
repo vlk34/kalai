@@ -19,7 +19,8 @@ import {
 
 // Configure Google Sign-In at the top level of the component or in a useEffect
 GoogleSignin.configure({
-  webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID, // <-- Replace with your actual Web client ID
+  webClientId:
+    "698517695910-2mp1gtg4g4r9rfl47v6q4tc86i2nkd5o.apps.googleusercontent.com", // <-- Replace with your actual Web client ID
   scopes: ["profile", "email"],
 });
 
@@ -48,15 +49,22 @@ export default function AuthSelectionScreen() {
     try {
       await GoogleSignin.hasPlayServices();
       const userInfo = await GoogleSignin.signIn();
-      const idToken =
-        (userInfo as any).idToken || (userInfo as any).user?.idToken;
+      console.log(userInfo);
+      const idToken = userInfo?.data?.idToken;
       if (idToken) {
         const { data, error } = await supabase.auth.signInWithIdToken({
           provider: "google",
           token: idToken,
         });
         if (error) Alert.alert("Error", error.message);
-        // handle success (e.g., navigate to main app)
+
+        setTimeout(() => {
+          try {
+            router.replace("/");
+          } catch (error) {
+            console.error("Navigation error on sign in:", error);
+          }
+        }, 100);
       } else {
         throw new Error("No ID token present!");
       }

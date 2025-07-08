@@ -60,6 +60,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setHasCompletedOnboarding(false);
     }
   };
+  useEffect(() => {
+    console.log("hasCompletedOnboarding", hasCompletedOnboarding);
+  }, [hasCompletedOnboarding]);
 
   // Set onboarding completion status (now just updates local state since backend handles persistence)
   const setOnboardingCompleted = async (completed: boolean) => {
@@ -70,6 +73,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
+      console.log("session", session);
       if (session?.access_token) {
         checkOnboardingStatus(session.access_token);
       } else {
@@ -125,7 +129,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
       setHasCompletedOnboarding(null);
-      router.replace("/welcome");
     } catch (error) {
       console.error("Sign out error:", error);
       throw error;

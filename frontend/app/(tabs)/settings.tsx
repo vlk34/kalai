@@ -10,6 +10,7 @@ import {
   useUserProfileData,
 } from "@/hooks/useUserProfile";
 import { useRouter } from "expo-router";
+import { GoogleSignin } from "@react-native-google-signin/google-signin";
 
 const SettingsScreen = () => {
   const router = useRouter();
@@ -65,33 +66,6 @@ const SettingsScreen = () => {
     currentWeight: 75.5, // kg
   });
 
-  const handleEditValue = (
-    field: string,
-    currentValue: number,
-    unit: string
-  ) => {
-    Alert.prompt(
-      `Edit ${field}`,
-      `Enter your ${field.toLowerCase()}`,
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Save",
-          onPress: (value) => {
-            if (value && !isNaN(Number(value))) {
-              setUserInfo((prev) => ({
-                ...prev,
-                [field.toLowerCase().replace(" ", "")]: Number(value),
-              }));
-            }
-          },
-        },
-      ],
-      "plain-text",
-      currentValue.toString()
-    );
-  };
-
   const handleSignOut = async () => {
     Alert.alert("Sign Out", "Are you sure you want to sign out?", [
       { text: "Cancel", style: "cancel" },
@@ -101,6 +75,7 @@ const SettingsScreen = () => {
         onPress: async () => {
           try {
             await signOut();
+            await GoogleSignin.signOut();
             // Navigation will be handled automatically by AuthContext
           } catch (error) {
             Alert.alert("Error", "Failed to sign out");
