@@ -55,7 +55,7 @@ const fetchRecentMeals = async (
   return result.data.foods || [];
 };
 
-export const useRecentMeals = (date?: string) => {
+export const useRecentMeals = (date?: string, initialData?: FoodItem[]) => {
   const { session } = useAuth();
 
   return useQuery({
@@ -73,5 +73,6 @@ export const useRecentMeals = (date?: string) => {
       }
       return failureCount < 3;
     },
+    initialData,
   });
 };

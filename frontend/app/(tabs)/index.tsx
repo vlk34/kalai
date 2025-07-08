@@ -11,6 +11,9 @@ import {
   Animated,
   Alert,
   BackHandler,
+  StyleSheet,
+  ViewStyle,
+  DimensionValue,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
@@ -398,15 +401,17 @@ export default function DashboardScreen() {
     }
   };
 
-  // Use TanStack Query hooks for recent meals and user profile
+  // Only fetch recent meals for today on initial app load
+  const todayDate = formatDateForAPI(new Date());
+  const isToday = selectedDate === todayDate;
+
+  // Fetch and cache recent meals for the selected day
   const {
     data: recentMeals = [],
     isLoading: isLoadingMeals,
     error,
     refetch: refetchRecentMeals,
   } = useRecentMeals(selectedDate);
-
-  const { invalidateRecentMeals } = useMutateRecentMeals();
 
   // Use the new daily nutrition summary hook
   const {
@@ -1132,7 +1137,7 @@ export default function DashboardScreen() {
                     Failed to load recent meals
                   </Text>
                   <TouchableOpacity
-                    onPress={() => invalidateRecentMeals()}
+                    onPress={() => refetchRecentMeals()}
                     className="bg-green-500 rounded-lg px-4 py-2"
                   >
                     <Text className="text-white font-medium text-center">
@@ -1142,7 +1147,7 @@ export default function DashboardScreen() {
                 </View>
               ) : recentMeals.length > 0 ? (
                 <View className="space-y-3 gap-3">
-                  {recentMeals.map((meal) => (
+                  {recentMeals.slice(0, 3).map((meal) => (
                     <TouchableOpacity
                       key={meal.id}
                       onPress={() => handleMealPress(meal)}
