@@ -43,6 +43,8 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
 import { useStreak, useUpdateStreak } from "@/hooks/useStreak";
 import { MacrosSection } from "@/components/ui/MacrosSection";
+import { useWeeklyRecentMeals } from "@/hooks/useRecentMeals";
+import { Skeleton } from "@/components/ui/Skeleton";
 
 export default function DashboardScreen() {
   // Initialize with today's date
@@ -398,6 +400,13 @@ export default function DashboardScreen() {
     }
   };
 
+  // Weekly recent meals cache (last 5 days)
+  const {
+    data: weeklyRecentMeals = {},
+    isLoading: isLoadingWeeklyMeals,
+    error: weeklyMealsError,
+  } = useWeeklyRecentMeals();
+
   // Use TanStack Query hooks for recent meals and user profile
   const {
     data: recentMeals = [],
@@ -407,6 +416,30 @@ export default function DashboardScreen() {
   } = useRecentMeals(selectedDate);
 
   const { invalidateRecentMeals } = useMutateRecentMeals();
+
+  // Helper: is selectedDate in last 5 days?
+  const isDateInWeeklyCache = (date: string) => {
+    return Object.prototype.hasOwnProperty.call(weeklyRecentMeals, date);
+  };
+
+  // Meals to display: prefer recentMeals if available, else fallback to weekly cache for last 5 days
+  let displayedMeals: any[] = [];
+  let displayedMealsLoading = false;
+  let displayedMealsError = null;
+
+  if (recentMeals.length > 0 || !isLoadingMeals) {
+    displayedMeals = recentMeals;
+    displayedMealsLoading = isLoadingMeals;
+    displayedMealsError = error;
+  } else if (isDateInWeeklyCache(selectedDate)) {
+    displayedMeals = weeklyRecentMeals[selectedDate]?.foods || [];
+    displayedMealsLoading = isLoadingWeeklyMeals;
+    displayedMealsError = weeklyMealsError;
+  } else {
+    displayedMeals = [];
+    displayedMealsLoading = isLoadingMeals;
+    displayedMealsError = error;
+  }
 
   // Use the new daily nutrition summary hook
   const {
@@ -1008,9 +1041,17 @@ export default function DashboardScreen() {
               <View className="flex-row justify-between items-center">
                 <View>
                   {isLoadingNutrition ? (
-                    <Text className="text-xl pl-2 text-gray-400">
-                      Loading...
-                    </Text>
+                    <View style={{ gap: 8 }}>
+                      <Skeleton
+                        width={80}
+                        height={40}
+                        style={{ marginBottom: 4 }}
+                      />
+                      <Text className="text-xs text-gray-600">
+                        Calories Left
+                      </Text>
+                      <Text className="text-xs text-gray-500">Goal: --</Text>
+                    </View>
                   ) : nutritionError ? (
                     <View>
                       <Text className="text-5xl font-bold text-gray-400 py-2">
@@ -1042,16 +1083,23 @@ export default function DashboardScreen() {
                           <Text className="text-xs text-gray-600 mb-1">
                             Calories Left
                           </Text>
+                          <Text className="text-xs text-gray-500">
+                            Goal: {Math.round(dailyStats.totalCalories)}
+                          </Text>
                         </>
                       )}
                     </View>
                   )}
                 </View>
-                <CircularProgress
-                  percentage={
-                    dailyStats.totalCalories > 0 ? progressPercentage : 0
-                  }
-                />
+                {isLoadingNutrition ? (
+                  <Skeleton width={60} height={60} borderRadius={30} />
+                ) : (
+                  <CircularProgress
+                    percentage={
+                      dailyStats.totalCalories > 0 ? progressPercentage : 0
+                    }
+                  />
+                )}
               </View>
             </View>
 
@@ -1061,72 +1109,39 @@ export default function DashboardScreen() {
               isLoadingNutrition={isLoadingNutrition}
               nutritionError={nutritionError}
             />
-            {/* <View className="flex-row gap-2 space-x-4  mb-4">
-              <View className="flex-1 bg-white rounded-2xl p-4 shadow-sm">
-                <Text className="text-sm font-medium text-gray-600 mb-1">
-                  Protein Left
-                </Text>
-                {isLoadingNutrition ? (
-                  <Text className="text-xl font-bold text-gray-400">--</Text>
-                ) : nutritionError ? (
-                  <Text className="text-xl font-bold text-gray-400">--</Text>
-                ) : (
-                  <Text className="text-xl font-bold text-rose-600">
-                    {Math.round(dailyStats.proteinLeft)}g
-                  </Text>
-                )}
-                <Text className="text-xs text-gray-400">
-                  of {Math.round(dailyStats.totalProtein)}g
-                </Text>
-              </View>
-              <View className="flex-1 bg-white rounded-2xl p-4 shadow-sm">
-                <Text className="text-sm font-medium text-gray-600 mb-1">
-                  Carbs Left
-                </Text>
-                {isLoadingNutrition ? (
-                  <Text className="text-xl font-bold text-gray-400">--</Text>
-                ) : nutritionError ? (
-                  <Text className="text-xl font-bold text-gray-400">--</Text>
-                ) : (
-                  <Text className="text-xl font-bold text-orange-600">
-                    {Math.round(dailyStats.carbsLeft)}g
-                  </Text>
-                )}
-                <Text className="text-xs text-gray-400">
-                  of {Math.round(dailyStats.totalCarbs)}g
-                </Text>
-              </View>
-              <View className="flex-1 bg-white rounded-2xl p-4 shadow-sm">
-                <Text className="text-sm font-medium text-gray-600 mb-1">
-                  Fats Left
-                </Text>
-                {isLoadingNutrition ? (
-                  <Text className="text-xl font-bold text-gray-400">--</Text>
-                ) : nutritionError ? (
-                  <Text className="text-xl font-bold text-gray-400">--</Text>
-                ) : (
-                  <Text className="text-xl font-bold text-sky-600">
-                    {Math.round(dailyStats.fatsLeft)}g
-                  </Text>
-                )}
-                <Text className="text-xs text-gray-400">
-                  of {Math.round(dailyStats.totalFats)}g
-                </Text>
-              </View>
-            </View> */}
 
             {/* Recently Section */}
             <View className="mb-20">
               <Text className="text-lg font-semibold text-gray-900 mb-4 px-2">
                 Recently
               </Text>
-              {isLoadingMeals ? (
-                <View className="bg-white rounded-2xl p-6 shadow-sm">
-                  <Text className="text-gray-500 text-center">
-                    Loading your recent meals...
-                  </Text>
+              {displayedMealsLoading && displayedMeals.length === 0 ? (
+                <View style={{ gap: 0 }}>
+                  {[...Array(3)].map((_, i) => (
+                    <View
+                      key={i}
+                      className="bg-white rounded-2xl px-3 py-2 shadow-sm mb-2"
+                      style={{ flexDirection: "row", alignItems: "center" }}
+                    >
+                      <Skeleton
+                        width={68}
+                        height={68}
+                        borderRadius={12}
+                        style={{ marginRight: 12 }}
+                      />
+                      <View style={{ flex: 1, gap: 8 }}>
+                        <Skeleton width={120} height={16} />
+                        <Skeleton width={80} height={14} />
+                        <View style={{ flexDirection: "row", gap: 8 }}>
+                          <Skeleton width={32} height={12} borderRadius={8} />
+                          <Skeleton width={32} height={12} borderRadius={8} />
+                          <Skeleton width={32} height={12} borderRadius={8} />
+                        </View>
+                      </View>
+                    </View>
+                  ))}
                 </View>
-              ) : error ? (
+              ) : displayedMealsError ? (
                 <View className="bg-white rounded-2xl p-6 shadow-sm">
                   <Text className="text-red-500 text-center mb-2">
                     Failed to load recent meals
@@ -1140,9 +1155,9 @@ export default function DashboardScreen() {
                     </Text>
                   </TouchableOpacity>
                 </View>
-              ) : recentMeals.length > 0 ? (
+              ) : displayedMeals.length > 0 ? (
                 <View className="space-y-3 gap-3">
-                  {recentMeals.map((meal) => (
+                  {displayedMeals.map((meal) => (
                     <TouchableOpacity
                       key={meal.id}
                       onPress={() => handleMealPress(meal)}

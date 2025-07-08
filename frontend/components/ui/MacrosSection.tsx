@@ -2,6 +2,7 @@ import React from "react";
 import { View, Text } from "react-native";
 import { Dumbbell, Wheat, Droplet } from "lucide-react-native";
 import Svg, { Circle } from "react-native-svg";
+import { Skeleton } from "@/components/ui/Skeleton";
 
 // Props interface for the MacrosSection component
 interface MacrosSectionProps {
@@ -111,11 +112,12 @@ export const MacrosSection: React.FC<MacrosSectionProps> = ({
       <View className="flex-1 bg-white rounded-2xl p-4 shadow-sm items-center">
         {isLoadingNutrition ? (
           <>
-            <Text className="text-xl font-bold text-gray-400 mb-2">--</Text>
+            <Skeleton width={40} height={24} style={{ marginBottom: 8 }} />
             <Text className="text-xs text-gray-500 mb-2 text-center">
               Protein Left
             </Text>
-            <View className="w-15 h-15 bg-gray-100 rounded-full" />
+            <Skeleton width={48} height={48} borderRadius={24} />
+            <Text className="text-xs text-gray-400 mt-2">of --g</Text>
           </>
         ) : nutritionError ? (
           <>
@@ -150,11 +152,12 @@ export const MacrosSection: React.FC<MacrosSectionProps> = ({
       <View className="flex-1 bg-white rounded-2xl p-4 shadow-sm items-center">
         {isLoadingNutrition ? (
           <>
-            <Text className="text-xl font-semibold text-gray-400 mb-2">--</Text>
+            <Skeleton width={40} height={24} style={{ marginBottom: 8 }} />
             <Text className="text-xs text-gray-500 mb-2 text-center">
               Carbs Left
             </Text>
-            <View className="w-15 h-15 bg-gray-100 rounded-full" />
+            <Skeleton width={48} height={48} borderRadius={24} />
+            <Text className="text-xs text-gray-400 mt-2">of --g</Text>
           </>
         ) : nutritionError ? (
           <>
@@ -189,11 +192,12 @@ export const MacrosSection: React.FC<MacrosSectionProps> = ({
       <View className="flex-1 bg-white rounded-2xl p-4 shadow-sm items-center">
         {isLoadingNutrition ? (
           <>
-            <Text className="text-xl font-semibold text-gray-400 mb-2">--</Text>
+            <Skeleton width={40} height={24} style={{ marginBottom: 8 }} />
             <Text className="text-xs text-gray-500 mb-2 text-center">
               Fats Left
             </Text>
-            <View className="w-15 h-15 bg-gray-100 rounded-full" />
+            <Skeleton width={48} height={48} borderRadius={24} />
+            <Text className="text-xs text-gray-400 mt-2">of --g</Text>
           </>
         ) : nutritionError ? (
           <>
