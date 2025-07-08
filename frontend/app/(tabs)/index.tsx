@@ -421,20 +421,20 @@ export default function DashboardScreen() {
     refetch: refetchDailyNutrition,
   } = useDailyNutritionSummary(selectedDate);
 
-  // Manual refetch when session becomes available
-  useEffect(() => {
-    if (session?.access_token && selectedDate) {
-      setTimeout(() => {
-        refetchRecentMeals();
-        refetchDailyNutrition();
-      }, 100);
-    }
-  }, [
-    session?.access_token,
-    selectedDate,
-    refetchRecentMeals,
-    refetchDailyNutrition,
-  ]);
+  // // Manual refetch when session becomes available
+  // useEffect(() => {
+  //   if (session?.access_token && selectedDate) {
+  //     setTimeout(() => {
+  //       refetchRecentMeals();
+  //       refetchDailyNutrition();
+  //     }, 100);
+  //   }
+  // }, [
+  //   session?.access_token,
+  //   selectedDate,
+  //   refetchRecentMeals,
+  //   refetchDailyNutrition,
+  // ]);
 
   // Turkish day abbreviations (Sunday = 0, Monday = 1, etc.)
   const turkishDays = ["Paz", "Pzt", "Sal", "Çar", "Per", "Cum", "Cts"];

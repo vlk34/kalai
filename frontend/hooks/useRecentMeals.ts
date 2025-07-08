@@ -55,15 +55,15 @@ const fetchRecentMeals = async (
   return result.data.foods || [];
 };
 
-export const useRecentMeals = (date?: string, initialData?: FoodItem[]) => {
+export const useRecentMeals = (date?: string) => {
   const { session } = useAuth();
 
   return useQuery({
     queryKey: ["recent-meals", session?.user?.id, date],
     queryFn: () => fetchRecentMeals(session!.access_token, date),
     enabled: !!session?.access_token,
-    staleTime: 2 * 60 * 1000, // 2 minutes
-    gcTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
     refetchOnWindowFocus: false, // Prevent refetch on window focus
     refetchOnMount: false, // Prevent refetch on mount if data exists
     retry: (failureCount, error) => {
@@ -73,6 +73,5 @@ export const useRecentMeals = (date?: string, initialData?: FoodItem[]) => {
       }
       return failureCount < 3;
     },
-    initialData,
   });
 };
