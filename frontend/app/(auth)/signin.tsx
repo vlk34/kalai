@@ -5,7 +5,6 @@ import {
   TextInput,
   TouchableOpacity,
   ActivityIndicator,
-  Alert,
   Animated,
   Text,
 } from "react-native";
@@ -19,6 +18,11 @@ export default function SignIn() {
   const [loading, setLoading] = useState(false);
   const [slideAnim] = useState(new Animated.Value(30));
   const [isNavigatingToSignup, setIsNavigatingToSignup] = useState(false);
+  const [errors, setErrors] = useState<{
+    email?: string;
+    password?: string;
+    general?: string;
+  }>({});
 
   React.useEffect(() => {
     Animated.timing(slideAnim, {
@@ -28,20 +32,44 @@ export default function SignIn() {
     }).start();
   }, []);
 
+  const validateForm = () => {
+    const newErrors: typeof errors = {};
+
+    if (!email.trim()) {
+      newErrors.email = "Email is required";
+    } else if (!/\S+@\S+\.\S+/.test(email)) {
+      newErrors.email = "Please enter a valid email address";
+    }
+
+    if (!password.trim()) {
+      newErrors.password = "Password is required";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const clearFieldError = (field: keyof typeof errors) => {
+    if (errors[field]) {
+      setErrors((prev) => ({ ...prev, [field]: undefined }));
+    }
+  };
+
   async function signInWithEmail() {
-    if (!email || !password) {
-      Alert.alert("Error", "Please fill in all fields");
+    if (!validateForm()) {
       return;
     }
 
     setLoading(true);
+    setErrors({}); // Clear any previous general errors
+
     const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
 
     if (error) {
-      Alert.alert("Error", error.message);
+      setErrors({ general: error.message });
     } else {
       // Add a small delay to ensure navigation context is properly reset
       setTimeout(() => {
@@ -75,6 +103,13 @@ export default function SignIn() {
               </Text>
             </View>
 
+            {/* General Error */}
+            {errors.general && (
+              <View className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                <Text className="text-red-600 text-sm">{errors.general}</Text>
+              </View>
+            )}
+
             {/* Form */}
             <View className="space-y-5">
               <View className="mb-4">
@@ -82,15 +117,35 @@ export default function SignIn() {
                   Email
                 </Text>
                 <TextInput
-                  className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-4 text-gray-900"
+                  className={`border rounded-xl px-4 py-4 text-gray-900 ${
+                    errors.email
+                      ? "bg-red-50 border-red-300"
+                      : "bg-gray-50 border-gray-200"
+                  }`}
                   placeholder="Enter your email"
                   placeholderTextColor="#9CA3AF"
                   value={email}
-                  onChangeText={setEmail}
+                  onChangeText={(text) => {
+                    setEmail(text);
+                    clearFieldError("email");
+                  }}
+                  onBlur={() => {
+                    if (email.trim() && !/\S+@\S+\.\S+/.test(email)) {
+                      setErrors((prev) => ({
+                        ...prev,
+                        email: "Please enter a valid email address",
+                      }));
+                    }
+                  }}
                   keyboardType="email-address"
                   autoCapitalize="none"
                   autoComplete="email"
                 />
+                {errors.email && (
+                  <Text className="text-red-500 text-xs mt-1">
+                    {errors.email}
+                  </Text>
+                )}
               </View>
 
               <View className="mb-6">
@@ -98,14 +153,26 @@ export default function SignIn() {
                   Password
                 </Text>
                 <TextInput
-                  className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-4 text-gray-900"
+                  className={`border rounded-xl px-4 py-4 text-gray-900 ${
+                    errors.password
+                      ? "bg-red-50 border-red-300"
+                      : "bg-gray-50 border-gray-200"
+                  }`}
                   placeholder="Enter your password"
                   placeholderTextColor="#9CA3AF"
                   value={password}
-                  onChangeText={setPassword}
+                  onChangeText={(text) => {
+                    setPassword(text);
+                    clearFieldError("password");
+                  }}
                   secureTextEntry
                   autoCapitalize="none"
                 />
+                {errors.password && (
+                  <Text className="text-red-500 text-xs mt-1">
+                    {errors.password}
+                  </Text>
+                )}
               </View>
 
               <TouchableOpacity

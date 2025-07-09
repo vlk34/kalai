@@ -50,7 +50,7 @@ import { MacrosSection } from "@/components/ui/MacrosSection";
 export default function DashboardScreen() {
   // Debug: Log when component mounts
   useEffect(() => {
-    console.log("[DEBUG] DashboardScreen mounted");
+    // console.log("[DEBUG] DashboardScreen mounted");
   }, []);
 
   // Initialize with today's date
@@ -429,18 +429,18 @@ export default function DashboardScreen() {
   // Fetch and cache recent meals for the selected day
   const recentMealsQuery = useRecentMeals(selectedDate);
   // Debug: Log query key, loading, data, and error for recent meals
-  console.log("[DEBUG] useRecentMeals queryKey:", [
-    "recent-meals",
-    session?.user?.id,
-    selectedDate,
-  ]);
-  console.log("[DEBUG] useRecentMeals isLoading:", recentMealsQuery.isLoading);
+  // console.log("[DEBUG] useRecentMeals queryKey:", [
+  //   "recent-meals",
+  //   session?.user?.id,
+  //   selectedDate,
+  // ]);
+  // console.log("[DEBUG] useRecentMeals isLoading:", recentMealsQuery.isLoading);
 
-  useEffect(() => {
-    console.log("[DEBUG] useRecentMeals data:", recentMealsQuery.data);
-  }, [recentMealsQuery.data]);
-  // console.log("[DEBUG] useRecentMeals data:", recentMealsQuery.data);
-  console.log("[DEBUG] useRecentMeals error:", recentMealsQuery.error);
+  // useEffect(() => {
+  //   console.log("[DEBUG] useRecentMeals data:", recentMealsQuery.data);
+  // }, [recentMealsQuery.data]);
+  // // console.log("[DEBUG] useRecentMeals data:", recentMealsQuery.data);
+  // console.log("[DEBUG] useRecentMeals error:", recentMealsQuery.error);
 
   const {
     data: recentMeals = [],
@@ -452,23 +452,23 @@ export default function DashboardScreen() {
   // Use the new daily nutrition summary hook
   const dailyNutritionQuery = useDailyNutritionSummary(selectedDate);
   // Debug: Log query key, loading, data, and error for daily nutrition
-  console.log("[DEBUG] useDailyNutritionSummary queryKey:", [
-    "daily-nutrition-summary",
-    session?.user?.id,
-    selectedDate,
-  ]);
-  console.log(
-    "[DEBUG] useDailyNutritionSummary isLoading:",
-    dailyNutritionQuery.isLoading
-  );
-  console.log(
-    "[DEBUG] useDailyNutritionSummary data:",
-    dailyNutritionQuery.data
-  );
-  console.log(
-    "[DEBUG] useDailyNutritionSummary error:",
-    dailyNutritionQuery.error
-  );
+  // console.log("[DEBUG] useDailyNutritionSummary queryKey:", [
+  //   "daily-nutrition-summary",
+  //   session?.user?.id,
+  //   selectedDate,
+  // ]);
+  // console.log(
+  //   "[DEBUG] useDailyNutritionSummary isLoading:",
+  //   dailyNutritionQuery.isLoading
+  // );
+  // console.log(
+  //   "[DEBUG] useDailyNutritionSummary data:",
+  //   dailyNutritionQuery.data
+  // );
+  // console.log(
+  //   "[DEBUG] useDailyNutritionSummary error:",
+  //   dailyNutritionQuery.error
+  // );
 
   const {
     data: dailyNutrition,
