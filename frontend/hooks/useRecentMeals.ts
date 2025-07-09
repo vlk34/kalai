@@ -23,7 +23,8 @@ interface RecentMealsResponse {
   data: {
     date: string;
     foods: FoodItem[];
-    count: number;
+    total_count: number;
+    user_id: string;
   };
 }
 
@@ -51,7 +52,9 @@ const fetchRecentMeals = async (
   }
 
   const result: RecentMealsResponse = await response.json();
-  console.log("Recent meals result:", result);
+  // console.log("Recent meals result:", result);
+
+  // Return the foods array from the correct path
   return result.data.foods || [];
 };
 
@@ -61,11 +64,11 @@ export const useRecentMeals = (date?: string) => {
   return useQuery({
     queryKey: ["recent-meals", session?.user?.id, date],
     queryFn: () => fetchRecentMeals(session!.access_token, date),
-    enabled: !!session?.access_token,
+    enabled: !!session?.access_token && !!session?.user?.id && !!date,
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes
     refetchOnWindowFocus: false, // Prevent refetch on window focus
-    refetchOnMount: false, // Prevent refetch on mount if data exists
+    refetchOnMount: true, // Allow refetch on mount to handle session becoming ready
     retry: (failureCount, error) => {
       // Don't retry on auth errors
       if (error.message.includes("401") || error.message.includes("403")) {

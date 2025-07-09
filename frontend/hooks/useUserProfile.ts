@@ -174,7 +174,7 @@ const fetchUserProfile = async (
   }
 
   const result = await response.json();
-  console.log("User profile response:", result);
+  // console.log("User profile response:", result);
   return result;
 };
 
@@ -269,11 +269,11 @@ export const useUserProfile = () => {
   return useQuery({
     queryKey: ["user-profile", session?.user?.id],
     queryFn: () => fetchUserProfile(session!.access_token),
-    enabled: !!session?.access_token,
+    enabled: !!session?.access_token && !!session?.user?.id,
     staleTime: 10 * 60 * 1000, // 10 minutes (user profile doesn't change often)
     gcTime: 30 * 60 * 1000, // 30 minutes
     refetchOnWindowFocus: false, // Prevent refetch on window focus
-    refetchOnMount: false, // Prevent refetch on mount if data exists
+    refetchOnMount: true, // Allow refetch on mount to handle session becoming ready
     retry: (failureCount, error) => {
       // Don't retry on auth errors
       if (error.message.includes("401") || error.message.includes("403")) {
@@ -334,11 +334,11 @@ export const useDailyNutritionSummary = (date?: string) => {
   return useQuery({
     queryKey: ["daily-nutrition-summary", session?.user?.id, date],
     queryFn: () => fetchDailyNutritionSummary(session!.access_token, date),
-    enabled: !!session?.access_token,
+    enabled: !!session?.access_token && !!session?.user?.id && !!date,
     staleTime: 5 * 60 * 1000, // 2 minutes
     gcTime: 10 * 60 * 1000, // 5 minutes
     refetchOnWindowFocus: false, // Prevent refetch on window focus
-    refetchOnMount: false, // Prevent refetch on mount if data exists
+    refetchOnMount: true, // Allow refetch on mount to handle session becoming ready
     retry: (failureCount, error) => {
       // Don't retry on auth errors
       if (error.message.includes("401") || error.message.includes("403")) {

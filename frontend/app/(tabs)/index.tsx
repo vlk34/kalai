@@ -48,6 +48,11 @@ import { useStreak, useUpdateStreak } from "@/hooks/useStreak";
 import { MacrosSection } from "@/components/ui/MacrosSection";
 
 export default function DashboardScreen() {
+  // Debug: Log when component mounts
+  useEffect(() => {
+    console.log("[DEBUG] DashboardScreen mounted");
+  }, []);
+
   // Initialize with today's date
   const [selectedDate, setSelectedDate] = useState<string>(
     formatDateForAPI(new Date())
@@ -57,9 +62,17 @@ export default function DashboardScreen() {
   );
   const [selectedDateIndex, setSelectedDateIndex] = useState<number>(29); // Today is the last index (30 days - 1)
 
+  // Debug: Log when selectedDate changes
+  useEffect(() => {
+    console.log("[DEBUG] selectedDate changed:", selectedDate);
+  }, [selectedDate]);
+
   const queryClient = useQueryClient();
   const insets = useSafeAreaInsets();
   const { session } = useAuth();
+  // Debug: Log session on every render
+  // console.log("[DEBUG] session:", session);
+  console.log("[DEBUG] selectedDate:", selectedDate);
   const scrollViewRef = useRef<ScrollView>(null);
   const navigationRouter = useRouter();
 
@@ -414,20 +427,55 @@ export default function DashboardScreen() {
   const isToday = selectedDate === todayDate;
 
   // Fetch and cache recent meals for the selected day
+  const recentMealsQuery = useRecentMeals(selectedDate);
+  // Debug: Log query key, loading, data, and error for recent meals
+  console.log("[DEBUG] useRecentMeals queryKey:", [
+    "recent-meals",
+    session?.user?.id,
+    selectedDate,
+  ]);
+  console.log("[DEBUG] useRecentMeals isLoading:", recentMealsQuery.isLoading);
+
+  useEffect(() => {
+    console.log("[DEBUG] useRecentMeals data:", recentMealsQuery.data);
+  }, [recentMealsQuery.data]);
+  // console.log("[DEBUG] useRecentMeals data:", recentMealsQuery.data);
+  console.log("[DEBUG] useRecentMeals error:", recentMealsQuery.error);
+
   const {
     data: recentMeals = [],
     isLoading: isLoadingMeals,
     error,
     refetch: refetchRecentMeals,
-  } = useRecentMeals(selectedDate);
+  } = recentMealsQuery;
 
   // Use the new daily nutrition summary hook
+  const dailyNutritionQuery = useDailyNutritionSummary(selectedDate);
+  // Debug: Log query key, loading, data, and error for daily nutrition
+  console.log("[DEBUG] useDailyNutritionSummary queryKey:", [
+    "daily-nutrition-summary",
+    session?.user?.id,
+    selectedDate,
+  ]);
+  console.log(
+    "[DEBUG] useDailyNutritionSummary isLoading:",
+    dailyNutritionQuery.isLoading
+  );
+  console.log(
+    "[DEBUG] useDailyNutritionSummary data:",
+    dailyNutritionQuery.data
+  );
+  console.log(
+    "[DEBUG] useDailyNutritionSummary error:",
+    dailyNutritionQuery.error
+  );
+
   const {
     data: dailyNutrition,
     isLoading: isLoadingNutrition,
     error: nutritionError,
     refetch: refetchDailyNutrition,
-  } = useDailyNutritionSummary(selectedDate);
+  } = dailyNutritionQuery;
 
   // Turkish day abbreviations (Sunday = 0, Monday = 1, etc.)
   const turkishDays = ["Paz", "Pzt", "Sal", "Çar", "Per", "Cum", "Cts"];
@@ -621,6 +669,16 @@ export default function DashboardScreen() {
       setCongratulationsShownForDay("");
     }
   }, [congratulationsShownForDay, session?.user?.id]);
+
+  // Force refetch when session becomes ready
+  useEffect(() => {
+    console.log("[DEBUG] Session readiness effect triggered");
+    if (session?.access_token && session?.user?.id && selectedDate) {
+      console.log("[DEBUG] Session is now ready, forcing refetch");
+      recentMealsQuery.refetch();
+      dailyNutritionQuery.refetch();
+    }
+  }, [session?.access_token, session?.user?.id]);
 
   // Calculate daily stats from daily nutrition summary or fallback to defaults
   const getDailyStats = () => {
