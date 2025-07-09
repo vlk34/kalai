@@ -7,4 +7,5 @@ PyJWT==2.9.0
 openai==1.55.0
 pandas==2.2.2
 pillow==10.3.0
-Werkzeug==3.0.3 
+Werkzeug==3.0.3
+Flask-Limiter==3.5.0 
