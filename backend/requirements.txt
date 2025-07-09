@@ -9,3 +9,4 @@ pandas==2.2.2
 pillow==10.3.0
 Werkzeug==3.0.3
 Flask-Limiter==3.5.0 
+gunicorn==21.2.0
