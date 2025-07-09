@@ -15,7 +15,6 @@ from src.utils.models import Model
 from src.utils.prompt_generator import PromptGenerator
 from PIL import Image
 from dotenv import load_dotenv
-import threading
 
 load_dotenv()
 
@@ -26,40 +25,6 @@ ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
 def allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
-
-def save_to_database_background(user_id, nutritional_data, storage_path, supabase_url, supabase_key):
-    """Background function to save food data to database"""
-    try:
-        # Initialize Supabase client
-        supabase: Client = create_client(supabase_url, supabase_key)
-        
-        # Prepare data for database insertion
-        food_record = {
-            'user_id': user_id,
-            'name': nutritional_data.get('name', 'Unknown Food'),
-            'emoji': nutritional_data.get('emoji', '🍽️'),
-            'protein': float(nutritional_data.get('protein', 0)),
-            'carbs': float(nutritional_data.get('carbs', 0)),
-            'fats': float(nutritional_data.get('fats', 0)),
-            'calories': float(nutritional_data.get('calories', 0)),
-            'photo_path': storage_path,
-            'portion': 1
-        }
-        
-        # Insert into Foods_consumed table
-        result = supabase.table('foods_consumed').insert(food_record).execute()
-        
-        if result.data:
-            print(f"Successfully saved food record to database for user {user_id}")
-        else:
-            print(f"Warning: No data returned from database insert for user {user_id}")
-            
-    except Exception as e:
-        print(f"Error saving to database in background: {str(e)}")
-        # In a production environment, you might want to:
-        # - Log this error to a proper logging system
-        # - Store failed saves in a retry queue
-        # - Send notification to admin/monitoring system
 
 @blp.route('/consumed')
 class Consumed(MethodView):
@@ -184,10 +149,39 @@ class Consumed(MethodView):
                     'raw_response': response
                 }), 500
             
-            # Prepare response data
-            response_data = {
+            # Save to Supabase Foods_consumed table
+            try:
+                # Prepare data for database insertion
+                food_record = {
+                    'user_id': g.current_user['id'],
+                    'name': nutritional_data.get('name', 'Unknown Food'),
+                    'emoji': nutritional_data.get('emoji', '🍽️'),
+                    'protein': float(nutritional_data.get('protein', 0)),
+                    'carbs': float(nutritional_data.get('carbs', 0)),
+                    'fats': float(nutritional_data.get('fats', 0)),
+                    'calories': float(nutritional_data.get('calories', 0)),
+                    'photo_path': storage_path,
+                    'portion': 1
+                }
+                
+                # Insert into Foods_consumed table
+                result = supabase.table('foods_consumed').insert(food_record).execute()
+                
+                if result.data:
+                    saved_record = result.data[0]
+                else:
+                    raise Exception("No data returned from database insert")
+                    
+            except Exception as e:
+                return jsonify({
+                    'error': 'Failed to save to database',
+                    'message': f'Could not save nutritional data: {str(e)}',
+                    'nutritional_data': nutritional_data
+                }), 500
+            
+            return jsonify({
                 'success': True,
-                'message': 'Photo uploaded and analyzed successfully. Saving to database in background.',
+                'message': 'Photo uploaded, analyzed, and saved successfully',
                 'data': {
                     'file_info': {
                         'original_filename': filename,
@@ -198,24 +192,10 @@ class Consumed(MethodView):
                         'uploaded_at': datetime.now().isoformat(),
                         'storage_path': storage_path
                     },
-                    'nutritional_analysis': nutritional_data
+                    'nutritional_analysis': nutritional_data,
+                    'database_record': saved_record
                 }
-            }
-            
-            # Start background thread to save to database
-            # Get Supabase credentials for background thread
-            supabase_url = current_app.config['SUPABASE_URL']
-            supabase_key = os.getenv('SUPABASE_SERVICE_ROLE_KEY') or os.getenv('SUPABASE_ANON_KEY')
-            
-            background_thread = threading.Thread(
-                target=save_to_database_background,
-                args=(g.current_user['id'], nutritional_data, storage_path, supabase_url, supabase_key)
-            )
-            background_thread.daemon = True  # Thread will not prevent app from exiting
-            background_thread.start()
-            
-            # Return response immediately
-            return jsonify(response_data), 200
+            }), 200
             
         except Exception as e:
             return jsonify({
