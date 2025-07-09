@@ -3,14 +3,12 @@ from flask_smorest import Api
 from flask_cors import CORS
 import os
 from dotenv import load_dotenv
-from src.utils.rate_limiter import create_limiter, RATE_LIMITS
+from src.utils.rate_limiter import limiter, RATE_LIMITS
 
 load_dotenv(override=True)
 
-limiter = None
 
 def create_app():
-    global limiter
     app = Flask(__name__)
 
     # Basic Flask configuration
@@ -25,6 +23,10 @@ def create_app():
     app.config['SUPABASE_URL'] = os.getenv('SUPABASE_URL')
     app.config['SUPABASE_JWT_SECRET'] = os.getenv('SUPABASE_JWT_SECRET')
 
+    # Rate limiter configuration
+    app.config["RATELIMIT_STORAGE_URI"] = os.getenv("REDIS_URL", "memory://")
+    app.config["RATELIMIT_DEFAULT"] = "1000 per hour"
+
     # CORS configuration for frontend
     CORS(app,
          supports_credentials=True,
@@ -37,10 +39,7 @@ def create_app():
          })
 
     # Initialize rate limiter
-    limiter = create_limiter(app)
-
-    # Make limiter available to other modules
-    app.limiter = limiter
+    limiter.init_app(app)
 
     api = Api(app)
 
@@ -65,11 +64,10 @@ def create_app():
     @app.route('/rate-limit-info')
     def rate_limit_info():
         """Get current rate limiting information"""
-        from src.utils.rate_limiter import RATE_LIMITS
         return jsonify({
             'rate_limits': RATE_LIMITS,
             'current_limits': {
-                'global': "1000 per hour"
+                'global': app.config.get("RATELIMIT_DEFAULT")
             }
         })
 

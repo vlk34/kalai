@@ -8,7 +8,6 @@ Different endpoints have different rate limits based on their resource intensity
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from flask import g
-import os
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -21,6 +20,13 @@ def get_user_id():
     if hasattr(g, 'current_user') and g.current_user:
         return f"user:{g.current_user['id']}"
     return f"ip:{get_remote_address()}"
+
+# Create the limiter instance without an app object.
+# It will be initialized in the main app factory using .init_app(app)
+limiter = Limiter(
+    key_func=get_user_id,
+    headers_enabled=True,  # Include rate limit info in response headers
+)
 
 # Rate limiting configurations for different operation types
 RATE_LIMITS = {
@@ -41,27 +47,4 @@ RATE_LIMITS = {
     
     # Authentication operations
     'AUTH': '30 per hour'
-}
-
-def create_limiter(app):
-    """
-    Create and configure the Flask-Limiter instance.
-    """
-    # Use Redis if available (better for production), otherwise use in-memory
-    storage_uri = os.getenv('REDIS_URL', 'memory://')
-    
-    limiter = Limiter(
-        app=app,
-        key_func=get_user_id,
-        storage_uri=storage_uri,
-        default_limits=["1000 per hour"],  # Global fallback limit
-        headers_enabled=True,  # Include rate limit info in response headers
-    )
-    
-    return limiter
-
-# Helper function to get limiter instance  
-def get_limiter():
-    """Get the current Flask-Limiter instance"""
-    from flask import current_app
-    return current_app.limiter 
+} 

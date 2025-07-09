@@ -6,7 +6,7 @@ import pandas as pd
 import json
 from werkzeug.utils import secure_filename
 from src.utils.auth import verify_supabase_token
-from src.utils.rate_limiter import RATE_LIMITS, get_limiter
+from src.utils.rate_limiter import limiter, RATE_LIMITS
 import uuid
 from datetime import datetime
 from supabase import create_client, Client
@@ -30,11 +30,8 @@ def allowed_file(filename):
 @blp.route('/consumed')
 class Consumed(MethodView):
     @verify_supabase_token  
+    @limiter.limit(RATE_LIMITS['AI_ANALYSIS'])
     def post(self):
-        # Rate limiting temporarily disabled - will implement properly
-        # limiter = get_limiter()
-        # limiter.limit(RATE_LIMITS['AI_ANALYSIS']).test()
-        
         try:
             # Check if the request contains a file
             if 'photo' not in request.files:
@@ -211,11 +208,8 @@ class Consumed(MethodView):
 @blp.route('/edit_with_ai')
 class EditWithAI(MethodView):
     @verify_supabase_token
+    @limiter.limit(RATE_LIMITS['AI_ANALYSIS'])
     def post(self):
-        # Rate limiting temporarily disabled - will implement properly
-        # limiter = get_limiter()
-        # limiter.limit(RATE_LIMITS['AI_ANALYSIS']).test()
-        
         try:
             # Get request data
             data = request.get_json()
@@ -387,13 +381,9 @@ class EditWithAI(MethodView):
 @blp.route('/edit_consumed_food')
 class EditConsumedFood(MethodView):
     """Manually edit a consumed food record (name & macronutrients)"""
-
     @verify_supabase_token
+    @limiter.limit(RATE_LIMITS['DB_WRITE'])
     def put(self):
-        # Rate limiting temporarily disabled - will implement properly
-        # limiter = get_limiter()
-        # limiter.limit(RATE_LIMITS['DB_WRITE']).test()
-        
         try:
             data = request.get_json()
 
@@ -469,13 +459,9 @@ class EditConsumedFood(MethodView):
 @blp.route('/delete_consumed_food')
 class DeleteConsumedFood(MethodView):
     """Delete a consumed food record"""
-
     @verify_supabase_token
+    @limiter.limit(RATE_LIMITS['DB_WRITE'])
     def delete(self):
-        # Rate limiting temporarily disabled - will implement properly
-        # limiter = get_limiter()
-        # limiter.limit(RATE_LIMITS['DB_WRITE']).test()
-        
         try:
             data = request.get_json()
 

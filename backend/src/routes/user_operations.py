@@ -6,7 +6,7 @@ import pandas as pd
 import json
 from werkzeug.utils import secure_filename
 from src.utils.auth import verify_supabase_token
-from src.utils.rate_limiter import RATE_LIMITS
+from src.utils.rate_limiter import limiter, RATE_LIMITS
 import uuid
 from datetime import datetime, timedelta
 from supabase import create_client, Client
@@ -22,11 +22,9 @@ blp = Blueprint('History', __name__, description='History Operations')
 @blp.route('/recently_eaten')
 class RecentlyEaten(MethodView):
     @verify_supabase_token
+    @limiter.limit(RATE_LIMITS['DB_READ'])
     def get(self):
         """Get user's recently consumed food items from a specific date (defaults to today)"""
-        # Rate limiting temporarily disabled - will implement properly
-        # limiter = get_limiter()
-        # limiter.limit(RATE_LIMITS['DB_READ']).test()
         
         try:
             # Initialize Supabase client
@@ -164,6 +162,7 @@ class RecentlyEaten(MethodView):
 @blp.route('/full_history')
 class FullHistory(MethodView):
     @verify_supabase_token
+    @limiter.limit(RATE_LIMITS['DB_READ'])
     def get(self):
         """Get user's full history of consumed food items"""
         try:
@@ -288,6 +287,7 @@ class FullHistory(MethodView):
 @blp.route('/daily_nutrition_summary')
 class DailyNutritionSummary(MethodView):
     @verify_supabase_token
+    @limiter.limit(RATE_LIMITS['DB_READ'])
     def get(self):
         """Get user's daily nutrition summary with consumed vs goals for a specific date"""
         try:
@@ -421,8 +421,8 @@ class DailyNutritionSummary(MethodView):
 
 @blp.route('/update_streak')
 class UpdateStreak(MethodView):
-    # Rate limiting temporarily disabled
     @verify_supabase_token  
+    @limiter.limit(RATE_LIMITS['DB_WRITE'])
     def post(self):
         """Update user's streak based on whether they hit their daily calorie goal"""
         try:
@@ -508,6 +508,7 @@ class UpdateStreak(MethodView):
 @blp.route('/get_streak')
 class GetStreak(MethodView):
     @verify_supabase_token
+    @limiter.limit(RATE_LIMITS['DB_READ'])
     def get(self):
         """Get user's current streak information"""
         try:
@@ -572,6 +573,7 @@ class GetStreak(MethodView):
 @blp.route('/weekly_recently_eaten')
 class WeeklyRecentlyEaten(MethodView):
     @verify_supabase_token
+    @limiter.limit(RATE_LIMITS['DB_READ'])
     def get(self):
         """Get user's recently consumed food items for the last 5 days"""
         try:
@@ -701,6 +703,7 @@ class WeeklyRecentlyEaten(MethodView):
 @blp.route('/weekly_daily_nutrition_summary')
 class WeeklyDailyNutritionSummary(MethodView):
     @verify_supabase_token
+    @limiter.limit(RATE_LIMITS['DB_READ'])
     def get(self):
         """Get user's daily nutrition summary for the last 5 days with consumed vs goals"""
         try:

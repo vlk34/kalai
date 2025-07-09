@@ -14,19 +14,19 @@ from supabase import create_client, Client
 
 from ..utils.auth import verify_supabase_token
 from ..utils.nutrition_calculator import NutritionCalculator, DailyTargets
-from ..utils.rate_limiter import RATE_LIMITS
+from ..utils.rate_limiter import limiter, RATE_LIMITS
 
 from dotenv import load_dotenv
 
 load_dotenv()
+
 blp = Blueprint('user_profiles', __name__, description='User Profiles Operations')
 
 @blp.route("/user_profiles")
 class UserProfilesView(MethodView):
-    
     @verify_supabase_token
+    @limiter.limit(RATE_LIMITS['DB_WRITE'])
     def post(self):
-        # Rate limiting temporarily disabled - will implement properly
         """Create or update user profile with onboarding data"""
         try:
             data = request.get_json()
@@ -147,8 +147,8 @@ class UserProfilesView(MethodView):
             }), 500
     
     @verify_supabase_token
+    @limiter.limit(RATE_LIMITS['DB_READ'])
     def get(self):
-        # Rate limiting temporarily disabled - will implement properly
         """Get user profile"""
         try:
             user_id = g.current_user['id']
@@ -213,8 +213,8 @@ class UserProfilesView(MethodView):
 class RecalculateTargetsView(MethodView):
     
     @verify_supabase_token
+    @limiter.limit(RATE_LIMITS['DB_WRITE'])
     def post(self):
-        # Rate limiting temporarily disabled - will implement properly
         """Recalculate daily targets for existing profile"""
         try:
             user_id = g.current_user['id']
