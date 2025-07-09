@@ -7,11 +7,7 @@ from src.utils.rate_limiter import create_limiter, RATE_LIMITS
 
 load_dotenv(override=True)
 
-# Global limiter instance that will be initialized in create_app
 limiter = None
-
-# Rate limiting is now implemented directly in route files using decorators
-# This approach works properly with flask-smorest MethodView classes
 
 def create_app():
     global limiter
@@ -85,12 +81,8 @@ def create_app():
     api.register_blueprint(user_operations_blp)
     api.register_blueprint(user_profiles_blp)
 
-    # Rate limiting is applied via decorators in individual route files
-
     return app
 
-
-# Create the app instance for gunicorn
 app = create_app()
 
 if __name__ == '__main__':

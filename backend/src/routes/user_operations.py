@@ -6,7 +6,7 @@ import pandas as pd
 import json
 from werkzeug.utils import secure_filename
 from src.utils.auth import verify_supabase_token
-from src.utils.rate_limiter import RATE_LIMITS, rate_limit
+from src.utils.rate_limiter import RATE_LIMITS
 import uuid
 from datetime import datetime, timedelta
 from supabase import create_client, Client
@@ -21,10 +21,13 @@ blp = Blueprint('History', __name__, description='History Operations')
 
 @blp.route('/recently_eaten')
 class RecentlyEaten(MethodView):
-    @rate_limit('DB_READ')
     @verify_supabase_token
     def get(self):
         """Get user's recently consumed food items from a specific date (defaults to today)"""
+        # Rate limiting temporarily disabled - will implement properly
+        # limiter = get_limiter()
+        # limiter.limit(RATE_LIMITS['DB_READ']).test()
+        
         try:
             # Initialize Supabase client
             supabase_url = current_app.config['SUPABASE_URL']
@@ -420,7 +423,7 @@ class DailyNutritionSummary(MethodView):
 
 @blp.route('/update_streak')
 class UpdateStreak(MethodView):
-    @rate_limit('DB_WRITE')
+    # Rate limiting temporarily disabled
     @verify_supabase_token  
     def post(self):
         """Update user's streak based on whether they hit their daily calorie goal"""

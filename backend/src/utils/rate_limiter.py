@@ -60,34 +60,8 @@ def create_limiter(app):
     
     return limiter
 
-def rate_limit(limit_key):
-    """
-    Decorator to apply rate limiting to route methods.
-    
-    Args:
-        limit_key: Key from RATE_LIMITS dict (e.g., 'AI_ANALYSIS', 'DB_READ')
-    
-    Returns:
-        Decorator function that applies rate limiting
-    """
-    from flask import current_app, jsonify
-    
-    def decorator(f):
-        def wrapper(*args, **kwargs):
-            limiter = current_app.limiter
-            # Manually check and apply rate limit
-            try:
-                # This will raise an exception if limit is exceeded
-                limiter.check_limit(RATE_LIMITS[limit_key])
-                # Record the hit
-                limiter.hit_limit(RATE_LIMITS[limit_key])
-                return f(*args, **kwargs)
-            except Exception as e:
-                # Rate limit exceeded
-                return jsonify({
-                    'error': 'Rate limit exceeded',
-                    'message': f'{limit_key} rate limit of {RATE_LIMITS[limit_key]} exceeded. Please try again later.'
-                }), 429
-        wrapper.__name__ = f.__name__
-        return wrapper
-    return decorator 
+# Helper function to get limiter instance  
+def get_limiter():
+    """Get the current Flask-Limiter instance"""
+    from flask import current_app
+    return current_app.limiter 
