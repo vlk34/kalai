@@ -763,36 +763,46 @@ export default function DashboardScreen() {
       try {
         const consumed = dailyNutrition.consumed_today.calories;
         const goal = dailyNutrition.daily_goals.calories;
+        const today = formatDateForAPI(new Date());
 
         // Check if goal is reached (consumed >= goal)
         if (consumed >= goal && !hasReachedGoal(selectedDate)) {
-          // Optimistically update streak data for immediate UI feedback
-          optimisticallyUpdateStreak(selectedDate);
+          // SECURITY FIX: Only update streak if the selected date is actually today
+          if (selectedDate === today) {
+            console.log("[DEBUG] Goal reached for today, updating streak");
+            // Optimistically update streak data for immediate UI feedback
+            optimisticallyUpdateStreak(selectedDate);
 
-          // Update streak in background
-          updateStreakMutation.mutate();
+            // Update streak in background (only for current day)
+            updateStreakMutation.mutate();
 
-          // Invalidate user profile data to refresh streak history (as fallback)
-          queryClient.invalidateQueries({
-            queryKey: ["user-profile-streak", session?.user?.id],
-          });
-          queryClient.invalidateQueries({
-            queryKey: ["user-profile", session?.user?.id],
-          });
-
-          // Refetch user profile data in background to ensure consistency
-          setTimeout(() => {
-            queryClient.refetchQueries({
+            // Invalidate user profile data to refresh streak history (as fallback)
+            queryClient.invalidateQueries({
               queryKey: ["user-profile-streak", session?.user?.id],
             });
-            queryClient.refetchQueries({
+            queryClient.invalidateQueries({
               queryKey: ["user-profile", session?.user?.id],
             });
-          }, 1000);
+
+            // Refetch user profile data in background to ensure consistency
+            setTimeout(() => {
+              queryClient.refetchQueries({
+                queryKey: ["user-profile-streak", session?.user?.id],
+              });
+              queryClient.refetchQueries({
+                queryKey: ["user-profile", session?.user?.id],
+              });
+            }, 1000);
+          } else {
+            console.log(
+              "[DEBUG] Goal reached for past date, NOT updating current streak for security"
+            );
+          }
+          // Note: We don't update streak for past dates, but we still track that the goal was reached
+          // The streak history is managed by the backend based on when goals were actually achieved
         }
 
         // Show congratulations if needed (only for today and only once)
-        const today = formatDateForAPI(new Date());
         if (selectedDate === today && shouldShowCongratulations(selectedDate)) {
           saveCongratulationsTracking(today);
           showCongratulationsModalWithAnimation();

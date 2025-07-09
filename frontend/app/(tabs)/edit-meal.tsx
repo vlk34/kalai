@@ -184,12 +184,21 @@ export default function EditMealScreen() {
   // When portion changes, recalculate nutrition values proportionally
   const updatePortionValues = (newPortion: number) => {
     if (!newPortion || newPortion <= 0) return;
-    // Calculate per-portion values from the original base
-    const perPortionCalories = originalCalories / originalPortion;
-    const perPortionProtein = originalProtein / originalPortion;
-    const perPortionCarbs = originalCarbs / originalPortion;
-    const perPortionFats = originalFats / originalPortion;
-    // Set new total values
+
+    // Use current edited values instead of original values
+    const currentCalories = parseFloat(editedCalories) || 0;
+    const currentProtein = parseFloat(editedProtein) || 0;
+    const currentCarbs = parseFloat(editedCarbs) || 0;
+    const currentFats = parseFloat(editedFats) || 0;
+    const currentPortion = parseFloat(editedPortions) || 1;
+
+    // Calculate per-portion values from the current edited values
+    const perPortionCalories = currentCalories / currentPortion;
+    const perPortionProtein = currentProtein / currentPortion;
+    const perPortionCarbs = currentCarbs / currentPortion;
+    const perPortionFats = currentFats / currentPortion;
+
+    // Set new total values based on the new portion
     setEditedCalories((perPortionCalories * newPortion).toFixed(0));
     setEditedProtein((perPortionProtein * newPortion).toFixed(1));
     setEditedCarbs((perPortionCarbs * newPortion).toFixed(1));
