@@ -5,7 +5,6 @@ from .prompt_generator import PromptGenerator
 
 load_dotenv() 
 
-
 class Model:
     def __init__(self):
         self.gemini_api_key = os.getenv('GEMINI_API_KEY', '')
