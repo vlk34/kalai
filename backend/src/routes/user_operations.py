@@ -6,6 +6,7 @@ import pandas as pd
 import json
 from werkzeug.utils import secure_filename
 from src.utils.auth import verify_supabase_token
+from src.utils.rate_limiter import RATE_LIMITS, rate_limit
 import uuid
 from datetime import datetime, timedelta
 from supabase import create_client, Client
@@ -20,6 +21,7 @@ blp = Blueprint('History', __name__, description='History Operations')
 
 @blp.route('/recently_eaten')
 class RecentlyEaten(MethodView):
+    @rate_limit('DB_READ')
     @verify_supabase_token
     def get(self):
         """Get user's recently consumed food items from a specific date (defaults to today)"""
@@ -158,6 +160,7 @@ class RecentlyEaten(MethodView):
         
 @blp.route('/full_history')
 class FullHistory(MethodView):
+    @rate_limit('DB_READ')
     @verify_supabase_token
     def get(self):
         """Get user's full history of consumed food items"""
@@ -282,6 +285,7 @@ class FullHistory(MethodView):
 
 @blp.route('/daily_nutrition_summary')
 class DailyNutritionSummary(MethodView):
+    @rate_limit('DB_READ')
     @verify_supabase_token
     def get(self):
         """Get user's daily nutrition summary with consumed vs goals for a specific date"""
@@ -416,6 +420,7 @@ class DailyNutritionSummary(MethodView):
 
 @blp.route('/update_streak')
 class UpdateStreak(MethodView):
+    @rate_limit('DB_WRITE')
     @verify_supabase_token  
     def post(self):
         """Update user's streak based on whether they hit their daily calorie goal"""
@@ -501,6 +506,7 @@ class UpdateStreak(MethodView):
 
 @blp.route('/get_streak')
 class GetStreak(MethodView):
+    @rate_limit('DB_READ')
     @verify_supabase_token
     def get(self):
         """Get user's current streak information"""
@@ -565,6 +571,7 @@ class GetStreak(MethodView):
 
 @blp.route('/weekly_recently_eaten')
 class WeeklyRecentlyEaten(MethodView):
+    @rate_limit('DB_READ')
     @verify_supabase_token
     def get(self):
         """Get user's recently consumed food items for the last 5 days"""
@@ -694,6 +701,7 @@ class WeeklyRecentlyEaten(MethodView):
 
 @blp.route('/weekly_daily_nutrition_summary')
 class WeeklyDailyNutritionSummary(MethodView):
+    @rate_limit('DB_READ')
     @verify_supabase_token
     def get(self):
         """Get user's daily nutrition summary for the last 5 days with consumed vs goals"""

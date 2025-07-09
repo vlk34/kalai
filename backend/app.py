@@ -10,29 +10,8 @@ load_dotenv(override=True)
 # Global limiter instance that will be initialized in create_app
 limiter = None
 
-def register_rate_limits(app, limiter):
-    """Register rate limits for specific endpoints after blueprints are loaded"""
-    
-    # AI-powered endpoints (most restrictive)
-    limiter.limit(RATE_LIMITS['AI_ANALYSIS'], per_method=True)(app.view_functions.get('Consumed.post'))
-    limiter.limit(RATE_LIMITS['AI_ANALYSIS'], per_method=True)(app.view_functions.get('EditWithAI.post'))
-    
-    # Database write operations
-    limiter.limit(RATE_LIMITS['DB_WRITE'], per_method=True)(app.view_functions.get('EditConsumedFood.put'))
-    limiter.limit(RATE_LIMITS['DB_WRITE'], per_method=True)(app.view_functions.get('DeleteConsumedFood.delete'))
-    
-    # User profile operations
-    limiter.limit(RATE_LIMITS['USER_PROFILE'], per_method=True)(app.view_functions.get('UserProfilesView.post'))
-    limiter.limit(RATE_LIMITS['USER_PROFILE'], per_method=True)(app.view_functions.get('UserProfilesView.get'))
-    
-    # Database read operations
-    limiter.limit(RATE_LIMITS['DB_READ'], per_method=True)(app.view_functions.get('RecentlyEaten.get'))
-    limiter.limit(RATE_LIMITS['DB_READ'], per_method=True)(app.view_functions.get('FullHistory.get'))
-    limiter.limit(RATE_LIMITS['DB_READ'], per_method=True)(app.view_functions.get('GetStreak.get'))
-    limiter.limit(RATE_LIMITS['DB_READ'], per_method=True)(app.view_functions.get('WeeklyDailyNutritionSummary.get'))
-    
-    # Write operations for streaks
-    limiter.limit(RATE_LIMITS['DB_WRITE'], per_method=True)(app.view_functions.get('UpdateStreak.post'))
+# Rate limiting is now implemented directly in route files using decorators
+# This approach works properly with flask-smorest MethodView classes
 
 def create_app():
     global limiter
@@ -106,9 +85,7 @@ def create_app():
     api.register_blueprint(user_operations_blp)
     api.register_blueprint(user_profiles_blp)
 
-    # Register rate limits after blueprints are loaded
-    with app.app_context():
-        register_rate_limits(app, limiter)
+    # Rate limiting is applied via decorators in individual route files
 
     return app
 

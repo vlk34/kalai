@@ -6,6 +6,7 @@ import pandas as pd
 import json
 from werkzeug.utils import secure_filename
 from src.utils.auth import verify_supabase_token
+from src.utils.rate_limiter import RATE_LIMITS, rate_limit
 import uuid
 from datetime import datetime
 from supabase import create_client, Client
@@ -28,6 +29,7 @@ def allowed_file(filename):
 
 @blp.route('/consumed')
 class Consumed(MethodView):
+    @rate_limit('AI_ANALYSIS')
     @verify_supabase_token
     def post(self):
         try:
@@ -205,6 +207,7 @@ class Consumed(MethodView):
 
 @blp.route('/edit_with_ai')
 class EditWithAI(MethodView):
+    @rate_limit('AI_ANALYSIS')
     @verify_supabase_token
     def post(self):
         try:
@@ -379,6 +382,7 @@ class EditWithAI(MethodView):
 class EditConsumedFood(MethodView):
     """Manually edit a consumed food record (name & macronutrients)"""
 
+    @rate_limit('DB_WRITE')
     @verify_supabase_token
     def put(self):
         try:
@@ -457,6 +461,7 @@ class EditConsumedFood(MethodView):
 class DeleteConsumedFood(MethodView):
     """Delete a consumed food record"""
 
+    @rate_limit('DB_WRITE')
     @verify_supabase_token
     def delete(self):
         try:
