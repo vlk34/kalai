@@ -7,6 +7,6 @@
         "numReplicas": 1,
         "restartPolicyType": "ON_FAILURE",
         "sleepApplication": false,
-        "startCommand": "gunicorn app:app --bind 0.0.0.0$PORT --timeout 600 --workers 1 --threads 2"
+        "startCommand": "gunicorn app:app --bind 0.0.0.0:$PORT --timeout 600 --workers 1 --threads 2"
     }
 }
