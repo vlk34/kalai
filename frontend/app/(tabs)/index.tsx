@@ -139,6 +139,7 @@ export default function DashboardScreen() {
 
   const [isNavigatingToCamera, setIsNavigatingToCamera] = useState(false);
   const [isNavigatingToSettings, setIsNavigatingToSettings] = useState(false);
+  const [isNavigatingToMealEdit, setIsNavigatingToMealEdit] = useState(false);
   const [isAnalyzingMeal, setIsAnalyzingMeal] = useState(false);
   const [returnedFromCamera, setReturnedFromCamera] = useState(false);
 
@@ -570,7 +571,12 @@ export default function DashboardScreen() {
 
   // Handle meal item click to navigate to edit page
   const handleMealPress = (meal: any) => {
+    // Prevent multiple rapid navigations
+    if (isNavigatingToMealEdit) return;
+
     try {
+      setIsNavigatingToMealEdit(true);
+
       navigationRouter.push({
         pathname: "/(tabs)/edit-meal" as any,
         params: {
@@ -585,8 +591,15 @@ export default function DashboardScreen() {
           selectedDate: selectedDate, // Pass the current selected date
         },
       });
+
+      // Reset navigation flag after a delay
+      setTimeout(() => {
+        setIsNavigatingToMealEdit(false);
+      }, 1000);
     } catch (error) {
       console.error("Navigation error in handleMealPress:", error);
+      // Reset flag on error
+      setIsNavigatingToMealEdit(false);
     }
   };
 
@@ -655,6 +668,7 @@ export default function DashboardScreen() {
         // Reset navigation flags when user changes
         setIsNavigatingToCamera(false);
         setIsNavigatingToSettings(false);
+        setIsNavigatingToMealEdit(false);
         setIsAnalyzingMeal(false);
         setReturnedFromCamera(false);
         setCongratulationsShownForDay("");
@@ -1205,11 +1219,15 @@ export default function DashboardScreen() {
                     <TouchableOpacity
                       key={meal.id}
                       onPress={() => handleMealPress(meal)}
-                      disabled={meal.isAnalyzing}
+                      disabled={meal.isAnalyzing || isNavigatingToMealEdit}
                       className={`bg-white rounded-2xl px-3 py-2 shadow-sm ${
-                        meal.isAnalyzing ? "opacity-60" : ""
+                        meal.isAnalyzing || isNavigatingToMealEdit
+                          ? "opacity-60"
+                          : ""
                       }`}
-                      activeOpacity={meal.isAnalyzing ? 1 : 0.7}
+                      activeOpacity={
+                        meal.isAnalyzing || isNavigatingToMealEdit ? 1 : 0.7
+                      }
                     >
                       <View className="flex-row items-center">
                         <View className="relative">

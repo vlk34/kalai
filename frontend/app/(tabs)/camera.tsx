@@ -44,6 +44,7 @@ export default function CameraScreen() {
   const [showResults, setShowResults] = useState(false);
   const [capturedPhoto, setCapturedPhoto] = useState<string | null>(null);
   const [isCameraReady, setIsCameraReady] = useState(false);
+  const [isCapturing, setIsCapturing] = useState(false); // Prevent multiple captures
   const cameraRef = useRef<CameraView>(null);
   const { isAnalyzing, analysisResult, analyzeFood } = useAnalyzeFood();
   const { addOptimisticMeal, updateOptimisticMeal } = useMutateRecentMeals();
@@ -57,6 +58,7 @@ export default function CameraScreen() {
       setShowResults(false);
       setCapturedPhoto(null);
       setIsCameraReady(false);
+      setIsCapturing(false); // Reset capture state
 
       // Small delay to ensure camera initializes properly
       const timer = setTimeout(() => {
@@ -101,102 +103,113 @@ export default function CameraScreen() {
   }
 
   const takePicture = async () => {
-    if (cameraRef.current && isCameraReady) {
-      try {
-        const photo = await cameraRef.current.takePictureAsync({
-          quality: 1.0, // Use full quality since we'll process it ourselves
-        });
-        if (photo?.uri) {
-          setCapturedPhoto(photo.uri);
+    // Prevent multiple rapid captures
+    if (isCapturing || !cameraRef.current || !isCameraReady) {
+      return;
+    }
 
-          // Create optimistic meal entry
-          const optimisticMeal = {
-            id: `temp-${Date.now()}`,
-            name: "Analyzing...",
-            emoji: "🍽️",
-            protein: 0,
-            carbs: 0,
-            fats: 0,
-            calories: 0,
-            created_at: new Date().toISOString(),
-            photo_url: photo.uri,
-            isAnalyzing: true,
-          };
+    try {
+      setIsCapturing(true);
 
-          // Use the selected date from parameters, or fall back to today
-          const targetDate = formatDateForAPI(new Date()); // Always use today's date for meal analysis
-          addOptimisticMeal(optimisticMeal, targetDate);
+      const photo = await cameraRef.current.takePictureAsync({
+        quality: 1.0, // Use full quality since we'll process it ourselves
+      });
 
-          // Navigate back to main screen immediately
-          router.back();
+      if (photo?.uri) {
+        setCapturedPhoto(photo.uri);
 
-          // Start analysis in background with optimized image
-          try {
-            const result = await analyzeFood(photo.uri, "camera");
+        // Create optimistic meal entry
+        const optimisticMeal = {
+          id: `temp-${Date.now()}`,
+          name: "Analyzing...",
+          emoji: "🍽️",
+          protein: 0,
+          carbs: 0,
+          fats: 0,
+          calories: 0,
+          created_at: new Date().toISOString(),
+          photo_url: photo.uri,
+          isAnalyzing: true,
+        };
 
-            // Extract the real data from server response
-            const serverData = result.data;
-            const databaseRecord = serverData.database_record;
-            const photoUrl = serverData.file_info?.photo_url;
+        // Use the selected date from parameters, or fall back to today
+        const targetDate = formatDateForAPI(new Date()); // Always use today's date for meal analysis
+        addOptimisticMeal(optimisticMeal, targetDate);
 
-            // Replace the optimistic meal with real server data
-            updateOptimisticMeal(
-              optimisticMeal.id,
-              {
-                id: databaseRecord.id, // Replace temp ID with real ID
-                name: databaseRecord.name,
-                emoji: databaseRecord.emoji,
-                protein: databaseRecord.protein,
-                carbs: databaseRecord.carbs,
-                fats: databaseRecord.fats,
-                calories: databaseRecord.calories,
-                photo_url: photoUrl || optimisticMeal.photo_url, // Use server photo URL
-                created_at: databaseRecord.created_at,
-                isAnalyzing: false,
-              },
-              targetDate
-            );
+        // Navigate back to main screen immediately
+        router.back();
 
-            // Optimistically update nutrition with the real meal data
-            addMealToNutrition(
-              {
-                calories: databaseRecord.calories,
-                protein: databaseRecord.protein,
-                carbs: databaseRecord.carbs,
-                fats: databaseRecord.fats,
-              },
-              targetDate
-            );
+        // Start analysis in background with optimized image
+        try {
+          const result = await analyzeFood(photo.uri, "camera");
 
-            // Only invalidate nutrition summary, not recent meals (optimistic updates handle recent meals)
-            queryClient.invalidateQueries({
-              queryKey: [
-                "daily-nutrition-summary",
-                session?.user?.id,
-                targetDate,
-              ],
-            });
-          } catch (error) {
-            console.error("Analysis failed:", error);
-            // Update with error state
-            updateOptimisticMeal(
-              optimisticMeal.id,
-              {
-                name: "Analysis Failed",
-                emoji: "❌",
-                protein: 0,
-                carbs: 0,
-                fats: 0,
-                calories: 0,
-                isAnalyzing: false,
-              },
-              targetDate
-            );
-          }
+          // Extract the real data from server response
+          const serverData = result.data;
+          const databaseRecord = serverData.database_record;
+          const photoUrl = serverData.file_info?.photo_url;
+
+          // Replace the optimistic meal with real server data
+          updateOptimisticMeal(
+            optimisticMeal.id,
+            {
+              id: databaseRecord.id, // Replace temp ID with real ID
+              name: databaseRecord.name,
+              emoji: databaseRecord.emoji,
+              protein: databaseRecord.protein,
+              carbs: databaseRecord.carbs,
+              fats: databaseRecord.fats,
+              calories: databaseRecord.calories,
+              photo_url: photoUrl || optimisticMeal.photo_url, // Use server photo URL
+              created_at: databaseRecord.created_at,
+              isAnalyzing: false,
+            },
+            targetDate
+          );
+
+          // Optimistically update nutrition with the real meal data
+          addMealToNutrition(
+            {
+              calories: databaseRecord.calories,
+              protein: databaseRecord.protein,
+              carbs: databaseRecord.carbs,
+              fats: databaseRecord.fats,
+            },
+            targetDate
+          );
+
+          // Only invalidate nutrition summary, not recent meals (optimistic updates handle recent meals)
+          queryClient.invalidateQueries({
+            queryKey: [
+              "daily-nutrition-summary",
+              session?.user?.id,
+              targetDate,
+            ],
+          });
+        } catch (error) {
+          console.error("Analysis failed:", error);
+          // Update with error state
+          updateOptimisticMeal(
+            optimisticMeal.id,
+            {
+              name: "Analysis Failed",
+              emoji: "❌",
+              protein: 0,
+              carbs: 0,
+              fats: 0,
+              calories: 0,
+              isAnalyzing: false,
+            },
+            targetDate
+          );
         }
-      } catch (error) {
-        console.error("Camera error:", error);
       }
+    } catch (error) {
+      console.error("Camera error:", error);
+    } finally {
+      // Reset capturing state after a delay to prevent rapid firing
+      setTimeout(() => {
+        setIsCapturing(false);
+      }, 1000);
     }
   };
 
@@ -312,7 +325,7 @@ export default function CameraScreen() {
             <TouchableOpacity
               className="w-20 h-20 justify-center items-center"
               onPress={takePicture}
-              disabled={isAnalyzing || !isCameraReady}
+              disabled={isAnalyzing || !isCameraReady || isCapturing}
             >
               <View className="w-20 h-20 bg-white rounded-full justify-center items-center">
                 <View className="w-16 h-16 bg-white rounded-full border-2" />
