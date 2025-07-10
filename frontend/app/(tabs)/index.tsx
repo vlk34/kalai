@@ -67,12 +67,17 @@ export default function DashboardScreen() {
     console.log("[DEBUG] selectedDate changed:", selectedDate);
   }, [selectedDate]);
 
+  // Track which dates have been loaded to prevent re-animations
+  const [loadedDates, setLoadedDates] = useState<Set<string>>(new Set());
+
+  // No complex state needed - the package handles smooth transitions automatically
+
   const queryClient = useQueryClient();
   const insets = useSafeAreaInsets();
   const { session } = useAuth();
-  // Debug: Log session on every render
+  // Debug: Log session on every render (commented out for performance)
   // console.log("[DEBUG] session:", session);
-  console.log("[DEBUG] selectedDate:", selectedDate);
+  // console.log("[DEBUG] selectedDate:", selectedDate);
   const scrollViewRef = useRef<ScrollView>(null);
   const navigationRouter = useRouter();
 
@@ -476,6 +481,13 @@ export default function DashboardScreen() {
     error: nutritionError,
     refetch: refetchDailyNutrition,
   } = dailyNutritionQuery;
+
+  // Track when a date has been fully loaded for animation purposes
+  useEffect(() => {
+    if (!isLoadingNutrition && !nutritionError && dailyNutrition) {
+      setLoadedDates((prev) => new Set(prev).add(selectedDate));
+    }
+  }, [selectedDate, isLoadingNutrition, nutritionError, dailyNutrition]);
 
   // Turkish day abbreviations (Sunday = 0, Monday = 1, etc.)
   const turkishDays = ["Paz", "Pzt", "Sal", "Çar", "Per", "Cum", "Cts"];
@@ -1090,18 +1102,23 @@ export default function DashboardScreen() {
                   )}
                 </View>
                 <CircularProgress
+                  key={selectedDate}
                   percentage={
                     dailyStats.totalCalories > 0 ? progressPercentage : 0
                   }
+                  isLoading={isLoadingNutrition}
+                  hasBeenLoaded={loadedDates.has(selectedDate)}
                 />
               </View>
             </View>
 
             {/* Macros Section */}
             <MacrosSection
+              key={selectedDate}
               dailyStats={dailyStats}
               isLoadingNutrition={isLoadingNutrition}
               nutritionError={nutritionError}
+              hasBeenLoaded={loadedDates.has(selectedDate)}
             />
             {/* <View className="flex-row gap-2 space-x-4  mb-4">
               <View className="flex-1 bg-white rounded-2xl p-4 shadow-sm">
