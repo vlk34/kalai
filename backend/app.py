@@ -25,7 +25,7 @@ def create_app():
 
     # Rate limiter configuration
     app.config["RATELIMIT_STORAGE_URI"] = os.getenv("REDIS_URL", "memory://")
-    app.config["RATELIMIT_DEFAULT"] = "1000 per hour"
+    app.config["RATELIMIT_DEFAULT"] = "10000 per hour"
 
     # CORS configuration for frontend
     CORS(app,

@@ -22,7 +22,6 @@ def get_user_id():
     return f"ip:{get_remote_address()}"
 
 # Create the limiter instance without an app object.
-# It will be initialized in the main app factory using .init_app(app)
 limiter = Limiter(
     key_func=get_user_id,
     headers_enabled=True,  # Include rate limit info in response headers
@@ -31,20 +30,20 @@ limiter = Limiter(
 # Rate limiting configurations for different operation types
 RATE_LIMITS = {
     # AI-powered operations (most resource intensive)
-    'AI_ANALYSIS': '30 per hour',  # Very strict - AI analysis is expensive
+    'AI_ANALYSIS': '50 per hour',  # Very strict - AI analysis is expensive
     
     # File upload operations (resource intensive)  
-    'FILE_UPLOAD': '30 per hour',  # Moderate - file processing takes resources
+    'FILE_UPLOAD': '50 per hour',  # Moderate - file processing takes resources
     
     # Database write operations (moderate resource usage)
-    'DB_WRITE': '100 per hour',  # More lenient for simple CRUD operations
+    'DB_WRITE': '200 per hour',  # More lenient for simple CRUD operations
     
     # Database read operations (least resource intensive)
-    'DB_READ': '200 per hour',  # Most lenient for read operations
+    'DB_READ': '500 per hour',  # Most lenient for read operations
     
     # User profile operations (moderate)
-    'USER_PROFILE': '50 per hour',
+    'USER_PROFILE': '100 per hour',
     
     # Authentication operations
-    'AUTH': '30 per hour'
+    'AUTH': '100 per hour'
 } 
