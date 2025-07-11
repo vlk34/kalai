@@ -140,6 +140,7 @@ export default function DashboardScreen() {
   const [isNavigatingToCamera, setIsNavigatingToCamera] = useState(false);
   const [isNavigatingToSettings, setIsNavigatingToSettings] = useState(false);
   const [isNavigatingToMealEdit, setIsNavigatingToMealEdit] = useState(false);
+  const [isNavigatingToHistory, setIsNavigatingToHistory] = useState(false);
   const [isAnalyzingMeal, setIsAnalyzingMeal] = useState(false);
   const [returnedFromCamera, setReturnedFromCamera] = useState(false);
 
@@ -669,6 +670,7 @@ export default function DashboardScreen() {
         setIsNavigatingToCamera(false);
         setIsNavigatingToSettings(false);
         setIsNavigatingToMealEdit(false);
+        setIsNavigatingToHistory(false);
         setIsAnalyzingMeal(false);
         setReturnedFromCamera(false);
         setCongratulationsShownForDay("");
@@ -879,6 +881,25 @@ export default function DashboardScreen() {
       setTimeout(() => setIsNavigatingToSettings(false), 500);
     }, 100);
   }, [isNavigatingToSettings, navigationRouter]);
+
+  const navigateToHistory = useCallback(() => {
+    if (isNavigatingToHistory) return; // Prevent multiple rapid clicks
+    setIsNavigatingToHistory(true);
+    // Add a small delay to prevent rapid navigation
+    setTimeout(() => {
+      try {
+        navigationRouter.push({
+          pathname: "/history" as any,
+        });
+      } catch (error) {
+        console.error("Navigation error in navigateToHistory:", error);
+        // Reset the flag if navigation fails
+        setIsNavigatingToHistory(false);
+      }
+      // Reset the flag after navigation
+      setTimeout(() => setIsNavigatingToHistory(false), 500);
+    }, 100);
+  }, [isNavigatingToHistory, navigationRouter]);
 
   // Function to check if a specific date has a streak achieved
   const hasStreakAchieved = (dateString: string): boolean => {
@@ -1190,9 +1211,21 @@ export default function DashboardScreen() {
 
             {/* Recently Section */}
             <View className="mb-20">
-              <Text className="text-lg font-semibold text-gray-900 mb-4 px-2">
-                Recently
-              </Text>
+              <View className="flex-row justify-between items-center mb-4 px-2">
+                <Text className="text-lg font-semibold text-gray-900">
+                  Recently
+                </Text>
+                <TouchableOpacity
+                  onPress={navigateToHistory}
+                  disabled={isNavigatingToHistory}
+                  className={`flex-row items-center ${isNavigatingToHistory ? "opacity-50" : ""}`}
+                >
+                  <Text className="text-sm text-gray-600 mr-1">
+                    View history
+                  </Text>
+                  <Feather name="chevron-right" size={16} color="#6b7280" />
+                </TouchableOpacity>
+              </View>
               {isLoadingMeals ? (
                 <View className="bg-white rounded-2xl p-6 shadow-sm">
                   <Text className="text-gray-500 text-center">
