@@ -203,10 +203,6 @@ class FullHistory(MethodView):
             
             # Format the food records
             formatted_foods = []
-            total_calories = 0
-            total_protein = 0
-            total_carbs = 0
-            total_fats = 0
             
             for food in result.data:
                 # Get portion size (default to 1 if not set)
@@ -248,12 +244,6 @@ class FullHistory(MethodView):
                     'created_at': food['created_at']
                 }
                 
-                # Add to totals
-                total_calories += formatted_food['calories']
-                total_protein += formatted_food['protein']
-                total_carbs += formatted_food['carbs']
-                total_fats += formatted_food['fats']
-                
                 formatted_foods.append(formatted_food)
             
             print(f"Found {len(formatted_foods)} food records")
@@ -263,12 +253,6 @@ class FullHistory(MethodView):
                 'message': f'Retrieved {len(formatted_foods)} recent food items',
                 'data': {
                     'foods': formatted_foods,
-                    'daily_totals': {
-                        'calories': round(total_calories, 2),
-                        'protein': round(total_protein, 2),
-                        'carbs': round(total_carbs, 2),
-                        'fats': round(total_fats, 2)
-                    },
                     'pagination': {
                         'limit': limit,
                         'offset': offset,

@@ -1220,9 +1220,7 @@ export default function DashboardScreen() {
                   disabled={isNavigatingToHistory}
                   className={`flex-row items-center ${isNavigatingToHistory ? "opacity-50" : ""}`}
                 >
-                  <Text className="text-sm text-gray-600 mr-1">
-                    View history
-                  </Text>
+                  <Text className="text-sm text-gray-600 mr-1">View all</Text>
                   <Feather name="chevron-right" size={16} color="#6b7280" />
                 </TouchableOpacity>
               </View>

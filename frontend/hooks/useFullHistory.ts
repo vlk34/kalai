@@ -21,12 +21,6 @@ interface FullHistoryResponse {
   message: string;
   data: {
     foods: FoodItem[];
-    daily_totals: {
-      calories: number;
-      protein: number;
-      carbs: number;
-      fats: number;
-    };
     pagination: {
       limit: number;
       offset: number;
@@ -37,7 +31,7 @@ interface FullHistoryResponse {
 
 const fetchFullHistory = async (
   accessToken: string,
-  limit: number = 20,
+  limit: number = 10,
   offset: number = 0
 ): Promise<FullHistoryResponse["data"]> => {
   const url = new URL(`${API_BASE_URL}/full_history`);
@@ -62,23 +56,25 @@ const fetchFullHistory = async (
   return result.data;
 };
 
-export const useFullHistory = (limit: number = 50, offset: number = 0) => {
+export const useFullHistory = (limit: number = 10, offset: number = 0) => {
   const { session } = useAuth();
 
   return useQuery({
     queryKey: ["full-history", session?.user?.id, limit, offset],
     queryFn: () => fetchFullHistory(session!.access_token, limit, offset),
     enabled: !!session?.access_token && !!session?.user?.id,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 10 * 60 * 1000, // 10 minutes
+    staleTime: 2 * 60 * 1000, // 2 minutes (shorter for pagination)
+    gcTime: 5 * 60 * 1000, // 5 minutes (shorter for pagination)
     refetchOnWindowFocus: false,
-    refetchOnMount: true,
+    refetchOnMount: false, // Don't refetch when component mounts unless stale
     retry: (failureCount, error) => {
       // Don't retry on auth errors
       if (error.message.includes("401") || error.message.includes("403")) {
         return false;
       }
-      return failureCount < 3;
+      return failureCount < 2; // Reduce retry attempts for performance
     },
+    // Keep previous data while loading new pages
+    placeholderData: (previousData) => previousData,
   });
 };
