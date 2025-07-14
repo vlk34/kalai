@@ -11,16 +11,13 @@ import {
   Animated,
   Alert,
   BackHandler,
-  StyleSheet,
-  ViewStyle,
-  DimensionValue,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   SafeAreaView,
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
-import { router, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import {
   FontAwesome5,
@@ -31,7 +28,6 @@ import {
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 import { useFocusEffect } from "@react-navigation/native";
 import * as ImagePicker from "expo-image-picker";
-
 import { useRecentMeals } from "@/hooks/useRecentMeals";
 import { useMutateRecentMeals } from "@/hooks/useMutateRecentMeals";
 import { useAnalyzeFood } from "@/hooks/useAnalyzeFood";
@@ -71,13 +67,14 @@ export default function DashboardScreen() {
   const [loadedDates, setLoadedDates] = useState<Set<string>>(new Set());
 
   // No complex state needed - the package handles smooth transitions automatically
-
   const queryClient = useQueryClient();
   const insets = useSafeAreaInsets();
   const { session } = useAuth();
+
   // Debug: Log session on every render (commented out for performance)
   // console.log("[DEBUG] session:", session);
   // console.log("[DEBUG] selectedDate:", selectedDate);
+
   const scrollViewRef = useRef<ScrollView>(null);
   const navigationRouter = useRouter();
 
@@ -100,6 +97,7 @@ export default function DashboardScreen() {
   const [showStreakModal, setShowStreakModal] = useState(false);
   const [congratulationsShownForDay, setCongratulationsShownForDay] =
     useState<string>("");
+
   const congratsModalAnim = useRef(new Animated.Value(0)).current;
   const congratsBgOpacityAnim = useRef(new Animated.Value(0)).current;
   const streakModalAnim = useRef(new Animated.Value(0)).current;
@@ -109,7 +107,6 @@ export default function DashboardScreen() {
   useEffect(() => {
     const loadCongratulationsTracking = async () => {
       if (!session?.user?.id) return;
-
       try {
         const key = `congratulationsShown_${session.user.id}`;
         const stored = await AsyncStorage.getItem(key);
@@ -127,7 +124,6 @@ export default function DashboardScreen() {
   // Save congratulations tracking to storage
   const saveCongratulationsTracking = async (day: string) => {
     if (!session?.user?.id) return;
-
     try {
       const key = `congratulationsShown_${session.user.id}`;
       await AsyncStorage.setItem(key, day);
@@ -226,6 +222,7 @@ export default function DashboardScreen() {
       }),
     ]).start(() => setShowActionModal(false));
   };
+
   // Congratulations modal animations
   const showCongratulationsModalWithAnimation = () => {
     setShowCongratulationsModal(true);
@@ -264,47 +261,61 @@ export default function DashboardScreen() {
     });
   };
 
-  // Streak modal animations
+  // Streak modal animations - FIXED: Separate background and modal animations
   const showStreakModalWithAnimation = () => {
     setShowStreakModal(true);
+
+    // Reset animation values to ensure proper starting state
+    streakModalAnim.setValue(0);
+    streakBgOpacityAnim.setValue(0);
+
     Animated.parallel([
+      // Modal content animation (scale from 0 to 1)
       Animated.spring(streakModalAnim, {
         toValue: 1,
         useNativeDriver: true,
         tension: 65,
         friction: 11,
       }),
+      // Background opacity animation (separate)
       Animated.timing(streakBgOpacityAnim, {
         toValue: 1,
-        duration: 500,
+        duration: 300,
         useNativeDriver: true,
-        easing: (t) => 1 - Math.pow(1 - t, 3),
       }),
     ]).start();
   };
 
   const hideStreakModal = () => {
     Animated.parallel([
+      // Modal content animation (scale from 1 to 0)
       Animated.timing(streakModalAnim, {
         toValue: 0,
-        duration: 300,
+        duration: 250,
         useNativeDriver: true,
-        easing: (t) => 1 - Math.pow(1 - t, 3),
       }),
+      // Background opacity animation (separate, slightly faster)
       Animated.timing(streakBgOpacityAnim, {
         toValue: 0,
         duration: 300,
         useNativeDriver: true,
-        easing: (t) => 1 - Math.pow(1 - t, 3),
       }),
-    ]).start(() => setShowStreakModal(false));
+    ]).start(() => {
+      // Only hide modal after animations complete
+      setShowStreakModal(false);
+      // Reset values for next time
+      streakModalAnim.setValue(0);
+      streakBgOpacityAnim.setValue(0);
+    });
   };
 
   const handleCameraPress = useCallback(() => {
     if (isNavigatingToCamera) return; // Prevent multiple rapid clicks
+
     setIsNavigatingToCamera(true);
     setReturnedFromCamera(true); // Mark that we're going to camera
     hideModal();
+
     // Add a small delay to prevent rapid navigation
     setTimeout(() => {
       try {
@@ -318,6 +329,7 @@ export default function DashboardScreen() {
         setIsNavigatingToCamera(false);
         setReturnedFromCamera(false);
       }
+
       // Reset the flag after navigation
       setTimeout(() => setIsNavigatingToCamera(false), 500);
     }, 100);
@@ -326,6 +338,7 @@ export default function DashboardScreen() {
   const handleGalleryPress = async () => {
     hideModal();
     setReturnedFromCamera(true); // Mark that we're going to gallery for analysis
+
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ["images"],
@@ -360,6 +373,7 @@ export default function DashboardScreen() {
         // Start analysis in background with optimized image
         try {
           const result = await analyzeFood(photoUri, "gallery");
+
           // Extract the real data from server response
           const serverData = result.data;
           const databaseRecord = serverData.database_record;
@@ -435,6 +449,7 @@ export default function DashboardScreen() {
 
   // Fetch and cache recent meals for the selected day
   const recentMealsQuery = useRecentMeals(selectedDate);
+
   // Debug: Log query key, loading, data, and error for recent meals
   // console.log("[DEBUG] useRecentMeals queryKey:", [
   //   "recent-meals",
@@ -442,7 +457,6 @@ export default function DashboardScreen() {
   //   selectedDate,
   // ]);
   // console.log("[DEBUG] useRecentMeals isLoading:", recentMealsQuery.isLoading);
-
   // useEffect(() => {
   //   console.log("[DEBUG] useRecentMeals data:", recentMealsQuery.data);
   // }, [recentMealsQuery.data]);
@@ -458,6 +472,7 @@ export default function DashboardScreen() {
 
   // Use the new daily nutrition summary hook
   const dailyNutritionQuery = useDailyNutritionSummary(selectedDate);
+
   // Debug: Log query key, loading, data, and error for daily nutrition
   // console.log("[DEBUG] useDailyNutritionSummary queryKey:", [
   //   "daily-nutrition-summary",
@@ -506,15 +521,18 @@ export default function DashboardScreen() {
 
     const dates = [];
     const dayNames = [];
+
     // Generate 30 days starting from 30 days ago
     for (let i = 29; i >= 0; i--) {
       const date = new Date(today);
       date.setDate(today.getDate() - i);
+
       const dateInfo = {
         date: date.getDate(),
         dayIndex: date.getDay(),
         fullDate: date,
       };
+
       dates.push(dateInfo);
       dayNames.push(turkishDays[date.getDay()]);
 
@@ -525,10 +543,37 @@ export default function DashboardScreen() {
       //   );
       // }
     }
+
     return { dates, dayNames };
   };
 
   const { dates: monthDates, dayNames: monthDayNames } = getMonthDates();
+
+  // Get last 5 days for streak modal
+  const getLast5Days = () => {
+    const today = new Date();
+    const days = [];
+
+    for (let i = 4; i >= 0; i--) {
+      const date = new Date(today);
+      date.setDate(today.getDate() - i);
+
+      const dateString = formatDateForAPI(date);
+      const dayName = turkishDays[date.getDay()];
+      const dayNumber = date.getDate();
+      const hasStreak = hasStreakAchieved(dateString);
+
+      days.push({
+        dateString,
+        dayName,
+        dayNumber,
+        hasStreak,
+        isToday: i === 0,
+      });
+    }
+
+    return days;
+  };
 
   // Handle day selection
   const handleDaySelect = (dateIndex: number, dateObj: any) => {
@@ -536,9 +581,11 @@ export default function DashboardScreen() {
       console.log("No session available, skipping day selection");
       return;
     }
+
     try {
       const selectedFullDate = dateObj.fullDate;
       const formattedDate = formatDateForAPI(selectedFullDate);
+
       // console.log("Day selection - Date being sent:", {
       //   dateIndex,
       //   dayName: monthDayNames[dateIndex],
@@ -547,6 +594,7 @@ export default function DashboardScreen() {
       //   formattedDate,
       //   localDate: selectedFullDate.toLocaleDateString(),
       // });
+
       setSelectedDate(formattedDate);
       setSelectedDayIndex(dateObj.dayIndex);
       setSelectedDateIndex(dateIndex);
@@ -577,7 +625,6 @@ export default function DashboardScreen() {
 
     try {
       setIsNavigatingToMealEdit(true);
-
       navigationRouter.push({
         pathname: "/(tabs)/edit-meal" as any,
         params: {
@@ -609,6 +656,7 @@ export default function DashboardScreen() {
     const timer = setTimeout(() => {
       scrollViewRef.current?.scrollToEnd({ animated: false });
     }, 100);
+
     return () => clearTimeout(timer);
   }, []);
 
@@ -775,13 +823,16 @@ export default function DashboardScreen() {
         isOverFatsGoal,
       };
     }
+
     return defaultStats;
   };
 
   const dailyStats = getDailyStats();
+
   const caloriesConsumed = dailyStats.isOverGoal
     ? dailyStats.totalCalories
     : dailyStats.totalCalories - dailyStats.caloriesLeft;
+
   const progressPercentage =
     (caloriesConsumed / dailyStats.totalCalories) * 100;
 
@@ -798,6 +849,7 @@ export default function DashboardScreen() {
           // SECURITY FIX: Only update streak if the selected date is actually today
           if (selectedDate === today) {
             console.log("[DEBUG] Goal reached for today, updating streak");
+
             // Optimistically update streak data for immediate UI feedback
             optimisticallyUpdateStreak(selectedDate);
 
@@ -826,6 +878,7 @@ export default function DashboardScreen() {
               "[DEBUG] Goal reached for past date, NOT updating current streak for security"
             );
           }
+
           // Note: We don't update streak for past dates, but we still track that the goal was reached
           // The streak history is managed by the backend based on when goals were actually achieved
         }
@@ -843,8 +896,10 @@ export default function DashboardScreen() {
 
   const openCamera = useCallback(() => {
     if (isNavigatingToCamera) return; // Prevent multiple rapid clicks
+
     setIsNavigatingToCamera(true);
     setReturnedFromCamera(true); // Mark that we're going to camera
+
     // Add a small delay to prevent rapid navigation
     setTimeout(() => {
       try {
@@ -858,6 +913,7 @@ export default function DashboardScreen() {
         setIsNavigatingToCamera(false);
         setReturnedFromCamera(false);
       }
+
       // Reset the flag after navigation
       setTimeout(() => setIsNavigatingToCamera(false), 500);
     }, 100);
@@ -865,7 +921,9 @@ export default function DashboardScreen() {
 
   const navigateToSettings = useCallback(() => {
     if (isNavigatingToSettings) return; // Prevent multiple rapid clicks
+
     setIsNavigatingToSettings(true);
+
     // Add a small delay to prevent rapid navigation
     setTimeout(() => {
       try {
@@ -877,6 +935,7 @@ export default function DashboardScreen() {
         // Reset the flag if navigation fails
         setIsNavigatingToSettings(false);
       }
+
       // Reset the flag after navigation
       setTimeout(() => setIsNavigatingToSettings(false), 500);
     }, 100);
@@ -884,7 +943,9 @@ export default function DashboardScreen() {
 
   const navigateToHistory = useCallback(() => {
     if (isNavigatingToHistory) return; // Prevent multiple rapid clicks
+
     setIsNavigatingToHistory(true);
+
     // Add a small delay to prevent rapid navigation
     setTimeout(() => {
       try {
@@ -896,6 +957,7 @@ export default function DashboardScreen() {
         // Reset the flag if navigation fails
         setIsNavigatingToHistory(false);
       }
+
       // Reset the flag after navigation
       setTimeout(() => setIsNavigatingToHistory(false), 500);
     }, 100);
@@ -908,6 +970,7 @@ export default function DashboardScreen() {
       !Array.isArray(userProfileData.streak_history)
     )
       return false;
+
     return userProfileData.streak_history.includes(dateString);
   };
 
@@ -971,7 +1034,6 @@ export default function DashboardScreen() {
     // Also update the streak data cache for the top display
     queryClient.setQueryData(["streak", session?.user?.id], (oldData: any) => {
       if (!oldData) return oldData;
-
       return {
         ...oldData,
         current_streak: (oldData.current_streak || 0) + 1,
@@ -1034,7 +1096,6 @@ export default function DashboardScreen() {
                 {monthDates.map((dateObj, index) => {
                   const dateString = formatDateForAPI(dateObj.fullDate);
                   const goalReached = hasStreakAchieved(dateString);
-
                   return (
                     <View key={index} className="flex-row items-center">
                       <TouchableOpacity
@@ -1155,59 +1216,6 @@ export default function DashboardScreen() {
               nutritionError={nutritionError}
               hasBeenLoaded={loadedDates.has(selectedDate)}
             />
-            {/* <View className="flex-row gap-2 space-x-4  mb-4">
-              <View className="flex-1 bg-white rounded-2xl p-4 shadow-sm">
-                <Text className="text-sm font-medium text-gray-600 mb-1">
-                  Protein Left
-                </Text>
-                {isLoadingNutrition ? (
-                  <Text className="text-xl font-bold text-gray-400">--</Text>
-                ) : nutritionError ? (
-                  <Text className="text-xl font-bold text-gray-400">--</Text>
-                ) : (
-                  <Text className="text-xl font-bold text-rose-600">
-                    {Math.round(dailyStats.proteinLeft)}g
-                  </Text>
-                )}
-                <Text className="text-xs text-gray-400">
-                  of {Math.round(dailyStats.totalProtein)}g
-                </Text>
-              </View>
-              <View className="flex-1 bg-white rounded-2xl p-4 shadow-sm">
-                <Text className="text-sm font-medium text-gray-600 mb-1">
-                  Carbs Left
-                </Text>
-                {isLoadingNutrition ? (
-                  <Text className="text-xl font-bold text-gray-400">--</Text>
-                ) : nutritionError ? (
-                  <Text className="text-xl font-bold text-gray-400">--</Text>
-                ) : (
-                  <Text className="text-xl font-bold text-orange-600">
-                    {Math.round(dailyStats.carbsLeft)}g
-                  </Text>
-                )}
-                <Text className="text-xs text-gray-400">
-                  of {Math.round(dailyStats.totalCarbs)}g
-                </Text>
-              </View>
-              <View className="flex-1 bg-white rounded-2xl p-4 shadow-sm">
-                <Text className="text-sm font-medium text-gray-600 mb-1">
-                  Fats Left
-                </Text>
-                {isLoadingNutrition ? (
-                  <Text className="text-xl font-bold text-gray-400">--</Text>
-                ) : nutritionError ? (
-                  <Text className="text-xl font-bold text-gray-400">--</Text>
-                ) : (
-                  <Text className="text-xl font-bold text-sky-600">
-                    {Math.round(dailyStats.fatsLeft)}g
-                  </Text>
-                )}
-                <Text className="text-xs text-gray-400">
-                  of {Math.round(dailyStats.totalFats)}g
-                </Text>
-              </View>
-            </View> */}
 
             {/* Recently Section */}
             <View className="mb-20">
@@ -1224,6 +1232,7 @@ export default function DashboardScreen() {
                   <Feather name="chevron-right" size={16} color="#6b7280" />
                 </TouchableOpacity>
               </View>
+
               {isLoadingMeals ? (
                 <View className="bg-white rounded-2xl p-6 shadow-sm">
                   <Text className="text-gray-500 text-center">
@@ -1607,7 +1616,7 @@ export default function DashboardScreen() {
             </TouchableOpacity>
           </Modal>
 
-          {/* Streak Modal */}
+          {/* Streak Modal - UPDATED */}
           <Modal
             visible={showStreakModal}
             transparent={true}
@@ -1619,7 +1628,7 @@ export default function DashboardScreen() {
               onPress={hideStreakModal}
               style={{ flex: 1 }}
             >
-              {/* Background overlay */}
+              {/* Background overlay - separate animation */}
               <Animated.View
                 style={{
                   position: "absolute",
@@ -1631,7 +1640,7 @@ export default function DashboardScreen() {
                   opacity: streakBgOpacityAnim,
                 }}
               />
-              {/* Modal content */}
+              {/* Modal content - separate animation with proper centering */}
               <View
                 style={{
                   flex: 1,
@@ -1644,63 +1653,78 @@ export default function DashboardScreen() {
                   style={{
                     transform: [
                       {
-                        scale: streakModalAnim.interpolate({
-                          inputRange: [0, 1],
-                          outputRange: [0.8, 1],
-                        }),
+                        scale: streakModalAnim,
                       },
                     ],
-                    opacity: streakModalAnim,
+                    width: "100%",
+                    maxWidth: 320,
                   }}
                 >
                   <TouchableOpacity
                     activeOpacity={1}
                     onPress={(e) => e.stopPropagation()}
                   >
-                    <View className="bg-white rounded-3xl p-8 items-center shadow-2xl w-full max-w-sm">
+                    <View className="bg-white rounded-3xl p-8 items-center shadow-2xl">
                       <View className="bg-orange-100 rounded-full p-6 mb-6">
                         <FontAwesome6 name="fire" size={48} color="orange" />
                       </View>
                       <Text className="text-2xl font-bold text-gray-900 text-center mb-3">
-                        🔥{" "}
                         {isLoadingStreak
                           ? "..."
                           : `${streakData?.current_streak || 0} Day Streak!`}
                       </Text>
-                      <Text className="text-lg text-gray-700 text-center mb-2 leading-6">
+                      <Text className="text-lg text-gray-700 text-center mb-6 leading-6">
                         You're on fire! Keep reaching your daily calorie goals
                         to maintain your streak.
                       </Text>
-                      <Text className="text-sm text-gray-500 text-center mb-6">
-                        Daily Goal:{" "}
-                        {isLoadingStreak
-                          ? "..."
-                          : `${Math.round(streakData?.daily_calorie_goal || 0)} calories`}
-                      </Text>
-                      <View className="flex-row gap-2 space-x-3 w-full">
+
+                      {/* 5-Day History Preview */}
+                      <View className="w-full mb-6">
+                        <Text className="text-sm font-medium text-gray-600 text-center mb-3">
+                          Last 5 Days
+                        </Text>
+                        <View className="flex-row justify-between items-center bg-gray-50 rounded-2xl p-4">
+                          {getLast5Days().map((day, index) => (
+                            <View key={day.dateString} className="items-center">
+                              <Text className="text-xs text-gray-500 mb-1">
+                                {day.dayName}
+                              </Text>
+                              <View
+                                className={`w-10 h-10 rounded-full items-center justify-center ${
+                                  day.hasStreak
+                                    ? "bg-orange-500"
+                                    : day.isToday
+                                      ? "bg-gray-300 border-2 border-orange-500"
+                                      : "bg-gray-200"
+                                }`}
+                              >
+                                {day.hasStreak ? (
+                                  <FontAwesome6
+                                    name="fire"
+                                    size={16}
+                                    color="white"
+                                  />
+                                ) : (
+                                  <Text
+                                    className={`text-sm font-bold ${day.isToday ? "text-orange-500" : "text-gray-400"}`}
+                                  >
+                                    {day.dayNumber}
+                                  </Text>
+                                )}
+                              </View>
+                            </View>
+                          ))}
+                        </View>
+                      </View>
+
+                      {/* Only Close Button */}
+                      <View className="w-full">
                         <TouchableOpacity
                           onPress={hideStreakModal}
-                          className="flex-1 bg-gray-100 rounded-2xl py-3"
+                          className="w-full bg-gray-100 rounded-2xl py-3"
                         >
                           <Text className="text-center font-semibold text-gray-700">
                             Close
-                          </Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                          onPress={() => {
-                            hideStreakModal();
-                            try {
-                              openCamera();
-                            } catch (error) {
-                              console.error("Navigation error:", error);
-                              // Fallback: just close the modal if navigation fails
-                            }
-                          }}
-                          disabled={isNavigatingToCamera}
-                          className={`flex-1 rounded-2xl py-3 ${isNavigatingToCamera ? "bg-gray-400" : "bg-green-500"}`}
-                        >
-                          <Text className="text-center font-semibold text-white">
-                            Log Meal Now
                           </Text>
                         </TouchableOpacity>
                       </View>
