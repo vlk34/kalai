@@ -427,32 +427,51 @@ class UpdateStreak(MethodView):
                     'message': 'Please complete your profile setup first'
                 }), 404
             
-            # Check if streak was already updated today (compare dates only)
-            streak_update_date = profile_result.data[0].get('streak_update_date')
-            print(f"Streak update date: {streak_update_date}")
+            user_profile = profile_result.data[0]
+            current_streak = int(user_profile['streak']) if user_profile['streak'] else 0
+            streak_update_date = user_profile.get('streak_update_date')
+            
+            today_date = datetime.now().date()
+            today_iso = datetime.now().isoformat()
+            
+            # Check if streak was already updated today
             if streak_update_date:
-                # Parse the stored date and compare with today's date
                 stored_date = datetime.fromisoformat(streak_update_date.replace('Z', '+00:00')).date()
-                today_date = datetime.now().date()
-                print(f"Stored date: {stored_date}")
-                print(f"Today date: {today_date}")
+                print(f"Last streak update: {stored_date}, Today: {today_date}")
+                
                 if stored_date == today_date:
                     return jsonify({
                         'error': 'Streak already updated today',
                         'message': 'You can only update your streak once per day'
                     }), 400
-
-            user_profile = profile_result.data[0]
-            daily_calorie_goal = float(user_profile['daily_calories']) if user_profile['daily_calories'] else 0
-            current_streak = int(user_profile['streak'])
+                
+                # Check for gaps in the streak
+                days_difference = (today_date - stored_date).days
+                print(f"Days since last update: {days_difference}")
+                
+                if days_difference == 1:
+                    # Consecutive day - increment streak
+                    new_streak = current_streak + 1
+                    print(f"Consecutive day detected. Incrementing streak from {current_streak} to {new_streak}")
+                elif days_difference > 1:
+                    # Gap detected - reset streak to 1 (today starts a new streak)
+                    new_streak = 1
+                    print(f"Gap of {days_difference} days detected. Resetting streak to 1")
+                else:
+                    # This shouldn't happen (days_difference should never be 0 or negative here)
+                    return jsonify({
+                        'error': 'Invalid date comparison',
+                        'message': 'Unable to calculate streak properly'
+                    }), 400
+            else:
+                # First time updating streak
+                new_streak = 1
+                print(f"First streak update. Setting streak to 1")
             
             # Update the streak in the database
-            today_iso = datetime.now().isoformat()
-            today_date = datetime.now().date().isoformat()
-            
             update_result = supabase.table('user_profiles') \
                 .update({
-                    'streak': current_streak + 1,
+                    'streak': new_streak,
                     'updated_at': today_iso,
                     'streak_update_date': today_iso
                 }) \
@@ -462,24 +481,27 @@ class UpdateStreak(MethodView):
             if not update_result.data:
                 raise Exception("Failed to update streak in database")
             
-            # Also add a record to the user_streaks table for today
+            # Add a record to the user_streaks table for today
             streak_record_result = supabase.table('user_streaks') \
                 .insert({
                     'user_id': g.current_user['id'],
-                    'streak_date': today_date
+                    'streak_date': today_date.isoformat()
                 }) \
                 .execute()
             
             if not streak_record_result.data:
-                # If inserting streak record fails, we should rollback the profile update
-                # For now, just log the error but don't fail the request since the main streak was updated
                 print(f"Warning: Failed to insert streak record for user {g.current_user['id']} on {today_date}")
             
             updated_profile = update_result.data[0]
             
             return jsonify({
                 'success': True,
-                'streak': updated_profile['streak']
+                'message': f'Streak updated successfully to {new_streak}',
+                'data': {
+                    'streak': updated_profile['streak'],
+                    'previous_streak': current_streak,
+                    'streak_action': 'incremented' if new_streak > current_streak else 'reset'
+                }
             }), 200
             
         except Exception as e:
@@ -503,7 +525,7 @@ class GetStreak(MethodView):
             
             # Get user's current streak from profile
             profile_result = supabase.table('user_profiles') \
-                .select('streak, daily_calories, updated_at') \
+                .select('streak, daily_calories, updated_at, streak_update_date') \
                 .eq('user_id', g.current_user['id']) \
                 .execute()
             
@@ -517,6 +539,32 @@ class GetStreak(MethodView):
             current_streak = int(user_profile['streak']) if user_profile['streak'] else 0
             daily_calorie_goal = float(user_profile['daily_calories']) if user_profile['daily_calories'] else 0
             last_updated = user_profile.get('updated_at')
+            streak_update_date = user_profile.get('streak_update_date')
+            
+            # Check if streak should be reset due to missed days
+            streak_needs_reset = False
+            if streak_update_date and current_streak > 0:
+                stored_date = datetime.fromisoformat(streak_update_date.replace('Z', '+00:00')).date()
+                today_date = datetime.now().date()
+                days_difference = (today_date - stored_date).days
+                
+                # If more than 1 day has passed since last update, streak should be reset
+                if days_difference > 1:
+                    streak_needs_reset = True
+                    print(f"Streak should be reset. Last update: {stored_date}, Today: {today_date}, Gap: {days_difference} days")
+                    
+                    # Reset the streak in database
+                    reset_result = supabase.table('user_profiles') \
+                        .update({
+                            'streak': 0,
+                            'updated_at': datetime.now().isoformat()
+                        }) \
+                        .eq('user_id', g.current_user['id']) \
+                        .execute()
+                    
+                    if reset_result.data:
+                        current_streak = 0
+                        print(f"Streak reset to 0 due to {days_difference} day gap")
             
             # Get last 31 days of streak data
             thirty_one_days_ago = (datetime.now().date() - timedelta(days=31)).isoformat()
@@ -543,7 +591,8 @@ class GetStreak(MethodView):
                     'daily_calorie_goal': round(daily_calorie_goal, 2),
                     'last_updated': last_updated,
                     'user_id': g.current_user['id'],
-                    'streak_history': streak_dates
+                    'streak_history': streak_dates,
+                    'streak_auto_reset': streak_needs_reset
                 }
             }), 200
             
