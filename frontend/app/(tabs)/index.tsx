@@ -91,45 +91,41 @@ export default function DashboardScreen() {
   // User profile streak data for day selector icons
   const { data: userProfileData } = useUserProfileStreak();
 
-  // Congratulations modal state
-  const [showCongratulationsModal, setShowCongratulationsModal] =
-    useState(false);
+  // Streak modal state
   const [showStreakModal, setShowStreakModal] = useState(false);
-  const [congratulationsShownForDay, setCongratulationsShownForDay] =
+  const [streakModalShownForDay, setStreakModalShownForDay] =
     useState<string>("");
 
-  const congratsModalAnim = useRef(new Animated.Value(0)).current;
-  const congratsBgOpacityAnim = useRef(new Animated.Value(0)).current;
   const streakModalAnim = useRef(new Animated.Value(0)).current;
   const streakBgOpacityAnim = useRef(new Animated.Value(0)).current;
 
-  // Load congratulations tracking from storage
+  // Load streak modal tracking from storage
   useEffect(() => {
-    const loadCongratulationsTracking = async () => {
+    const loadStreakModalTracking = async () => {
       if (!session?.user?.id) return;
       try {
-        const key = `congratulationsShown_${session.user.id}`;
+        const key = `streakModalShown_${session.user.id}`;
         const stored = await AsyncStorage.getItem(key);
         if (stored) {
-          setCongratulationsShownForDay(stored);
+          setStreakModalShownForDay(stored);
         }
       } catch (error) {
-        console.error("Error loading congratulations tracking:", error);
+        console.error("Error loading streak modal tracking:", error);
       }
     };
 
-    loadCongratulationsTracking();
+    loadStreakModalTracking();
   }, [session?.user?.id]);
 
-  // Save congratulations tracking to storage
-  const saveCongratulationsTracking = async (day: string) => {
+  // Save streak modal tracking to storage
+  const saveStreakModalTracking = async (day: string) => {
     if (!session?.user?.id) return;
     try {
-      const key = `congratulationsShown_${session.user.id}`;
+      const key = `streakModalShown_${session.user.id}`;
       await AsyncStorage.setItem(key, day);
-      setCongratulationsShownForDay(day);
+      setStreakModalShownForDay(day);
     } catch (error) {
-      console.error("Error saving congratulations tracking:", error);
+      console.error("Error saving streak modal tracking:", error);
     }
   };
 
@@ -221,44 +217,6 @@ export default function DashboardScreen() {
         easing: (t) => 1 - Math.pow(1 - t, 3),
       }),
     ]).start(() => setShowActionModal(false));
-  };
-
-  // Congratulations modal animations
-  const showCongratulationsModalWithAnimation = () => {
-    setShowCongratulationsModal(true);
-    Animated.parallel([
-      Animated.spring(congratsModalAnim, {
-        toValue: 1,
-        useNativeDriver: true,
-        tension: 65,
-        friction: 11,
-      }),
-      Animated.timing(congratsBgOpacityAnim, {
-        toValue: 1,
-        duration: 500,
-        useNativeDriver: true,
-        easing: (t) => 1 - Math.pow(1 - t, 3),
-      }),
-    ]).start();
-  };
-
-  const hideCongratulationsModal = () => {
-    Animated.parallel([
-      Animated.timing(congratsModalAnim, {
-        toValue: 0,
-        duration: 300,
-        useNativeDriver: true,
-        easing: (t) => 1 - Math.pow(1 - t, 3),
-      }),
-      Animated.timing(congratsBgOpacityAnim, {
-        toValue: 0,
-        duration: 300,
-        useNativeDriver: true,
-        easing: (t) => 1 - Math.pow(1 - t, 3),
-      }),
-    ]).start(() => {
-      setShowCongratulationsModal(false);
-    });
   };
 
   // Streak modal animations - FIXED: Separate background and modal animations
@@ -721,7 +679,7 @@ export default function DashboardScreen() {
         setIsNavigatingToHistory(false);
         setIsAnalyzingMeal(false);
         setReturnedFromCamera(false);
-        setCongratulationsShownForDay("");
+        setStreakModalShownForDay("");
 
         // Clear any stale query cache for the previous user
         queryClient.clear();
@@ -731,20 +689,20 @@ export default function DashboardScreen() {
     }
   }, [session?.user?.id, queryClient]);
 
-  // Reset congratulations tracking when day changes
+  // Reset streak modal tracking when day changes
   useEffect(() => {
     const today = formatDateForAPI(new Date());
-    if (congratulationsShownForDay && congratulationsShownForDay !== today) {
-      // Clear the stored congratulations tracking for the new day
+    if (streakModalShownForDay && streakModalShownForDay !== today) {
+      // Clear the stored streak modal tracking for the new day
       if (session?.user?.id) {
-        const key = `congratulationsShown_${session.user.id}`;
+        const key = `streakModalShown_${session.user.id}`;
         AsyncStorage.removeItem(key).catch((error) => {
-          console.error("Error clearing congratulations tracking:", error);
+          console.error("Error clearing streak modal tracking:", error);
         });
       }
-      setCongratulationsShownForDay("");
+      setStreakModalShownForDay("");
     }
-  }, [congratulationsShownForDay, session?.user?.id]);
+  }, [streakModalShownForDay, session?.user?.id]);
 
   // Force refetch when session becomes ready
   useEffect(() => {
@@ -883,10 +841,10 @@ export default function DashboardScreen() {
           // The streak history is managed by the backend based on when goals were actually achieved
         }
 
-        // Show congratulations if needed (only for today and only once)
-        if (selectedDate === today && shouldShowCongratulations(selectedDate)) {
-          saveCongratulationsTracking(today);
-          showCongratulationsModalWithAnimation();
+        // Show streak modal if goal is reached for today (only once per day)
+        if (consumed >= goal && shouldShowStreakModal(selectedDate)) {
+          saveStreakModalTracking(today);
+          showStreakModalWithAnimation();
         }
       } catch (error) {
         console.error("Error in goal reached effect:", error);
@@ -979,14 +937,10 @@ export default function DashboardScreen() {
     return hasStreakAchieved(dateString);
   };
 
-  const shouldShowCongratulations = (dateString: string): boolean => {
+  const shouldShowStreakModal = (dateString: string): boolean => {
     const today = formatDateForAPI(new Date());
-    // Only show congratulations for today and only if we haven't shown it yet for this day
-    return (
-      dateString === today &&
-      hasReachedGoal(dateString) &&
-      congratulationsShownForDay !== today
-    );
+    // Only show streak modal for today and only if we haven't shown it yet for this day
+    return dateString === today && streakModalShownForDay !== today;
   };
 
   // Function to optimistically update streak data
@@ -1527,86 +1481,6 @@ export default function DashboardScreen() {
                             size={20}
                             color="#9ca3af"
                           />
-                        </TouchableOpacity>
-                      </View>
-                    </View>
-                  </TouchableOpacity>
-                </Animated.View>
-              </View>
-            </TouchableOpacity>
-          </Modal>
-
-          {/* Congratulations Modal */}
-          <Modal
-            visible={showCongratulationsModal}
-            transparent={true}
-            animationType="none"
-            onRequestClose={hideCongratulationsModal}
-          >
-            <TouchableOpacity
-              activeOpacity={1}
-              onPress={hideCongratulationsModal}
-              style={{ flex: 1 }}
-            >
-              {/* Background overlay */}
-              <Animated.View
-                style={{
-                  position: "absolute",
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  backgroundColor: "rgba(0,0,0,0.5)",
-                  opacity: congratsBgOpacityAnim,
-                }}
-              />
-              {/* Modal content */}
-              <View
-                style={{
-                  flex: 1,
-                  justifyContent: "center",
-                  alignItems: "center",
-                  paddingHorizontal: 24,
-                }}
-              >
-                <Animated.View
-                  style={{
-                    transform: [
-                      {
-                        scale: congratsModalAnim.interpolate({
-                          inputRange: [0, 1],
-                          outputRange: [0.8, 1],
-                        }),
-                      },
-                    ],
-                    opacity: congratsModalAnim,
-                  }}
-                >
-                  <TouchableOpacity
-                    activeOpacity={1}
-                    onPress={(e) => e.stopPropagation()}
-                  >
-                    <View className="bg-white rounded-3xl p-8 items-center shadow-2xl w-full max-w-sm">
-                      <View className="bg-orange-100 rounded-full p-6 mb-6">
-                        <FontAwesome6 name="trophy" size={48} color="#FF8C00" />
-                      </View>
-                      <Text className="text-2xl font-bold text-gray-900 text-center mb-3">
-                        Goal Reached!
-                      </Text>
-                      <Text className="text-lg text-gray-700 text-center mb-6 leading-6">
-                        Congratulations! You've reached your daily calorie goal.
-                        Your streak has been updated!
-                      </Text>
-                      <View className="flex-row gap-2 space-x-3 w-full">
-                        <TouchableOpacity
-                          onPress={() => {
-                            hideCongratulationsModal();
-                          }}
-                          className={`flex-1 rounded-2xl py-3 bg-orange-500`}
-                        >
-                          <Text className="text-center font-semibold text-white">
-                            Keep going!
-                          </Text>
                         </TouchableOpacity>
                       </View>
                     </View>
