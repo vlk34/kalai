@@ -12,8 +12,10 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import React, { useState } from "react";
 import { useNavigation } from "@react-navigation/native";
+import { useTranslation } from "react-i18next";
 
 export default function WelcomeScreen() {
+  const { t } = useTranslation();
   const [fadeAnim] = useState(new Animated.Value(0));
   const [slideAnim] = useState(new Animated.Value(50));
   const navigation = useNavigation();
@@ -34,14 +36,14 @@ export default function WelcomeScreen() {
         // Allow normal back navigation
         return false;
       }
-      Alert.alert("Exit App", "Are you sure you want to exit?", [
+      Alert.alert(t("welcome.exitConfirm"), t("welcome.exitMessage"), [
         {
-          text: "Cancel",
+          text: t("welcome.cancel"),
           style: "cancel",
           onPress: () => null,
         },
         {
-          text: "Exit",
+          text: t("welcome.exit"),
           style: "destructive",
           onPress: () => BackHandler.exitApp(),
         },
@@ -87,12 +89,12 @@ export default function WelcomeScreen() {
           <View className="flex-1">
             {/* Title */}
             <Text className="text-3xl font-bold text-black text-center mb-3">
-              Welcome to Kal AI!
+              {t("welcome.title")}
             </Text>
 
             {/* Subtitle */}
             <Text className="text-base text-gray-500 text-center mb-8 leading-5 px-4">
-              Smart calorie tracking with AI-powered nutrition analysis
+              {t("welcome.subtitle")}
             </Text>
 
             {/* Get Started Button */}
@@ -103,7 +105,7 @@ export default function WelcomeScreen() {
               disabled={isNavigating}
             >
               <Text className="text-white font-semibold text-lg text-center">
-                Get started
+                {t("welcome.getStarted")}
               </Text>
             </TouchableOpacity>
           </View>

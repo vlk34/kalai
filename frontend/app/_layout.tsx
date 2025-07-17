@@ -9,6 +9,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { QueryProvider } from "@/contexts/QueryProvider";
 import { SelectorProvider } from "@/contexts/SelectorContext";
+import "@/i18n"; // Initialize i18n
 import "../global.css";
 
 function LoadingScreen() {

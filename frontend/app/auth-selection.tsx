@@ -17,6 +17,7 @@ import {
   GoogleSigninButton,
 } from "@react-native-google-signin/google-signin";
 import Svg, { Path } from "react-native-svg";
+import { useTranslation } from "react-i18next";
 
 // Configure Google Sign-In at the top level of the component or in a useEffect
 GoogleSignin.configure({
@@ -26,6 +27,7 @@ GoogleSignin.configure({
 });
 
 export default function AuthSelectionScreen() {
+  const { t } = useTranslation();
   const [fadeAnim] = useState(new Animated.Value(0));
   const [slideAnim] = useState(new Animated.Value(50));
   const [isNavigatingToSignup, setIsNavigatingToSignup] = useState(false);
@@ -138,12 +140,11 @@ export default function AuthSelectionScreen() {
             </TouchableOpacity>
             {/* Title */}
             <Text className="text-2xl font-bold text-black text-center mb-3 mt-4">
-              Login or sign up
+              {t("auth.loginOrSignup")}
             </Text>
             {/* Subtitle */}
             <Text className="text-sm text-gray-500 text-center mb-8 leading-5 px-4">
-              Please select your preferred method to continue setting up your
-              account
+              {t("auth.selectMethodSubtitle")}
             </Text>
             {/* Continue with Email Button */}
             <TouchableOpacity
@@ -155,7 +156,7 @@ export default function AuthSelectionScreen() {
               disabled={isNavigatingToSignup}
             >
               <Text className="text-white font-semibold text-base text-center">
-                Sign up with Email
+                {t("auth.signUpWithEmail")}
               </Text>
             </TouchableOpacity>
             {/* Google Button - Now matches the email button styling */}
@@ -192,7 +193,9 @@ export default function AuthSelectionScreen() {
                   />
                 </Svg>
                 <Text className="text-gray-700 font-semibold text-base">
-                  {isGoogleLoading ? "Signing in..." : "Continue with Google"}
+                  {isGoogleLoading
+                    ? t("auth.signingIn")
+                    : t("auth.continueWithGoogle")}
                 </Text>
               </View>
             </TouchableOpacity>
@@ -204,15 +207,19 @@ export default function AuthSelectionScreen() {
               disabled={isNavigatingToSignin}
             >
               <Text className="text-center text-gray-600 text-sm">
-                Already have an account?{" "}
-                <Text className="text-black font-semibold">Sign in</Text>
+                {t("auth.alreadyHaveAccountQuestion")}{" "}
+                <Text className="text-black font-semibold">
+                  {t("auth.signInLink")}
+                </Text>
               </Text>
             </TouchableOpacity>
             {/* Terms and Privacy */}
             <Text className="text-xs text-gray-400 mb-4 text-center leading-4 px-4">
-              If you are creating a new account,{" "}
-              <Text className="underline">Terms & Conditions</Text> and{" "}
-              <Text className="underline">Privacy Policy</Text> will apply.
+              {t("auth.termsText")}{" "}
+              <Text className="underline">{t("auth.termsAndConditions")}</Text>{" "}
+              {t("auth.and")}{" "}
+              <Text className="underline">{t("auth.privacyPolicy")}</Text>{" "}
+              {t("auth.willApply")}
             </Text>
           </View>
         </Animated.View>

@@ -46,6 +46,7 @@ import {
   type OnboardingData as OnboardingDataType,
 } from "@/hooks/useUserProfile";
 import { useAuth } from "@/contexts/AuthContext";
+import { useTranslation } from "react-i18next";
 
 // Import selector components
 import HeightSelectorOnboarding from "./(tabs)/height-selector-onboarding";
@@ -66,6 +67,7 @@ interface OnboardingData {
 }
 
 export default function OnboardingScreen() {
+  const { t } = useTranslation();
   const [currentStep, setCurrentStep] = useState(0);
   const [data, setData] = useState<OnboardingData>({ unit: "metric" });
   const [canProceed, setCanProceed] = useState(false);
@@ -364,31 +366,30 @@ export default function OnboardingScreen() {
         return (
           <View className="flex-1 px-6">
             <Text className="text-2xl font-bold text-gray-900 mb-2">
-              What's your gender?
+              {t("onboarding.gender.title")}
             </Text>
             <Text className="text-gray-600 mb-2">
-              This helps us calculate your daily needs
+              {t("onboarding.gender.subtitle")}
             </Text>
             <Text className="text-sm text-gray-500 mb-8 leading-5">
-              Gender affects your metabolic rate for accurate calorie
-              calculations.
+              {t("onboarding.gender.description")}
             </Text>
 
             <OptionButton
               icon={<User size={24} color="#374151" />}
-              title="Male"
+              title={t("onboarding.gender.male")}
               selected={data.gender === "male"}
               onPress={() => setData({ ...data, gender: "male" })}
             />
             <OptionButton
               icon={<Users size={24} color="#374151" />}
-              title="Female"
+              title={t("onboarding.gender.female")}
               selected={data.gender === "female"}
               onPress={() => setData({ ...data, gender: "female" })}
             />
             <OptionButton
               icon={<User size={24} color="#374151" />}
-              title="I prefer not to say"
+              title={t("onboarding.gender.preferNotToSay")}
               selected={data.gender === "other"}
               onPress={() => setData({ ...data, gender: "other" })}
             />
@@ -399,13 +400,13 @@ export default function OnboardingScreen() {
         return (
           <View className="flex-1 px-6">
             <Text className="text-2xl font-bold text-gray-900 mb-2">
-              How active are you?
+              {t("onboarding.activity.title")}
             </Text>
             <Text className="text-gray-600 mb-2">
-              This affects your calorie requirements
+              {t("onboarding.activity.subtitle")}
             </Text>
             <Text className="text-sm text-gray-500 mb-8 leading-5">
-              Activity level determines your daily calorie needs.
+              {t("onboarding.activity.description")}
             </Text>
 
             <OptionButton

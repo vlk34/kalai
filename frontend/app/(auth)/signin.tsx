@@ -11,8 +11,10 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { supabase } from "@/scripts/supabase";
 import { router } from "expo-router";
+import { useTranslation } from "react-i18next";
 
 export default function SignIn() {
+  const { t } = useTranslation();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -96,10 +98,10 @@ export default function SignIn() {
             {/* Header */}
             <View className="mb-8">
               <Text className="text-3xl font-bold text-gray-900 mb-2">
-                Welcome back
+                {t("auth.welcomeBack")}
               </Text>
               <Text className="text-gray-500 text-base">
-                Sign in to continue to your account
+                {t("auth.signInSubtitle")}
               </Text>
             </View>
 
@@ -114,7 +116,7 @@ export default function SignIn() {
             <View className="space-y-5">
               <View className="mb-4">
                 <Text className="text-gray-700 font-medium mb-2 text-sm">
-                  Email
+                  {t("auth.email")}
                 </Text>
                 <TextInput
                   className={`border rounded-xl px-4 py-4 text-gray-900 ${
@@ -122,7 +124,7 @@ export default function SignIn() {
                       ? "bg-red-50 border-red-300"
                       : "bg-gray-50 border-gray-200"
                   }`}
-                  placeholder="Enter your email"
+                  placeholder={t("auth.enterYourEmail")}
                   placeholderTextColor="#9CA3AF"
                   value={email}
                   onChangeText={(text) => {
@@ -133,7 +135,7 @@ export default function SignIn() {
                     if (email.trim() && !/\S+@\S+\.\S+/.test(email)) {
                       setErrors((prev) => ({
                         ...prev,
-                        email: "Please enter a valid email address",
+                        email: t("auth.validEmailError"),
                       }));
                     }
                   }}
@@ -150,7 +152,7 @@ export default function SignIn() {
 
               <View className="mb-6">
                 <Text className="text-gray-700 font-medium mb-2 text-sm">
-                  Password
+                  {t("auth.password")}
                 </Text>
                 <TextInput
                   className={`border rounded-xl px-4 py-4 text-gray-900 ${
@@ -158,7 +160,7 @@ export default function SignIn() {
                       ? "bg-red-50 border-red-300"
                       : "bg-gray-50 border-gray-200"
                   }`}
-                  placeholder="Enter your password"
+                  placeholder={t("auth.enterYourPassword")}
                   placeholderTextColor="#9CA3AF"
                   value={password}
                   onChangeText={(text) => {
@@ -185,7 +187,7 @@ export default function SignIn() {
                   <ActivityIndicator color="white" size="small" />
                 ) : (
                   <Text className="text-white text-center font-semibold text-base">
-                    Sign In
+                    {t("auth.signIn")}
                   </Text>
                 )}
               </TouchableOpacity>
@@ -203,8 +205,7 @@ export default function SignIn() {
                 disabled={isNavigatingToSignup}
               >
                 <Text className="text-center text-gray-500 text-sm">
-                  Don't have an account?{" "}
-                  <Text className="text-black font-semibold">Sign up</Text>
+                  {t("auth.dontHaveAccount")}
                 </Text>
               </TouchableOpacity>
             </View>

@@ -12,8 +12,10 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { supabase } from "@/scripts/supabase";
 import { router } from "expo-router";
+import { useTranslation } from "react-i18next";
 
 export default function SignUp() {
+  const { t } = useTranslation();
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
@@ -125,10 +127,10 @@ export default function SignUp() {
             {/* Header */}
             <View className="mb-8">
               <Text className="text-3xl font-bold text-gray-900 mb-2">
-                Create Account
+                {t("auth.createAccount")}
               </Text>
               <Text className="text-gray-500 text-base">
-                Sign up to get started with Kal AI
+                {t("auth.signUpSubtitle")}
               </Text>
             </View>
 

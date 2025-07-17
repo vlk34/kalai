@@ -9,12 +9,14 @@ import {
 import { ThemedText } from "../ThemedText";
 import { supabase } from "@/scripts/supabase";
 import { router } from "expo-router";
+import { useTranslation } from "react-i18next";
 
 interface AuthProps {
   mode: "signin" | "signup";
 }
 
 export function Auth({ mode }: AuthProps) {
+  const { t } = useTranslation();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -61,25 +63,29 @@ export function Auth({ mode }: AuthProps) {
     <View className="flex-1 bg-white p-6">
       <View className="space-y-4">
         <View>
-          <ThemedText className="mb-2 text-red-500">Email</ThemedText>
+          <ThemedText className="mb-2 text-red-500">
+            {t("auth.email")}
+          </ThemedText>
           <TextInput
             className="rounded-lg border border-gray-300 bg-white px-4 py-2"
             onChangeText={setEmail}
             value={email}
-            placeholder="email@address.com"
+            placeholder={t("auth.emailPlaceholder")}
             autoCapitalize="none"
             keyboardType="email-address"
           />
         </View>
 
         <View>
-          <ThemedText className="mb-2 text-gray-700">Password</ThemedText>
+          <ThemedText className="mb-2 text-gray-700">
+            {t("auth.password")}
+          </ThemedText>
           <TextInput
             className="rounded-lg border border-gray-300 bg-white px-4 py-2"
             onChangeText={setPassword}
             value={password}
             secureTextEntry
-            placeholder="Your password"
+            placeholder={t("auth.passwordPlaceholder")}
             autoCapitalize="none"
           />
         </View>
@@ -93,14 +99,14 @@ export function Auth({ mode }: AuthProps) {
             <ActivityIndicator color="white" />
           ) : (
             <ThemedText className="text-center text-white">
-              {mode === "signin" ? "Sign In" : "Sign Up"}
+              {mode === "signin" ? t("auth.signIn") : t("auth.signUp")}
             </ThemedText>
           )}
         </TouchableOpacity>
 
         <View className="my-4 flex-row items-center">
           <View className="flex-1 border-t border-gray-300" />
-          <ThemedText className="mx-4 text-gray-500">or</ThemedText>
+          <ThemedText className="mx-4 text-gray-500">{t("auth.or")}</ThemedText>
           <View className="flex-1 border-t border-gray-300" />
         </View>
 
@@ -110,7 +116,7 @@ export function Auth({ mode }: AuthProps) {
           disabled={loading}
         >
           <ThemedText className="text-center text-black">
-            Continue with Google
+            {t("auth.continueWithGoogle")}
           </ThemedText>
         </TouchableOpacity>
 
@@ -120,8 +126,8 @@ export function Auth({ mode }: AuthProps) {
         >
           <ThemedText className="text-center text-gray-600">
             {mode === "signin"
-              ? "Don't have an account? Sign up"
-              : "Already have an account? Sign in"}
+              ? t("auth.dontHaveAccount")
+              : t("auth.alreadyHaveAccount")}
           </ThemedText>
         </TouchableOpacity>
       </View>
