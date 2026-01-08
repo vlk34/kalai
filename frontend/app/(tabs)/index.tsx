@@ -144,6 +144,9 @@ export default function DashboardScreen() {
   const [isAnalyzingMeal, setIsAnalyzingMeal] = useState(false);
   const [returnedFromCamera, setReturnedFromCamera] = useState(false);
 
+  // Guard to prevent multiple concurrent streak updates
+  const isUpdatingStreak = useRef(false);
+
   const { analyzeFood } = useAnalyzeFood();
   const { addOptimisticMeal, updateOptimisticMeal } = useMutateRecentMeals();
   const { addMealToNutrition } = useMutateNutrition();
@@ -795,14 +798,47 @@ export default function DashboardScreen() {
 
         // Check if goal is reached (consumed >= goal)
         if (consumed >= goal && !hasReachedGoal(selectedDate)) {
+          // Check if streak update is already in progress
+          if (isUpdatingStreak.current) {
+            console.log("[DEBUG] Streak update already in progress, skipping");
+            return;
+          }
+
           // SECURITY FIX: Only update streak if the selected date is actually today
           if (selectedDate === today) {
             console.log("[DEBUG] Goal reached for today, updating streak");
+            
+            // Mark that streak update is in progress
+            isUpdatingStreak.current = true;
+            
             // Optimistically update streak data for immediate UI feedback
             optimisticallyUpdateStreak(selectedDate);
 
             // Update streak in background (only for current day)
-            updateStreakMutation.mutate();
+            updateStreakMutation.mutate(undefined, {
+              onSuccess: () => {
+                console.log("[DEBUG] Streak updated successfully");
+              },
+              onError: (error) => {
+                console.error("[ERROR] Streak update failed:", error);
+                // Revert optimistic update by invalidating queries
+                queryClient.invalidateQueries({
+                  queryKey: ["user-profile-streak", session?.user?.id],
+                });
+                queryClient.invalidateQueries({
+                  queryKey: ["user-profile", session?.user?.id],
+                });
+                queryClient.invalidateQueries({
+                  queryKey: ["streak", session?.user?.id],
+                });
+              },
+              onSettled: () => {
+                // Reset the guard after mutation completes (success or error)
+                setTimeout(() => {
+                  isUpdatingStreak.current = false;
+                }, 300);
+              },
+            });
 
             // Invalidate user profile data to refresh streak history (as fallback)
             queryClient.invalidateQueries({
@@ -820,7 +856,7 @@ export default function DashboardScreen() {
               queryClient.refetchQueries({
                 queryKey: ["user-profile", session?.user?.id],
               });
-            }, 1000);
+            }, 300);
           } else {
             console.log(
               "[DEBUG] Goal reached for past date, NOT updating current streak for security"
@@ -839,7 +875,7 @@ export default function DashboardScreen() {
         console.error("Error in goal reached effect:", error);
       }
     }
-  }, [dailyNutrition, selectedDate]);
+  }, [dailyNutrition, selectedDate, session?.user?.id]);
 
   const openCamera = useCallback(() => {
     if (isNavigatingToCamera) return; // Prevent multiple rapid clicks
@@ -936,10 +972,10 @@ export default function DashboardScreen() {
       (oldData: any) => {
         if (!oldData) return oldData;
 
-        const updatedStreakHistory = [
-          ...(oldData.streak_history || []),
-          dateString,
-        ];
+        const existingHistory = oldData.streak_history || [];
+        const updatedStreakHistory = existingHistory.includes(dateString)
+          ? existingHistory
+          : [...existingHistory, dateString];
 
         return {
           ...oldData,
@@ -955,10 +991,10 @@ export default function DashboardScreen() {
       (oldData: any) => {
         if (!oldData) return oldData;
 
-        const updatedStreakHistory = [
-          ...(oldData.streak_history || []),
-          dateString,
-        ];
+        const existingHistory = oldData.streak_history || [];
+        const updatedStreakHistory = existingHistory.includes(dateString)
+          ? existingHistory
+          : [...existingHistory, dateString];
 
         return {
           ...oldData,

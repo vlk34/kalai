@@ -19,7 +19,12 @@ interface StreakResponse {
 
 interface UpdateStreakResponse {
   success: boolean;
-  streak: number;
+  message: string;
+  data: {
+    streak: number;
+    previous_streak: number;
+    streak_action: string;
+  };
 }
 
 export const useStreak = () => {
@@ -71,9 +76,15 @@ export const useUpdateStreak = () => {
       }
 
       const result: UpdateStreakResponse = await response.json();
-      return result.streak;
+      return result.data.streak;
     },
     onSuccess: (newStreak) => {
+      // Validate the streak value
+      if (typeof newStreak !== 'number') {
+        console.error('[useUpdateStreak] Invalid streak value received:', newStreak);
+        return;
+      }
+
       // Update the user profile cache with new streak data
       queryClient.setQueryData(
         ["user-profile-streak", session?.user?.id],
