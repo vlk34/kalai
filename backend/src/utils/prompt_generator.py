@@ -46,7 +46,8 @@ class PromptGenerator:
         - If the image contains recognizable food items (fruits, vegetables, cooked meals, snacks, beverages, etc.), provide reasonable nutritional estimates for a typical serving size
         - If the image does NOT contain food (animals, people, objects, non-food items, etc.), set ALL nutritional values to 0 and name the item you see
         - Use only numbers for nutritional values (no units in the values)
-        - Be conservative - if unsure whether something is food, default to 0 values"""
+        - Be conservative - if unsure whether something is food, default to 0 values
+        - BE REALISTIC ABOUT PORTION SIZES: Carefully estimate the actual amount of food visible in the image. Consider plate size, food density, and visual volume. Do not overestimate or assume large portions - base your nutritional estimates strictly on what you can see in the image."""
 
         # ===== Create Messages =====
         messages = [
@@ -92,7 +93,9 @@ class PromptGenerator:
             "calories": "calorie content"
         }
         
-        Use the text description to better understand portion sizes, ingredients, and cooking methods for more accurate estimates. Use only numbers for nutritional values (no units in the values)."""
+        Use the text description to better understand portion sizes, ingredients, and cooking methods for more accurate estimates. Use only numbers for nutritional values (no units in the values).
+        
+        BE REALISTIC ABOUT PORTION SIZES: Carefully estimate the actual amount of food visible in the image. Consider plate size, food density, and visual volume. Do not overestimate or assume large portions - base your nutritional estimates strictly on what you can see in the image. If the text description mentions portion size, use it to calibrate your estimate, but always verify against what's visible in the image."""
 
         # ===== Create Messages =====
         messages = [
