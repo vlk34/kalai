@@ -28,11 +28,25 @@ def create_app():
     app.config["RATELIMIT_DEFAULT"] = "10000 per hour"
 
     # CORS configuration for frontend
+    # Only allow known origins. Add FRONTEND_URL to your environment variables
+    # for the production frontend URL (e.g. https://your-app.vercel.app).
+    # Using a wildcard '*' with supports_credentials=True is a security
+    # misconfiguration — browsers reject it and it exposes the API to
+    # cross-origin attacks from arbitrary domains.
+    allowed_origins = [
+        "http://localhost:5173",
+        "http://127.0.0.1:5500",
+        "http://localhost:5500",
+    ]
+    frontend_url = os.getenv("FRONTEND_URL")
+    if frontend_url:
+        allowed_origins.append(frontend_url)
+
     CORS(app,
          supports_credentials=True,
          resources={
              r"/*": {
-                 "origins": ["http://localhost:5173", "http://127.0.0.1:5500", "http://localhost:5500", '*'],
+                 "origins": allowed_origins,
                  "methods": ["GET", "POST", "OPTIONS", "PATCH", "DELETE", "PUT"],
                  "allow_headers": ["Content-Type", "Authorization"]
              }
