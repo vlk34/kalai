@@ -26,10 +26,6 @@ export default function IndexScreen() {
     );
   }
 
-  // if (!session) {
-  //   return <Redirect href="/welcome" />;
-  // }
-
   if (!hasCompletedOnboarding) {
     return <Redirect href="/onboarding" />;
   }

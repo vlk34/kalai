@@ -35,10 +35,10 @@ def verify_supabase_token(f):
             
         except jwt.ExpiredSignatureError:
             return jsonify({'error': 'Token has expired'}), 401
-        except jwt.InvalidTokenError:
-            return jsonify({'error': 'Invalid token'}), 401
         except jwt.InvalidAudienceError:
             return jsonify({'error': 'Invalid token audience'}), 401
+        except jwt.InvalidTokenError:
+            return jsonify({'error': 'Invalid token'}), 401
         except Exception as e:
             print(f"JWT verification error: {str(e)}")
             return jsonify({'error': 'Token verification failed'}), 401
@@ -46,4 +46,4 @@ def verify_supabase_token(f):
         # Call the actual function after successful authentication
         return f(*args, **kwargs)
 
-    return decorated_function 
+    return decorated_function  

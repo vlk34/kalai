@@ -85,7 +85,7 @@ class PromptGenerator:
         Return ONLY a JSON object with these exact fields:
         {
             "name": "food name",
-            "emoji": "emoji related to food name"
+            "emoji": "emoji related to food name",
             "protein": "protein content in grams",
             "carbs": "carbohydrate content in grams", 
             "fats": "fat content in grams",
