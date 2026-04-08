@@ -95,7 +95,7 @@ export default function AnalyticsScreen() {
     );
 
     return {
-      labels,
+      labels: labels.length > 0 ? labels : ["--"],
       datasets: [
         {
           data: caloriesData.length > 0 ? caloriesData : [0],
