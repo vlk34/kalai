@@ -63,7 +63,7 @@ export function Auth({ mode }: AuthProps) {
     <View className="flex-1 bg-white p-6">
       <View className="space-y-4">
         <View>
-          <ThemedText className="mb-2 text-red-500">
+          <ThemedText className="mb-2 text-gray-700">
             {t("auth.email")}
           </ThemedText>
           <TextInput

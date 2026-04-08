@@ -353,8 +353,7 @@ const EditProfileScreen = () => {
       // Invalidate all nutrition data to ensure fresh data
       invalidateAllNutrition();
 
-      router.back();
-      router.back();
+      router.push("/(tabs)");
     } catch (error) {
       Alert.alert("Error", "Failed to recalculate targets. Please try again.");
     }

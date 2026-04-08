@@ -1,33 +1,60 @@
 "use client";
-import { useState } from "react";
+import { useMemo } from "react";
 import {
   View,
   Text,
   ScrollView,
   TouchableOpacity,
   Dimensions,
+  ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import { LineChart } from "react-native-chart-kit";
+import { useUserProfile } from "@/hooks/useUserProfile";
+import { useWeeklyNutritionSummary } from "@/hooks/useWeeklyNutritionSummary";
+import { router } from "expo-router";
 
 export default function AnalyticsScreen() {
-  const [weightFilter, setWeightFilter] = useState("90 days");
-  const [nutritionFilter, setNutritionFilter] = useState("this week");
-
   const screenWidth = Dimensions.get("window").width;
 
-  // Sample user data
-  const userData = {
-    weightGoal: 70,
-    currentWeight: 75.5,
-    height: 175, // cm
-    goalAchieved: 15.2,
+  // Fetch real user profile data
+  const { data: userProfileResponse, isLoading: isLoadingProfile } =
+    useUserProfile();
+  const profile = userProfileResponse?.profile;
+
+  // Fetch real weekly nutrition data
+  const { data: weeklyData, isLoading: isLoadingNutrition } =
+    useWeeklyNutritionSummary();
+
+  // Get weight in kg for BMI calculation
+  const getWeightInKg = (): number => {
+    if (!profile) return 0;
+    if (profile.weight_unit === "imperial") {
+      return profile.weight_value * 0.453592; // lbs to kg
+    }
+    return profile.weight_value;
   };
 
+  // Get height in cm for BMI calculation
+  const getHeightInCm = (): number => {
+    if (!profile) return 0;
+    if (profile.height_unit === "imperial") {
+      const totalInches =
+        profile.height_value * 12 + (profile.height_inches || 0);
+      return totalInches * 2.54; // inches to cm
+    }
+    return profile.height_value;
+  };
+
+  const weightInKg = getWeightInKg();
+  const heightInCm = getHeightInCm();
+
   // Calculate BMI
-  const bmi = userData.currentWeight / Math.pow(userData.height / 100, 2);
+  const bmi =
+    heightInCm > 0 ? weightInKg / Math.pow(heightInCm / 100, 2) : 0;
   const getBMIStatus = (bmi: number) => {
+    if (bmi <= 0) return { status: "unknown", color: "text-gray-500" };
     if (bmi < 18.5) return { status: "underweight", color: "text-blue-500" };
     if (bmi < 25) return { status: "healthy", color: "text-green-500" };
     if (bmi < 30) return { status: "overweight", color: "text-orange-500" };
@@ -36,35 +63,62 @@ export default function AnalyticsScreen() {
 
   const bmiStatus = getBMIStatus(bmi);
 
-  // Sample weight progress data
-  const weightData = {
-    labels: ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
-    datasets: [
-      {
-        data: [78, 77.2, 76.8, 76.1, 75.8, 75.5],
-        color: (opacity = 1) => `rgba(16, 185, 129, ${opacity})`,
-        strokeWidth: 3,
-      },
-    ],
-  };
+  // Get the weight unit label
+  const weightUnit = profile?.weight_unit === "imperial" ? "lbs" : "kg";
 
-  // Sample nutrition data
-  const nutritionData = {
-    labels: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
-    datasets: [
-      {
-        data: [2100, 1950, 2200, 2050, 2150, 2300, 1900],
-        color: (opacity = 1) => `rgba(59, 130, 246, ${opacity})`,
-        strokeWidth: 3,
-      },
-    ],
-  };
+  // Build nutrition chart data from weekly API data
+  const nutritionChartData = useMemo(() => {
+    if (!weeklyData?.weekly_nutrition) {
+      return {
+        labels: ["--", "--", "--", "--", "--"],
+        datasets: [
+          {
+            data: [0, 0, 0, 0, 0],
+            color: (opacity = 1) => `rgba(59, 130, 246, ${opacity})`,
+            strokeWidth: 3,
+          },
+        ],
+      };
+    }
+
+    const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+    // Sort dates from oldest to newest
+    const sortedDates = Object.keys(weeklyData.weekly_nutrition).sort();
+
+    const labels = sortedDates.map((dateStr) => {
+      const date = new Date(dateStr + "T00:00:00");
+      return dayNames[date.getDay()];
+    });
+
+    const caloriesData = sortedDates.map(
+      (dateStr) => weeklyData.weekly_nutrition[dateStr].consumed_today.calories
+    );
+
+    return {
+      labels: labels.length > 0 ? labels : ["--"],
+      datasets: [
+        {
+          data: caloriesData.length > 0 ? caloriesData : [0],
+          color: (opacity = 1) => `rgba(59, 130, 246, ${opacity})`,
+          strokeWidth: 3,
+        },
+      ],
+    };
+  }, [weeklyData]);
+
+  const avgCalories = useMemo(() => {
+    const data = nutritionChartData.datasets[0].data;
+    if (data.length === 0 || data.every((d) => d === 0)) return 0;
+    const nonZero = data.filter((d) => d > 0);
+    if (nonZero.length === 0) return 0;
+    return nonZero.reduce((a, b) => a + b, 0) / nonZero.length;
+  }, [nutritionChartData]);
 
   const chartConfig = {
     backgroundColor: "#ffffff",
     backgroundGradientFrom: "#ffffff",
     backgroundGradientTo: "#ffffff",
-    decimalPlaces: 1,
+    decimalPlaces: 0,
     color: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
     labelColor: (opacity = 1) => `rgba(107, 114, 128, ${opacity})`,
     style: {
@@ -76,9 +130,27 @@ export default function AnalyticsScreen() {
     },
   };
 
-  const avgCalories =
-    nutritionData.datasets[0].data.reduce((a, b) => a + b, 0) /
-    nutritionData.datasets[0].data.length;
+  const handleUpdateGoal = () => {
+    router.push("/(tabs)/edit-profile");
+  };
+
+  const handleLogWeight = () => {
+    router.push("/(tabs)/edit-profile");
+  };
+
+  if (isLoadingProfile) {
+    return (
+      <LinearGradient
+        colors={["#fafafa", "#f4f6f8", "#eef2f5"]}
+        className="flex-1"
+      >
+        <SafeAreaView className="flex-1 justify-center items-center">
+          <ActivityIndicator size="large" color="#10B981" />
+          <Text className="text-gray-500 mt-4">Loading analytics...</Text>
+        </SafeAreaView>
+      </LinearGradient>
+    );
+  }
 
   return (
     <LinearGradient
@@ -95,39 +167,27 @@ export default function AnalyticsScreen() {
             <Text className="text-2xl font-bold text-gray-900">Analytics</Text>
           </View>
 
-          {/* Weight Goal Section */}
-          <View className="bg-white rounded-3xl p-6 mb-6 shadow-sm">
-            <View className="flex-row justify-between items-center mb-4">
-              <Text className="text-lg font-semibold text-gray-900">
-                Weight Goal
-              </Text>
-              <TouchableOpacity className="bg-black rounded-full px-4 py-2">
-                <Text className="text-white text-sm font-medium">Update</Text>
-              </TouchableOpacity>
-            </View>
-            <Text className="text-3xl font-bold text-green-500">
-              {userData.weightGoal} kg
-            </Text>
-          </View>
-
           {/* Current Weight Section */}
           <View className="bg-white rounded-3xl p-6 mb-6 shadow-sm">
             <Text className="text-lg font-semibold text-gray-900 mb-2">
               Current Weight
             </Text>
             <Text className="text-3xl font-bold text-gray-900 mb-4">
-              {userData.currentWeight} kg
+              {profile?.weight_value ?? "--"} {weightUnit}
             </Text>
 
             <View className="bg-blue-50 rounded-2xl p-4 mb-4">
               <Text className="text-blue-800 text-sm leading-5">
-                💡 Update your weight frequently for more accurate tracking and
+                Update your weight frequently for more accurate tracking and
                 better insights into your progress.
               </Text>
             </View>
 
-            <TouchableOpacity className="bg-green-500 rounded-2xl py-3 items-center">
-              <Text className="text-white font-semibold">Log Weight</Text>
+            <TouchableOpacity
+              className="bg-green-500 rounded-2xl py-3 items-center"
+              onPress={handleLogWeight}
+            >
+              <Text className="text-white font-semibold">Update Weight</Text>
             </TouchableOpacity>
           </View>
 
@@ -136,16 +196,24 @@ export default function AnalyticsScreen() {
             <Text className="text-lg font-semibold text-gray-900 mb-3">
               Your BMI
             </Text>
-            <Text className="text-gray-700 mb-4">
-              Your weight is{" "}
-              <Text className={`font-semibold ${bmiStatus.color}`}>
-                {bmiStatus.status}
-              </Text>
-            </Text>
+            {bmi > 0 ? (
+              <>
+                <Text className="text-gray-700 mb-4">
+                  Your weight is{" "}
+                  <Text className={`font-semibold ${bmiStatus.color}`}>
+                    {bmiStatus.status}
+                  </Text>
+                </Text>
 
-            <Text className="text-2xl font-bold text-gray-900 mb-4">
-              {bmi.toFixed(1)}
-            </Text>
+                <Text className="text-2xl font-bold text-gray-900 mb-4">
+                  {bmi.toFixed(1)}
+                </Text>
+              </>
+            ) : (
+              <Text className="text-gray-500 mb-4">
+                Complete your profile to see BMI
+              </Text>
+            )}
 
             {/* BMI Scale */}
             <View className="mb-4">
@@ -156,7 +224,7 @@ export default function AnalyticsScreen() {
                 <View className="flex-1 bg-red-500" />
               </View>
 
-              <View className="flex-row justify-between text-xs">
+              <View className="flex-row justify-between">
                 <View className="flex-row items-center">
                   <View className="w-2 h-2 bg-blue-400 rounded-full mr-1" />
                   <Text className="text-gray-600 text-xs">Underweight</Text>
@@ -177,100 +245,102 @@ export default function AnalyticsScreen() {
             </View>
           </View>
 
-          {/* Progress Section */}
+          {/* Daily Targets Section */}
           <View className="bg-white rounded-3xl p-6 mb-6 shadow-sm">
             <View className="flex-row justify-between items-center mb-4">
               <Text className="text-lg font-semibold text-gray-900">
-                Progress
+                Daily Targets
               </Text>
-              <Text className="text-green-500 font-semibold">
-                {userData.goalAchieved}% goal achieved
-              </Text>
+              <TouchableOpacity
+                className="bg-black rounded-full px-4 py-2"
+                onPress={handleUpdateGoal}
+              >
+                <Text className="text-white text-sm font-medium">Update</Text>
+              </TouchableOpacity>
             </View>
 
-            {/* Weight Filter Buttons */}
-            <View className="flex-row gap-1 mb-4 space-x-2">
-              {["90 days", "6 months", "1 year", "All Time"].map((filter) => (
-                <TouchableOpacity
-                  key={filter}
-                  onPress={() => setWeightFilter(filter)}
-                  className={`px-3 py-2 rounded-full ${weightFilter === filter ? "bg-green-500" : "bg-gray-100"}`}
-                >
-                  <Text
-                    className={`text-xs font-medium ${weightFilter === filter ? "text-white" : "text-gray-600"}`}
-                  >
-                    {filter}
-                  </Text>
-                </TouchableOpacity>
-              ))}
+            <View className="flex-row justify-between">
+              <View className="items-center flex-1">
+                <Text className="text-2xl font-bold text-green-500">
+                  {profile?.daily_calories ?? "--"}
+                </Text>
+                <Text className="text-gray-500 text-xs mt-1">Calories</Text>
+              </View>
+              <View className="items-center flex-1">
+                <Text className="text-2xl font-bold text-blue-500">
+                  {profile?.daily_protein_g ?? "--"}g
+                </Text>
+                <Text className="text-gray-500 text-xs mt-1">Protein</Text>
+              </View>
+              <View className="items-center flex-1">
+                <Text className="text-2xl font-bold text-orange-500">
+                  {profile?.daily_carbs_g ?? "--"}g
+                </Text>
+                <Text className="text-gray-500 text-xs mt-1">Carbs</Text>
+              </View>
+              <View className="items-center flex-1">
+                <Text className="text-2xl font-bold text-purple-500">
+                  {profile?.daily_fats_g ?? "--"}g
+                </Text>
+                <Text className="text-gray-500 text-xs mt-1">Fats</Text>
+              </View>
             </View>
-
-            {/* Weight Chart */}
-            <LineChart
-              data={weightData}
-              width={screenWidth - 80}
-              height={200}
-              chartConfig={chartConfig}
-              bezier
-              style={{
-                marginVertical: 8,
-                borderRadius: 16,
-              }}
-            />
           </View>
 
           {/* Nutrition Section */}
           <View className="bg-white rounded-3xl p-6 mb-20 shadow-sm">
             <View className="flex-row justify-between items-center mb-4">
               <Text className="text-lg font-semibold text-gray-900">
-                Nutrition
+                Nutrition (Last 5 Days)
               </Text>
             </View>
 
-            {/* Nutrition Filter Buttons */}
-            <View className="flex-row gap-1 mb-4 space-x-2">
-              {["this week", "last week", "2 wks ago", "3 wks ago"].map(
-                (filter) => (
-                  <TouchableOpacity
-                    key={filter}
-                    onPress={() => setNutritionFilter(filter)}
-                    className={`px-3 py-2 rounded-full ${nutritionFilter === filter ? "bg-blue-500" : "bg-gray-100"}`}
-                  >
-                    <Text
-                      className={`text-xs font-medium ${nutritionFilter === filter ? "text-white" : "text-gray-600"}`}
-                    >
-                      {filter}
+            {isLoadingNutrition ? (
+              <View className="items-center py-8">
+                <ActivityIndicator size="small" color="#3B82F6" />
+                <Text className="text-gray-500 mt-2 text-sm">
+                  Loading nutrition data...
+                </Text>
+              </View>
+            ) : (
+              <>
+                {/* Calories Header */}
+                <View className="flex-row justify-between items-center mb-4">
+                  <Text className="text-base font-semibold text-gray-900">
+                    Total Calories
+                  </Text>
+                  <Text className="text-gray-600">
+                    Daily Avg:{" "}
+                    {avgCalories > 0 ? avgCalories.toFixed(0) : "--"} cal
+                  </Text>
+                </View>
+
+                {/* Nutrition Chart */}
+                <LineChart
+                  data={nutritionChartData}
+                  width={screenWidth - 80}
+                  height={200}
+                  chartConfig={{
+                    ...chartConfig,
+                    color: (opacity = 1) =>
+                      `rgba(59, 130, 246, ${opacity})`,
+                  }}
+                  bezier
+                  style={{
+                    marginVertical: 8,
+                    borderRadius: 16,
+                  }}
+                />
+
+                {weeklyData?.daily_goals && (
+                  <View className="mt-2 bg-blue-50 rounded-2xl p-3">
+                    <Text className="text-blue-800 text-xs text-center">
+                      Daily Goal: {weeklyData.daily_goals.calories} cal
                     </Text>
-                  </TouchableOpacity>
-                )
-              )}
-            </View>
-
-            {/* Calories Header */}
-            <View className="flex-row justify-between items-center mb-4">
-              <Text className="text-base font-semibold text-gray-900">
-                Total Calories
-              </Text>
-              <Text className="text-gray-600">
-                Daily Avg: {avgCalories.toFixed(0)} cal
-              </Text>
-            </View>
-
-            {/* Nutrition Chart */}
-            <LineChart
-              data={nutritionData}
-              width={screenWidth - 80}
-              height={200}
-              chartConfig={{
-                ...chartConfig,
-                color: (opacity = 1) => `rgba(59, 130, 246, ${opacity})`,
-              }}
-              bezier
-              style={{
-                marginVertical: 8,
-                borderRadius: 16,
-              }}
-            />
+                  </View>
+                )}
+              </>
+            )}
           </View>
         </ScrollView>
       </SafeAreaView>

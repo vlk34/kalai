@@ -84,8 +84,8 @@ class PromptGenerator:
         Use the provided text description to get more accurate nutritional analysis.
         Return ONLY a JSON object with these exact fields:
         {
-            "name": "food name",
-            "emoji": "emoji related to food name"
+            "name": "food name or item name",
+            "emoji": "emoji related to the item",
             "protein": "protein content in grams",
             "carbs": "carbohydrate content in grams", 
             "fats": "fat content in grams",
