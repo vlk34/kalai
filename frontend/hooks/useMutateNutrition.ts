@@ -180,6 +180,9 @@ export const useMutateNutrition = () => {
       queryKey: ["daily-nutrition-summary"],
     });
     queryClient.invalidateQueries({
+      queryKey: ["weekly-nutrition-summary"],
+    });
+    queryClient.invalidateQueries({
       queryKey: ["user-profile"],
     });
   };
