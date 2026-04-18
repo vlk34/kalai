@@ -56,7 +56,6 @@ export default function AuthSelectionScreen() {
     try {
       await GoogleSignin.hasPlayServices();
       const userInfo = await GoogleSignin.signIn();
-      console.log(userInfo);
       const idToken = userInfo?.data?.idToken;
       if (idToken) {
         const { data, error } = await supabase.auth.signInWithIdToken({

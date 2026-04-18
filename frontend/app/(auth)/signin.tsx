@@ -72,17 +72,17 @@ export default function SignIn() {
 
     if (error) {
       setErrors({ general: error.message });
+      setLoading(false);
     } else {
-      // Add a small delay to ensure navigation context is properly reset
       setTimeout(() => {
         try {
           router.replace("/");
         } catch (error) {
           console.error("Navigation error on sign in:", error);
+          setLoading(false);
         }
       }, 100);
     }
-    setLoading(false);
   }
 
   return (

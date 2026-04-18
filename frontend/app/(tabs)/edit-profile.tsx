@@ -237,8 +237,6 @@ const EditProfileScreen = () => {
 
   // Map frontend values to backend values
   const mapToBackendValues = (data: any) => {
-    console.log("Mapping function called with data:", data);
-
     const activityLevelMap: { [key: string]: string } = {
       low: "sedentary",
       moderate: "lightly_active",
@@ -303,7 +301,6 @@ const EditProfileScreen = () => {
         experienceMap[data.experience_level] || data.experience_level,
     };
 
-    console.log("Mapped data result:", mappedData);
     return mappedData;
   };
 
@@ -312,9 +309,6 @@ const EditProfileScreen = () => {
     try {
       // Map frontend values to backend values
       const mappedData = mapToBackendValues(profileData);
-      console.log("Original profile data:", profileData);
-      console.log("Mapped profile data:", mappedData);
-
       const response = await fetch(
         `${process.env.EXPO_PUBLIC_PRODUCTION_API_URL}/user_profiles`,
         {

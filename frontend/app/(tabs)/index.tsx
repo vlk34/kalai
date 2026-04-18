@@ -58,11 +58,6 @@ export default function DashboardScreen() {
   );
   const [selectedDateIndex, setSelectedDateIndex] = useState<number>(29); // Today is the last index (30 days - 1)
 
-  // Debug: Log when selectedDate changes
-  useEffect(() => {
-    console.log("[DEBUG] selectedDate changed:", selectedDate);
-  }, [selectedDate]);
-
   // Track which dates have been loaded to prevent re-animations
   const [loadedDates, setLoadedDates] = useState<Set<string>>(new Set());
 
@@ -536,7 +531,6 @@ export default function DashboardScreen() {
   // Handle day selection
   const handleDaySelect = (dateIndex: number, dateObj: any) => {
     if (!session?.user?.id) {
-      console.log("No session available, skipping day selection");
       return;
     }
 
@@ -706,9 +700,7 @@ export default function DashboardScreen() {
 
   // Force refetch when session becomes ready
   useEffect(() => {
-    console.log("[DEBUG] Session readiness effect triggered");
     if (session?.access_token && session?.user?.id && selectedDate) {
-      console.log("[DEBUG] Session is now ready, forcing refetch");
       recentMealsQuery.refetch();
       dailyNutritionQuery.refetch();
     }
@@ -806,8 +798,6 @@ export default function DashboardScreen() {
         if (consumed >= goal && !hasReachedGoal(selectedDate)) {
           // SECURITY FIX: Only update streak if the selected date is actually today
           if (selectedDate === today) {
-            console.log("[DEBUG] Goal reached for today, updating streak");
-
             // Optimistically update streak data for immediate UI feedback
             optimisticallyUpdateStreak(selectedDate);
 
@@ -831,10 +821,6 @@ export default function DashboardScreen() {
                 queryKey: ["user-profile", session?.user?.id],
               });
             }, 1000);
-          } else {
-            console.log(
-              "[DEBUG] Goal reached for past date, NOT updating current streak for security"
-            );
           }
 
           // Note: We don't update streak for past dates, but we still track that the goal was reached

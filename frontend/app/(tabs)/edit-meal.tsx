@@ -231,8 +231,6 @@ export default function EditMealScreen() {
       // Get current date for optimistic update
       const targetDate =
         (selectedDate as string) || formatDateForAPI(new Date());
-      console.log("Using target date for delete:", targetDate);
-
       // Get meal data for nutrition update
       const mealData = {
         calories: parseFloat(calories as string) || 0,
@@ -242,7 +240,6 @@ export default function EditMealScreen() {
       };
 
       // Apply optimistic updates FIRST
-      console.log("Applying optimistic delete updates for meal:", id);
       removeOptimisticMeal(id as string, targetDate);
       removeMealFromNutrition(mealData, targetDate);
 
@@ -267,10 +264,6 @@ export default function EditMealScreen() {
       } else {
         // If API call succeeded, wait a bit for navigation to complete, then force refetch for the specific day only
         setTimeout(() => {
-          console.log(
-            "Refetching data after successful deletion for date:",
-            targetDate
-          );
           // Force refetch recent meals for the specific day only
           queryClient.invalidateQueries({
             queryKey: ["recent-meals", session?.user?.id, targetDate],
@@ -392,8 +385,6 @@ export default function EditMealScreen() {
       // Get current date for optimistic update
       const targetDate =
         (selectedDate as string) || formatDateForAPI(new Date());
-      console.log("Using target date for save:", targetDate);
-
       // Calculate the difference in nutrition values
       const oldMealData = {
         calories: parseFloat(calories as string) || 0,
@@ -418,7 +409,6 @@ export default function EditMealScreen() {
       };
 
       // Apply optimistic updates FIRST
-      console.log("Applying optimistic save updates for meal:", id, saveData);
       updateOptimisticMeal(id as string, { ...saveData }, targetDate);
       updateOptimisticNutrition(nutritionDiff, targetDate);
 

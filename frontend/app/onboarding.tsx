@@ -529,7 +529,6 @@ export default function OnboardingScreen() {
               <HeightSelectorOnboarding
                 currentValue={data.height}
                 onValueChange={(height) => {
-                  console.log("Height changed to:", height);
                   setData({ ...data, height });
                 }}
               />
@@ -545,7 +544,6 @@ export default function OnboardingScreen() {
               <WeightSelectorOnboarding
                 currentValue={data.weight}
                 onValueChange={(weight) => {
-                  console.log("Weight changed to:", weight);
                   setData({ ...data, weight });
                 }}
               />

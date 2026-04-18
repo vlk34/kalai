@@ -97,21 +97,22 @@ export default function SignUp() {
 
     if (error) {
       setErrors({ general: error.message });
+      setLoading(false);
     } else if (!session) {
       setErrors({
         general: "Success! Please check your inbox for email verification.",
       });
+      setLoading(false);
     } else {
-      // Add a small delay to ensure navigation context is properly reset
       setTimeout(() => {
         try {
           router.replace("/");
         } catch (error) {
           console.error("Navigation error on sign up:", error);
+          setLoading(false);
         }
       }, 100);
     }
-    setLoading(false);
   }
 
   return (

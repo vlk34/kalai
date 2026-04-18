@@ -12,13 +12,16 @@ def verify_supabase_token(f):
         if not auth_header or not auth_header.startswith('Bearer '):
             return jsonify({'error': 'Missing or invalid authorization header'}), 401
 
-        token = auth_header.split(' ')[1]
+        parts = auth_header.split(' ')
+        if len(parts) != 2:
+            return jsonify({'error': 'Missing or invalid authorization header'}), 401
+        token = parts[1]
 
         try:
-            # Get JWT secret from environment
             jwt_secret = os.getenv('SUPABASE_JWT_SECRET')
-            
-            # Verify and decode the JWT token using Supabase JWT secret
+            if not jwt_secret:
+                return jsonify({'error': 'Server misconfiguration'}), 500
+
             payload = jwt.decode(
                 token,
                 jwt_secret,
