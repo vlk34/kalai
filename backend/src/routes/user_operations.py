@@ -91,10 +91,10 @@ class RecentlyEaten(MethodView):
             total_protein = 0
             total_carbs = 0
             total_fats = 0
-            
+
             for food in result.data:
                 # Get portion size (default to 1 if not set)
-                portion = float(food.get('portion'))
+                portion = float(food.get('portion') or 1)
                 
                 # Get signed URL if photo_path exists
                 photo_url = None
@@ -203,10 +203,10 @@ class FullHistory(MethodView):
             
             # Format the food records
             formatted_foods = []
-            
+
             for food in result.data:
                 # Get portion size (default to 1 if not set)
-                portion = float(food.get('portion'))
+                portion = float(food.get('portion') or 1)
                 
                 # Get signed URL if photo_path exists
                 photo_url = None
@@ -554,17 +554,16 @@ class GetStreak(MethodView):
                     print(f"Streak should be reset. Last update: {stored_date}, Today: {today_date}, Gap: {days_difference} days")
                     
                     # Reset the streak in database
-                    reset_result = supabase.table('user_profiles') \
+                    supabase.table('user_profiles') \
                         .update({
                             'streak': 0,
                             'updated_at': datetime.now().isoformat()
                         }) \
                         .eq('user_id', g.current_user['id']) \
                         .execute()
-                    
-                    if reset_result.data:
-                        current_streak = 0
-                        print(f"Streak reset to 0 due to {days_difference} day gap")
+
+                    current_streak = 0
+                    print(f"Streak reset to 0 due to {days_difference} day gap")
             
             # Get last 31 days of streak data
             thirty_one_days_ago = (datetime.now().date() - timedelta(days=31)).isoformat()
@@ -655,7 +654,7 @@ class WeeklyRecentlyEaten(MethodView):
                 
                 for food in result.data:
                     # Get portion size (default to 1 if not set)
-                    portion = float(food.get('portion'))
+                    portion = float(food.get('portion') or 1)
                     
                     # Get signed URL if photo_path exists
                     photo_url = None
