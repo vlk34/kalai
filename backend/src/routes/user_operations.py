@@ -636,14 +636,17 @@ class WeeklyRecentlyEaten(MethodView):
                 date_start = datetime.combine(target_date, datetime.min.time()).isoformat()
                 date_end = datetime.combine(target_date + timedelta(days=1), datetime.min.time()).isoformat()
                 
-                # Query the foods_consumed table for user's food from this specific date
+                # Query the foods_consumed table for ALL of the user's food on
+                # this date. `daily_totals` must sum every meal for the day,
+                # so we can't apply `.limit(daily_limit)` at the database level
+                # here — that only applies to which rows are returned for the
+                # `foods` list below.
                 result = supabase.table('foods_consumed') \
                     .select('*') \
                     .eq('user_id', g.current_user['id']) \
                     .gte('created_at', date_start) \
                     .lt('created_at', date_end) \
                     .order('created_at', desc=True) \
-                    .limit(daily_limit) \
                     .execute()
                 
                 # Format the food records for this date
@@ -653,7 +656,26 @@ class WeeklyRecentlyEaten(MethodView):
                 daily_carbs = 0
                 daily_fats = 0
                 
-                for food in result.data:
+                for index, food in enumerate(result.data):
+                    # Use stored nutritional values (do not multiply by portion)
+                    base_protein = float(food['protein']) if food['protein'] else 0
+                    base_carbs = float(food['carbs']) if food['carbs'] else 0
+                    base_fats = float(food['fats']) if food['fats'] else 0
+                    base_calories = float(food['calories']) if food['calories'] else 0
+                    
+                    # Every meal contributes to the day's totals, not just the
+                    # first `daily_limit` rows returned in `foods`.
+                    daily_calories += base_calories
+                    daily_protein += base_protein
+                    daily_carbs += base_carbs
+                    daily_fats += base_fats
+                    
+                    # Only include the most recent `daily_limit` rows in the
+                    # `foods` list that the UI renders, and skip the cost of
+                    # generating a signed URL for rows the client won't show.
+                    if index >= daily_limit:
+                        continue
+                    
                     # Get portion size (default to 1 if not set)
                     portion = float(food.get('portion'))
                     
@@ -674,12 +696,6 @@ class WeeklyRecentlyEaten(MethodView):
                         except Exception as e:
                             print(f"Warning: Could not generate signed URL for photo {food['photo_path']}: {str(e)}")
                     
-                    # Use stored nutritional values (do not multiply by portion)
-                    base_protein = float(food['protein']) if food['protein'] else 0
-                    base_carbs = float(food['carbs']) if food['carbs'] else 0
-                    base_fats = float(food['fats']) if food['fats'] else 0
-                    base_calories = float(food['calories']) if food['calories'] else 0
-                    
                     formatted_food = {
                         'id': food['id'],
                         'name': food['name'],
@@ -692,12 +708,6 @@ class WeeklyRecentlyEaten(MethodView):
                         'photo_url': photo_url,
                         'created_at': food['created_at']
                     }
-                    
-                    # Add to daily totals
-                    daily_calories += formatted_food['calories']
-                    daily_protein += formatted_food['protein']
-                    daily_carbs += formatted_food['carbs']
-                    daily_fats += formatted_food['fats']
                     
                     formatted_foods.append(formatted_food)
                 
