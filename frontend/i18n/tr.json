@@ -159,6 +159,14 @@
       "longestStreak": "En Uzun Seri",
       "totalDays": "Toplam Gün",
       "keepItUp": "Böyle devam edin!"
+    },
+    "hydration": {
+      "title": "Su Takibi",
+      "perGlass": "Bardak başı {{amount}}ml",
+      "addGlass": "Bardak ekle",
+      "goalReached": "Günlük su hedefine ulaşıldı",
+      "remaining": "{{goal}} hedefin {{remaining}} kaldı",
+      "loading": "Su tüketimi yükleniyor..."
     }
   },
   "settings": {

@@ -42,6 +42,8 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
 import { useStreak, useUpdateStreak } from "@/hooks/useStreak";
 import { MacrosSection } from "@/components/ui/MacrosSection";
+import { HydrationCard } from "@/components/ui/HydrationCard";
+import { useHydration } from "@/hooks/useHydration";
 
 export default function DashboardScreen() {
   // Debug: Log when component mounts
@@ -139,6 +141,15 @@ export default function DashboardScreen() {
   const { analyzeFood } = useAnalyzeFood();
   const { addOptimisticMeal, updateOptimisticMeal } = useMutateRecentMeals();
   const { addMealToNutrition } = useMutateNutrition();
+  const {
+    intakeMl: hydrationIntakeMl,
+    goalMl: hydrationGoalMl,
+    progressPercent: hydrationProgress,
+    isLoading: isLoadingHydration,
+    isSaving: isSavingHydration,
+    addGlass: addHydrationGlass,
+    removeGlass: removeHydrationGlass,
+  } = useHydration(selectedDate);
 
   // Android back button handler - only for homepage
   useFocusEffect(
@@ -1169,6 +1180,17 @@ export default function DashboardScreen() {
               isLoadingNutrition={isLoadingNutrition}
               nutritionError={nutritionError}
               hasBeenLoaded={loadedDates.has(selectedDate)}
+            />
+
+            <HydrationCard
+              key={`hydration-${selectedDate}`}
+              intakeMl={hydrationIntakeMl}
+              goalMl={hydrationGoalMl}
+              progressPercent={hydrationProgress}
+              isLoading={isLoadingHydration}
+              isSaving={isSavingHydration}
+              onAddGlass={addHydrationGlass}
+              onRemoveGlass={removeHydrationGlass}
             />
 
             {/* Recently Section */}
