@@ -18,7 +18,7 @@ Authorization: Bearer <your_supabase_jwt_token>
 ### 1. Health Check
 **GET** `/health`
 
-Check if the API is running.
+Check if the API is running. Suitable for uptime probes and Railway health checks.
 
 **Authentication:** Not required
 
@@ -28,6 +28,10 @@ Check if the API is running.
   "status": "healthy"
 }
 ```
+
+**Notes:**
+- Public endpoint; does not touch the database or storage
+- Returns HTTP 200 when the Flask process is up
 
 ---
 
