@@ -159,6 +159,14 @@
       "longestStreak": "Longest Streak",
       "totalDays": "Total Days",
       "keepItUp": "Keep it up!"
+    },
+    "hydration": {
+      "title": "Hydration",
+      "perGlass": "{{amount}}ml per glass",
+      "addGlass": "Add glass",
+      "goalReached": "Daily water goal reached",
+      "remaining": "{{remaining}} left of {{goal}}",
+      "loading": "Loading water intake..."
     }
   },
   "settings": {
