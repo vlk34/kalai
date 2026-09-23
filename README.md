@@ -1,4 +1,4 @@
-# Kal AI - Smart Calorie Tracker 🍎
+# Kal AI 
 
 **Kal AI** is a comprehensive, cross-platform calorie tracking application that leverages AI-powered nutrition analysis to help users achieve their health and fitness goals. Built with modern technologies including React Native, Expo, Flask, and Supabase, Kal AI provides an intuitive and intelligent approach to food tracking.
 
