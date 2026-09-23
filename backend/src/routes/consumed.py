@@ -22,10 +22,18 @@ load_dotenv()
 blp = Blueprint('Consumed', __name__, description='Consumed Operations')
 
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
+MAX_FOOD_IMAGE_PIXELS = 16_000_000
 
 def allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+def open_food_image(content):
+    image = Image.open(io.BytesIO(content))
+    if image.width * image.height > MAX_FOOD_IMAGE_PIXELS:
+        image.close()
+        raise Image.DecompressionBombError('Image exceeds the 16-megapixel limit')
+    return image
 
 @blp.route('/consumed')
 class Consumed(MethodView):
@@ -78,16 +86,21 @@ class Consumed(MethodView):
             # Read original file bytes
             original_content = file.read()
 
+            try:
+                image = open_food_image(original_content)
+            except Image.DecompressionBombError:
+                return jsonify({
+                    'error': 'Image too large',
+                    'message': 'Please upload an image no larger than 16 megapixels'
+                }), 400
+
             # Check if the image is already in WebP format (frontend optimization)
             if filename.lower().endswith('.webp'):
                 # Image is already optimized by frontend, use as-is
                 file_content = original_content
                 file_size = len(file_content)
-                # Still need to create image object for AI analysis
-                image = Image.open(io.BytesIO(original_content))
             else:
                 # Convert to WebP format for backward compatibility
-                image = Image.open(io.BytesIO(original_content))
                 webp_io = io.BytesIO()
                 # Ensure compatibility (e.g. remove alpha channel) before saving as WEBP
                 if image.mode in ("RGBA", "P"):
@@ -277,8 +290,13 @@ class EditWithAI(MethodView):
                     }), 500
                 
                 # Convert bytes to PIL Image
-                image = Image.open(io.BytesIO(image_response))
+                image = open_food_image(image_response)
                 
+            except Image.DecompressionBombError:
+                return jsonify({
+                    'error': 'Image too large',
+                    'message': 'Stored image exceeds the 16-megapixel limit'
+                }), 400
             except Exception as e:
                 return jsonify({
                     'error': 'Failed to process image',
