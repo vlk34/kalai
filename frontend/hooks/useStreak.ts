@@ -19,7 +19,12 @@ interface StreakResponse {
 
 interface UpdateStreakResponse {
   success: boolean;
-  streak: number;
+  message: string;
+  data: {
+    streak: number;
+    previous_streak: number;
+    streak_action: string;
+  };
 }
 
 export const useStreak = () => {
@@ -71,69 +76,32 @@ export const useUpdateStreak = () => {
       }
 
       const result: UpdateStreakResponse = await response.json();
-      return result.streak;
+      return result.data.streak;
     },
     onSuccess: (newStreak) => {
-      // Update the user profile cache with new streak data
-      queryClient.setQueryData(
-        ["user-profile-streak", session?.user?.id],
-        (oldData: any) => {
-          if (oldData) {
-            return {
-              ...oldData,
-              streak: newStreak,
-              profile: {
-                ...oldData.profile,
-                updated_at: new Date().toISOString(),
-              },
-            };
-          }
-          return oldData;
-        }
-      );
-
-      // Also update the main user profile cache
+      // `useUserProfileStreak` is an alias of `useUserProfile`, so the real
+      // query key is `["user-profile", userId]`. Previous versions also wrote
+      // to `["user-profile-streak", userId]` and `["streak", userId]`, but no
+      // query is registered under those keys so those writes were no-ops.
       queryClient.setQueryData(
         ["user-profile", session?.user?.id],
         (oldData: any) => {
-          if (oldData) {
-            return {
-              ...oldData,
-              streak: newStreak,
-              profile: {
-                ...oldData.profile,
-                updated_at: new Date().toISOString(),
-              },
-            };
-          }
-          return oldData;
-        }
-      );
-
-      // Also update the streak data cache for the top display
-      queryClient.setQueryData(
-        ["streak", session?.user?.id],
-        (oldData: any) => {
-          if (oldData) {
-            return {
-              ...oldData,
-              current_streak: newStreak,
-            };
-          }
-          return oldData;
+          if (!oldData) return oldData;
+          return {
+            ...oldData,
+            streak: newStreak,
+            profile: {
+              ...oldData.profile,
+              updated_at: new Date().toISOString(),
+            },
+          };
         }
       );
     },
     onError: () => {
-      // If the API call fails, invalidate queries to revert optimistic updates
-      queryClient.invalidateQueries({
-        queryKey: ["user-profile-streak", session?.user?.id],
-      });
+      // Revert the optimistic update by refetching the real source of truth.
       queryClient.invalidateQueries({
         queryKey: ["user-profile", session?.user?.id],
-      });
-      queryClient.invalidateQueries({
-        queryKey: ["streak", session?.user?.id],
       });
     },
   });

@@ -814,19 +814,15 @@ export default function DashboardScreen() {
             // Update streak in background (only for current day)
             updateStreakMutation.mutate();
 
-            // Invalidate user profile data to refresh streak history (as fallback)
-            queryClient.invalidateQueries({
-              queryKey: ["user-profile-streak", session?.user?.id],
-            });
+            // Invalidate user profile data to refresh streak history (as fallback).
+            // `useUserProfileStreak` aliases `useUserProfile`, so only the
+            // `["user-profile", userId]` key needs to be invalidated.
             queryClient.invalidateQueries({
               queryKey: ["user-profile", session?.user?.id],
             });
 
             // Refetch user profile data in background to ensure consistency
             setTimeout(() => {
-              queryClient.refetchQueries({
-                queryKey: ["user-profile-streak", session?.user?.id],
-              });
               queryClient.refetchQueries({
                 queryKey: ["user-profile", session?.user?.id],
               });
@@ -943,30 +939,13 @@ export default function DashboardScreen() {
     return dateString === today && streakModalShownForDay !== today;
   };
 
-  // Function to optimistically update streak data
+  // Function to optimistically update streak data.
+  // `useUserProfileStreak` is an alias of `useUserProfile`, so
+  // `["user-profile", userId]` is the only live cache key. The `"streak"` and
+  // `"user-profile-streak"` keys used previously had no registered queries.
   const optimisticallyUpdateStreak = (dateString: string) => {
     if (!userProfileData) return;
 
-    // Optimistically update the streak history
-    queryClient.setQueryData(
-      ["user-profile-streak", session?.user?.id],
-      (oldData: any) => {
-        if (!oldData) return oldData;
-
-        const updatedStreakHistory = [
-          ...(oldData.streak_history || []),
-          dateString,
-        ];
-
-        return {
-          ...oldData,
-          streak: (oldData.streak || 0) + 1,
-          streak_history: updatedStreakHistory,
-        };
-      }
-    );
-
-    // Also update the main user profile cache
     queryClient.setQueryData(
       ["user-profile", session?.user?.id],
       (oldData: any) => {
@@ -984,15 +963,6 @@ export default function DashboardScreen() {
         };
       }
     );
-
-    // Also update the streak data cache for the top display
-    queryClient.setQueryData(["streak", session?.user?.id], (oldData: any) => {
-      if (!oldData) return oldData;
-      return {
-        ...oldData,
-        current_streak: (oldData.current_streak || 0) + 1,
-      };
-    });
   };
 
   return (
