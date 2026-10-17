@@ -7,6 +7,7 @@ import json
 from werkzeug.utils import secure_filename
 from src.utils.auth import verify_supabase_token
 from src.utils.rate_limiter import limiter, RATE_LIMITS
+from src.utils.ai_credits import require_ai_credit
 import uuid
 from datetime import datetime
 from supabase import create_client, Client
@@ -31,6 +32,7 @@ def allowed_file(filename):
 class Consumed(MethodView):
     @verify_supabase_token  
     @limiter.limit(RATE_LIMITS['AI_ANALYSIS'])
+    @require_ai_credit
     def post(self):
         try:
             # Check if the request contains a file
@@ -209,6 +211,7 @@ class Consumed(MethodView):
 class EditWithAI(MethodView):
     @verify_supabase_token
     @limiter.limit(RATE_LIMITS['AI_ANALYSIS'])
+    @require_ai_credit
     def post(self):
         try:
             # Get request data
