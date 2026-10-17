@@ -1,3 +1,6 @@
 backend/.env 
 .cursorignore
 Database.md
+__pycache__/
+*.py[cod]
+.pytest_cache/
