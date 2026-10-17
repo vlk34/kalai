@@ -5,6 +5,15 @@ class PromptGenerator:
     def __init__(self):
         pass
 
+    def described_food_prompt(self, description):
+        return [
+            {
+                'role': 'system',
+                'content': 'Estimate nutrition for the described meal. Return a JSON object with name, emoji, protein, carbs, fats and calories. Use numbers for all nutritional values and estimate a typical serving when no portion is provided.'
+            },
+            {'role': 'user', 'content': description}
+        ]
+
     def consumed_food_prompt(self, image):
         buffered = io.BytesIO()
         # Convert to RGB if needed (WEBP does not support P or RGBA in some cases for encoding without alpha)
