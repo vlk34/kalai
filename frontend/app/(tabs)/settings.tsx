@@ -12,6 +12,7 @@ import {
 import { useRouter } from "expo-router";
 import { GoogleSignin } from "@react-native-google-signin/google-signin";
 import { useQueryClient } from "@tanstack/react-query";
+import { AIReviewCard } from "@/components/ui/AIReviewCard";
 
 const SettingsScreen = () => {
   const router = useRouter();
@@ -212,6 +213,8 @@ const SettingsScreen = () => {
           <View className="px-6 py-6 border-b border-gray-100">
             <Text className="text-2xl font-bold text-gray-900">Settings</Text>
           </View>
+
+          <AIReviewCard />
 
           {/* Profile Information */}
           <SectionHeader title="Profile Information" />
