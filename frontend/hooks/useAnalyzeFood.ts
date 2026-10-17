@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Alert } from "react-native";
 import { useAuth } from "@/contexts/AuthContext";
 import { createImageFormData, ProcessedImage } from "@/utils/imageProcessor";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface NutritionAnalysis {
   name?: string;
@@ -57,6 +58,7 @@ export function useAnalyzeFood(): AnalyzeFoodResult {
   const [analysisResult, setAnalysisResult] =
     useState<NutritionAnalysis | null>(null);
   const { session } = useAuth();
+  const queryClient = useQueryClient();
 
   const uploadPhotoToAPI = async (
     imageUri: string,
@@ -127,6 +129,7 @@ export function useAnalyzeFood(): AnalyzeFoodResult {
       );
       throw error;
     } finally {
+      queryClient.invalidateQueries({ queryKey: ["ai-credits", session?.user?.id] });
       setIsAnalyzing(false);
     }
   };
