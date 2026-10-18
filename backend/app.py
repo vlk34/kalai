@@ -75,9 +75,11 @@ def create_app():
     from src.routes.consumed import blp as consumed_blp
     from src.routes.user_operations import blp as user_operations_blp
     from src.routes.user_profiles import blp as user_profiles_blp
+    from src.routes.ai_reviews import blp as ai_reviews_blp
     api.register_blueprint(consumed_blp)
     api.register_blueprint(user_operations_blp)
     api.register_blueprint(user_profiles_blp)
+    api.register_blueprint(ai_reviews_blp)
 
     return app
 
