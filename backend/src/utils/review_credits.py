@@ -55,9 +55,6 @@ def require_review_credit(f):
         try:
             client = get_review_client()
             credits = get_review_credits(client, g.current_user['id'])
-            data = request.get_json(silent=True)
-            if isinstance(data, dict):
-                credits['plan'] = data.get('plan', credits['plan'])
             if not reserve_review(client, g.current_user['id'], credits):
                 return jsonify({'error': 'Monthly review credits exhausted', 'credits': credits}), 402
             g.review_client = client
